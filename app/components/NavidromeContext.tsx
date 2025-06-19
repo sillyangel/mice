@@ -1,6 +1,7 @@
 'use client';
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { getNavidromeAPI, Album, Artist, Song, Playlist } from '@/lib/navidrome';
+import { useCallback } from 'react';
 
 interface NavidromeContextType {
   // Data
@@ -13,6 +14,9 @@ interface NavidromeContextType {
   albumsLoading: boolean;
   artistsLoading: boolean;
   playlistsLoading: boolean;
+  
+  // Connection state
+  isConnected: boolean;
   
   // Error states
   error: string | null;
@@ -48,6 +52,7 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
   const [playlistsLoading, setPlaylistsLoading] = useState(false);
   
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   const isLoading = albumsLoading || artistsLoading || playlistsLoading;
 
@@ -234,8 +239,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     // Test connection and load initial data
     const initialize = async () => {
       try {
-        const isConnected = await api.ping();
-        if (isConnected) {
+        const connected = await api.ping();
+        setIsConnected(connected);
+        if (connected) {
           await refreshData();
         } else {
           setError('Failed to connect to Navidrome server');
@@ -243,6 +249,7 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       } catch (err) {
         console.error('Failed to initialize Navidrome:', err);
         setError('Failed to initialize Navidrome connection');
+        setIsConnected(false);
       }
     };
 
@@ -260,6 +267,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     albumsLoading,
     artistsLoading,
     playlistsLoading,
+    
+    // Connection state
+    isConnected,
     
     // Error state
     error,

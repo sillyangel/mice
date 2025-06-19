@@ -147,8 +147,9 @@ class NavidromeAPI {
     const response = await this.makeRequest('getArtists');
     const artists: Artist[] = [];
     
-    if (response.artists?.index) {
-      for (const index of response.artists.index) {
+    const artistsData = response.artists as { index?: Array<{ artist?: Artist[] }> };
+    if (artistsData?.index) {
+      for (const index of artistsData.index) {
         if (index.artist) {
           artists.push(...index.artist);
         }
@@ -160,9 +161,10 @@ class NavidromeAPI {
 
   async getArtist(artistId: string): Promise<{ artist: Artist; albums: Album[] }> {
     const response = await this.makeRequest('getArtist', { id: artistId });
+    const artistData = response.artist as Artist & { album?: Album[] };
     return {
-      artist: response.artist,
-      albums: response.artist.album || []
+      artist: artistData,
+      albums: artistData.album || []
     };
   }
 
@@ -172,14 +174,16 @@ class NavidromeAPI {
       size,
       offset
     });
-    return response.albumList2?.album || [];
+    const albumListData = response.albumList2 as { album?: Album[] };
+    return albumListData?.album || [];
   }
 
   async getAlbum(albumId: string): Promise<{ album: Album; songs: Song[] }> {
     const response = await this.makeRequest('getAlbum', { id: albumId });
+    const albumData = response.album as Album & { song?: Song[] };
     return {
-      album: response.album,
-      songs: response.album.song || []
+      album: albumData,
+      songs: albumData.song || []
     };
   }
 
@@ -195,23 +199,31 @@ class NavidromeAPI {
       songCount
     });
 
+    const searchData = response.searchResult3 as {
+      artist?: Artist[];
+      album?: Album[];
+      song?: Song[];
+    };
+
     return {
-      artists: response.searchResult3?.artist || [],
-      albums: response.searchResult3?.album || [],
-      songs: response.searchResult3?.song || []
+      artists: searchData?.artist || [],
+      albums: searchData?.album || [],
+      songs: searchData?.song || []
     };
   }
 
   async getPlaylists(): Promise<Playlist[]> {
     const response = await this.makeRequest('getPlaylists');
-    return response.playlists?.playlist || [];
+    const playlistsData = response.playlists as { playlist?: Playlist[] };
+    return playlistsData?.playlist || [];
   }
 
   async getPlaylist(playlistId: string): Promise<{ playlist: Playlist; songs: Song[] }> {
     const response = await this.makeRequest('getPlaylist', { id: playlistId });
+    const playlistData = response.playlist as Playlist & { entry?: Song[] };
     return {
-      playlist: response.playlist,
-      songs: response.playlist.entry || []
+      playlist: playlistData,
+      songs: playlistData.entry || []
     };
   }
 
@@ -311,7 +323,8 @@ class NavidromeAPI {
       albumCount: 0
     });
     
-    return response.searchResult3?.song || [];
+    const searchData = response.searchResult3 as { song?: Song[] };
+    return searchData?.song || [];
   }
 }
 
