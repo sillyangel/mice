@@ -41,8 +41,11 @@ const SettingsPage = () => {
 
         setIsTesting(true);
         try {
+            // Strip trailing slash from server URL before testing
+            const cleanServerUrl = formData.serverUrl.replace(/\/+$/, '');
+            
             const success = await testConnection({
-                serverUrl: formData.serverUrl,
+                serverUrl: cleanServerUrl,
                 username: formData.username,
                 password: formData.password
             });
@@ -80,12 +83,17 @@ const SettingsPage = () => {
             return;
         }
 
+        // Strip trailing slash from server URL to ensure consistency
+        const cleanServerUrl = formData.serverUrl.replace(/\/+$/, '');
+
         updateConfig({
-            serverUrl: formData.serverUrl,
+            serverUrl: cleanServerUrl,
             username: formData.username,
             password: formData.password
         });
         
+        // Update form data to reflect the cleaned URL
+        setFormData(prev => ({ ...prev, serverUrl: cleanServerUrl }));
         setHasUnsavedChanges(false);
         toast({
             title: "Settings Saved",

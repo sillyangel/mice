@@ -48,7 +48,12 @@ export const NavidromeConfigProvider: React.FC<NavidromeConfigProviderProps> = (
   }, [config]);
 
   const updateConfig = (newConfig: NavidromeConfig) => {
-    setConfig(newConfig);
+    // Strip trailing slashes from server URL for consistency
+    const cleanConfig = {
+      ...newConfig,
+      serverUrl: newConfig.serverUrl.replace(/\/+$/, '')
+    };
+    setConfig(cleanConfig);
     setIsConnected(false);
   };
 
