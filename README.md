@@ -1,6 +1,6 @@
-![splash](https://github.com/sillyangel/project-still/blob/main/4xnored.png?raw=true)
-# stillnavidrome (project still)
-> still water, now with navidrome
+![splash](https://github.com/sillyangel/mice/blob/main/4xnored.png?raw=true)
+# mice (project still reworked)
+> project still, now with navidrome
 
 > project based on [shadcn/ui](https://github.com/shadcn-ui/ui)'s music template
 
@@ -20,7 +20,7 @@ This is a modern music streaming web application built with [Next.js](https://ne
 - 📊 **Scrobbling** - Track your listening history
 
 ### Preview
-![preview](https://github.com/sillyangel/project-still/blob/main/image.png?raw=true)
+![preview](https://github.com/sillyangel/mice/blob/main/image.png?raw=true)
 
 ## Quick Start
 
@@ -41,7 +41,7 @@ pnpm install
 2. **Configure Navidrome connection**
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
 Edit `.env.local` with your Navidrome server details:
@@ -71,25 +71,6 @@ This project was migrated from Firebase to Navidrome. See [NAVIDROME_MIGRATION.m
 - **Backend**: Navidrome (Subsonic API compatible)
 - **Audio**: Web Audio API with streaming
 - **State**: React Context for global state management
-
-## Project Structure
-```
-lib/
-  navidrome.ts              # Navidrome API client
-app/
-  components/
-    NavidromeContext.tsx    # Data provider for Navidrome
-    AudioPlayerContext.tsx  # Audio player state management
-    album-artwork.tsx       # Album display component
-    artist-icon.tsx         # Artist display component
-    AudioPlayer.tsx         # Main audio player
-  library/                  # Library pages
-    albums/                 # Albums view
-    artists/                # Artists view  
-    playlists/              # Playlists view
-  album/[id]/              # Album detail page
-  artist/[artist]/         # Artist detail page
-```
 
 ## Contributing
 
