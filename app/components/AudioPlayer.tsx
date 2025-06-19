@@ -156,21 +156,27 @@ export const AudioPlayer: React.FC = () => {
   }
 
   return (
-    <div className="bg-background w-full text-white p-4 border-t border-t-1">
+    <div className="bg-background w-full text-white border-t border-t-1">
       {currentTrack ? (
-        <div className="flex items-center">
-          <Image 
-            src={currentTrack.coverArt || '/default-user.jpg'} 
-            alt={currentTrack.name} 
-            width={64} 
-            height={64} 
-            className="w-16 h-16 mr-4 rounded-md" 
-          />
-          <div className="flex-1 w-auto mr-4">
-            <p className="mb-0 font-semibold">{currentTrack.name}</p>
-            <p className='text-sm mt-0 text-gray-400'>{currentTrack.artist}</p>
+        <div className="flex items-center justify-between px-4 py-4">
+          {/* Left side - Album art and track info */}
+          <div className="flex items-center flex-1 min-w-0">
+            <Image 
+              src={currentTrack.coverArt || '/default-user.jpg'} 
+              alt={currentTrack.name} 
+              width={96} 
+              height={96} 
+              className="w-12 h-12 mr-3 rounded-md flex-shrink-0" 
+            />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold truncate">{currentTrack.name}</p>
+              <p className='text-sm text-gray-400 truncate'>{currentTrack.artist}</p>
+            </div>
           </div>
-          <div className="flex flex-col items-center mr-6">
+          
+          {/* Center - Control buttons and progress bar */}
+          <div className="flex flex-col items-center flex-1 max-w-md mx-6">
+            {/* Control buttons */}
             <div className="flex items-center space-x-2 mb-2">
               <button className="p-2 hover:bg-gray-700 rounded-full transition-colors" onClick={playPreviousTrack}>
                 <FaBackward className="w-4 h-4" />
@@ -182,6 +188,8 @@ export const AudioPlayer: React.FC = () => {
                 <FaForward className="w-4 h-4" />
               </button>
             </div>
+            
+            {/* Progress bar below buttons - full width of this section */}
             <div className="flex items-center space-x-2 w-full">
               <span className="text-xs text-gray-400 w-10 text-right">
                 {formatTime(audioCurrent?.currentTime ?? 0)}
@@ -192,9 +200,14 @@ export const AudioPlayer: React.FC = () => {
               </span>
             </div>
           </div>
+          
+          {/* Right side - Extra space for balance */}
+          <div className="flex-1"></div>
         </div>
       ) : (
-        <p>No track playing</p>
+        <div className="p-4">
+          <p>No track playing</p>
+        </div>
       )}
       <audio ref={audioRef} hidden />
     </div>

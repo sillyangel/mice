@@ -3,97 +3,181 @@
 import React from 'react';
 import Image from 'next/image';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Play, X, Clock, User, Disc, Trash2, SkipForward } from 'lucide-react';
 
 const QueuePage: React.FC = () => {
   const { queue, currentTrack, removeTrackFromQueue, clearQueue, skipToTrackInQueue } = useAudioPlayer();
 
-  return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold mb-1">Queue</h1>
-          <p className="text-sm text-muted-foreground">Click on a track to skip to it</p>
-        </div>
-        <button 
-          onClick={clearQueue} 
-          className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90"
-          disabled={queue.length === 0}
-        >
-          Clear queue
-        </button>
-      </div>
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
-      {/* Currently Playing */}
-      {currentTrack && (
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-3">Now Playing</h2>
-          <div className="p-4 bg-accent/50 rounded-lg border-l-4 border-primary">
-            <div className="flex items-center">
-              <Image
-                src={currentTrack.coverArt || '/default-user.jpg'}
-                alt={currentTrack.name}
-                width={60}
-                height={60}
-                className="rounded-md mr-4"
-              />
-              <div className="flex-1">
-                <p className="font-semibold text-lg">{currentTrack.name}</p>
-                <p className="text-sm text-muted-foreground">{currentTrack.artist}</p>
-                <p className="text-xs text-muted-foreground">{currentTrack.album}</p>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {Math.floor(currentTrack.duration / 60)}:{(currentTrack.duration % 60).toString().padStart(2, '0')}
+  return (
+    <div className="h-full px-4 py-6 lg:px-8">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-semibold tracking-tight">Queue</h1>
+            <p className="text-sm text-muted-foreground">
+              {currentTrack ? `Now playing • ${queue.length} songs up next` : `${queue.length} songs in queue`}
+            </p>
+          </div>
+          <Button 
+            onClick={clearQueue} 
+            variant="destructive"
+            disabled={queue.length === 0 && !currentTrack}
+            className="flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Clear Queue
+          </Button>
+        </div>
+
+        <Separator />
+
+        {/* Currently Playing */}
+        {currentTrack && (
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold">Now Playing</h2>
+            <div className="p-4 bg-accent/30 rounded-lg border-l-4 border-primary">
+              <div className="flex items-center">
+                {/* Album Art */}
+                <div className="w-16 h-16 mr-4 flex-shrink-0">
+                  <Image
+                    src={currentTrack.coverArt || '/default-user.jpg'}
+                    alt={currentTrack.album}
+                    width={64}
+                    height={64}
+                    className="w-full h-full object-cover rounded-md"
+                  />
+                </div>
+
+                {/* Song Info */}
+                <div className="flex-1 min-w-0 mr-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-semibold text-lg text-primary truncate">
+                      {currentTrack.name}
+                    </p>
+                    <div className="w-3 h-3 bg-primary rounded-full animate-pulse flex-shrink-0" />
+                  </div>
+                  <div className="flex items-center text-sm text-muted-foreground space-x-4">
+                    <div className="flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      <span className="truncate">{currentTrack.artist}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Disc className="w-3 h-3" />
+                      <span className="truncate">{currentTrack.album}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Duration */}
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Clock className="w-3 h-3 mr-1" />
+                  {formatDuration(currentTrack.duration)}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Queue */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Up Next</h2>
-        {queue.length === 0 ? (
-          <p className="text-muted-foreground">No tracks in the queue</p>
-        ) : (
-          <div className="space-y-2">
-            {queue.map((track, index) => (
-              <div 
-                key={`${track.id}-${index}`} 
-                className="flex items-center p-3 rounded-lg hover:bg-accent/50 cursor-pointer group"
-                onClick={() => skipToTrackInQueue(index)}
-              >
-                <div className="w-8 text-center text-sm text-muted-foreground mr-3">
-                  {index + 1}
-                </div>
-                <Image
-                  src={track.coverArt || '/default-user.jpg'}
-                  alt={track.name}
-                  width={50}
-                  height={50}
-                  className="rounded-md mr-4"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{track.name}</p>
-                  <p className="text-sm text-muted-foreground truncate">{track.artist}</p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-sm text-muted-foreground">
-                    {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
-                  </div>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeTrackFromQueue(index);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 px-3 py-1 text-sm bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 transition-all"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
         )}
+
+        {/* Queue */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Up Next</h2>
+            {queue.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {queue.length} song{queue.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+
+          <ScrollArea className="h-[calc(100vh-400px)]">
+            {queue.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                  <SkipForward className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground text-lg font-medium mb-2">No songs in queue</p>
+                <p className="text-muted-foreground text-sm">
+                  Add songs to your queue to see them here
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {queue.map((track, index) => (
+                  <div
+                    key={`${track.id}-${index}`}
+                    className="group flex items-center p-3 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
+                    onClick={() => skipToTrackInQueue(index)}
+                  >
+                    {/* Track Number / Play Indicator */}
+                    <div className="w-8 text-center text-sm text-muted-foreground mr-3">
+                      <span className="group-hover:hidden">{index + 1}</span>
+                      <Play className="w-4 h-4 mx-auto hidden group-hover:block" />
+                    </div>
+
+                    {/* Album Art */}
+                    <div className="w-12 h-12 mr-4 flex-shrink-0">
+                      <Image
+                        src={track.coverArt || '/default-user.jpg'}
+                        alt={track.album}
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover rounded-md"
+                      />
+                    </div>
+
+                    {/* Song Info */}
+                    <div className="flex-1 min-w-0 mr-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-semibold truncate">{track.name}</p>
+                      </div>
+                      <div className="flex items-center text-sm text-muted-foreground space-x-4">
+                        <div className="flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          <span className="truncate">{track.artist}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Disc className="w-3 h-3" />
+                          <span className="truncate">{track.album}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Duration */}
+                    <div className="flex items-center text-sm text-muted-foreground mr-4">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {formatDuration(track.duration)}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeTrackFromQueue(index);
+                        }}
+                        className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
       </div>
     </div>
   );

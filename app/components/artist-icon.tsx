@@ -62,15 +62,17 @@ export function ArtistIcon({
     <div className={cn("space-y-3", className)} {...props}>
       <ContextMenu>
         <ContextMenuTrigger>
-          <div className={cn("overflow-hidden")} onClick={handleClick}>
+          <div 
+            className="overflow-hidden rounded-full cursor-pointer flex-shrink-0" 
+            onClick={handleClick}
+            style={{ width: size, height: size }}
+          >
             <Image
               src={artistImageUrl}
               alt={artist.name}
-              width={width}
-              height={height}
-              className={cn(
-                "transition-all hover:scale-105"
-              )}
+              width={size}
+              height={size}
+              className="w-full h-full object-cover transition-all hover:scale-105"
             />
           </div>
         </ContextMenuTrigger>

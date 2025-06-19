@@ -221,9 +221,11 @@ export default function SongsPage() {
                         <div className="w-full h-full bg-primary rounded-full animate-pulse" />
                       </div>
                     ) : (
-                      <span className="group-hover:hidden">{index + 1}</span>
+                      <>
+                        <span className="group-hover:hidden">{index + 1}</span>
+                        <Play className="w-4 h-4 mx-auto hidden group-hover:block" />
+                      </>
                     )}
-                    <Play className="w-4 h-4 mx-auto hidden group-hover:block" />
                   </div>
 
                   {/* Album Art */}
