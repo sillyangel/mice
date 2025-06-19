@@ -93,6 +93,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [api]);
 
   const playTrack = useCallback((track: Track) => {
+    // Clear saved timestamp when manually playing a track
+    localStorage.removeItem('navidrome-current-track-time');
+    
     if (currentTrack) {
       setPlayedTracks((prev) => [...prev, currentTrack]);
     }
@@ -117,6 +120,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   const playNextTrack = useCallback(() => {
+    // Clear saved timestamp when changing tracks
+    localStorage.removeItem('navidrome-current-track-time');
+    
     if (queue.length > 0) {
       const nextTrack = queue[0];
       setQueue((prevQueue) => prevQueue.slice(1));
@@ -125,6 +131,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [queue, playTrack]);
 
   const playPreviousTrack = useCallback(() => {
+    // Clear saved timestamp when changing tracks  
+    localStorage.removeItem('navidrome-current-track-time');
+    
     if (playedTracks.length > 0) {
       const previousTrack = playedTracks[playedTracks.length - 1];
       setPlayedTracks((prevPlayedTracks) => prevPlayedTracks.slice(0, -1));

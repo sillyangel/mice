@@ -56,6 +56,9 @@ export const AudioPlayer: React.FC = () => {
     const audioCurrent = audioRef.current;
     
     if (currentTrack && audioCurrent && audioCurrent.src !== currentTrack.url) {
+      // Always clear current track time when changing tracks
+      localStorage.removeItem('navidrome-current-track-time');
+      
       audioCurrent.src = currentTrack.url;
       
       // Check for saved timestamp (only restore if more than 10 seconds in)
@@ -76,12 +79,8 @@ export const AudioPlayer: React.FC = () => {
           } else {
             audioCurrent.addEventListener('loadeddata', restorePosition);
           }
-        } else {
-          // Clear saved time if we're not restoring it
-          localStorage.removeItem('navidrome-current-track-time');
         }
-      } else {
-        // Clear saved time if no saved time exists
+        // Always clear after attempting to restore
         localStorage.removeItem('navidrome-current-track-time');
       }
       
