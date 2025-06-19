@@ -242,6 +242,20 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     setVolume(newVolume);
   };
 
+  const handleLyricClick = (time: number) => {
+    const mainAudio = document.querySelector('audio') as HTMLAudioElement;
+    if (!mainAudio) return;
+
+    mainAudio.currentTime = time;
+    setCurrentTime(time);
+    
+    // Update progress bar as well
+    if (duration > 0) {
+      const newProgress = (time / duration) * 100;
+      setProgress(newProgress);
+    }
+  };
+
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -412,7 +426,8 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                       <div
                         key={index}
                         data-lyric-index={index}
-                        className={`text-sm lg:text-base leading-relaxed transition-all duration-300 break-words ${
+                        onClick={() => handleLyricClick(line.time)}
+                        className={`text-sm lg:text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground hover:scale-102 ${
                           index === currentLyricIndex
                             ? 'text-foreground font-semibold text-lg lg:text-xl scale-105'
                             : index < currentLyricIndex
@@ -426,6 +441,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                           paddingBottom: '8px',
                           paddingLeft: '9px'
                         }}
+                        title={`Click to jump to ${formatTime(line.time)}`}
                       >
                         {line.text || '♪'}
                       </div>
