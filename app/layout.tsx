@@ -16,8 +16,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    template: 'offbrand spotify | %s',
-    default: 'offbrand spotify',
+    template: 'mice | %s',
+    default: 'mice',
   },
   description: 'a very awesome music streaming service',
   robots: {

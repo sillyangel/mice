@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
  
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Offbrand Spotify',
+    name: 'mice',
     short_name: 'Offbrand',
-    description: 'a very offbrand spotify clone',
+    description: 'a very mice clone',
     start_url: '/',
     categories: ["music", "entertainment"],
     display_override: ['window-controls-overlay'],

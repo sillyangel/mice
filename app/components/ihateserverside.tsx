@@ -37,7 +37,7 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {isSidebarVisible && (
-          <div className="w-64 flex-shrink-0">
+          <div className="w-64 flex-shrink-0 border-r">
             <Sidebar
               playlists={playlists}
               className="h-full overflow-y-auto"

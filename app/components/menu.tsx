@@ -84,7 +84,7 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
       <>
       <Menubar className="rounded-none border-b border-none px-2 lg:px-4">
         <MenubarMenu>
-          <MenubarTrigger className="font-bold">offbrand spotify</MenubarTrigger>
+          <MenubarTrigger className="font-bold">mice</MenubarTrigger>
           <MenubarContent>
             <MenubarItem onClick={() => setOpen(true)}>About Music</MenubarItem>
             <MenubarSeparator />
