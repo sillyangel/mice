@@ -24,13 +24,13 @@ export const AudioPlayer: React.FC = () => {
 
   // Save position when component unmounts or track changes
   useEffect(() => {
+    const audioCurrent = audioRef.current;
     return () => {
-      const audioCurrent = audioRef.current;
       if (audioCurrent && currentTrack && audioCurrent.currentTime > 10) {
         localStorage.setItem(`navidrome-track-time-${currentTrack.id}`, audioCurrent.currentTime.toString());
       }
     };
-  }, [currentTrack?.id]);
+  }, [currentTrack]);
 
   useEffect(() => {
     const audioCurrent = audioRef.current;
@@ -62,7 +62,7 @@ export const AudioPlayer: React.FC = () => {
       audioCurrent.play();
       setIsPlaying(true);
     }
-  }, [currentTrack?.id, currentTrack?.url]);
+  }, [currentTrack]);
 
   useEffect(() => {
     const audioCurrent = audioRef.current;

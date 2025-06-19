@@ -116,15 +116,15 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setQueue((prevQueue) => prevQueue.filter((_, i) => i !== index));
   }, []);
 
-  const playNextTrack = () => {
+  const playNextTrack = useCallback(() => {
     if (queue.length > 0) {
       const nextTrack = queue[0];
       setQueue((prevQueue) => prevQueue.slice(1));
       playTrack(nextTrack);
     }
-  };
+  }, [queue, playTrack]);
 
-  const playPreviousTrack = () => {
+  const playPreviousTrack = useCallback(() => {
     if (playedTracks.length > 0) {
       const previousTrack = playedTracks[playedTracks.length - 1];
       setPlayedTracks((prevPlayedTracks) => prevPlayedTracks.slice(0, -1));
@@ -136,9 +136,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       
       setCurrentTrack(previousTrack);
     }
-  };
+  }, [playedTracks, currentTrack]);
 
-  const addAlbumToQueue = async (albumId: string) => {
+  const addAlbumToQueue = useCallback(async (albumId: string) => {
     setIsLoading(true);
     try {
       const { album, songs } = await api.getAlbum(albumId);
@@ -159,9 +159,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [api, songToTrack, toast]);
 
-  const addArtistToQueue = async (artistId: string) => {
+  const addArtistToQueue = useCallback(async (artistId: string) => {
     setIsLoading(true);
     try {
       const { artist, albums } = await api.getArtist(artistId);
@@ -187,8 +187,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  };
-  const playAlbum = async (albumId: string) => {
+  }, [api, songToTrack, toast]);
+  const playAlbum = useCallback(async (albumId: string) => {
     setIsLoading(true);
     try {
       const { album, songs } = await api.getAlbum(albumId);
@@ -216,9 +216,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [api, playTrack, songToTrack, toast]);
 
-  const playAlbumFromTrack = async (albumId: string, startingSongId: string) => {
+  const playAlbumFromTrack = useCallback(async (albumId: string, startingSongId: string) => {
     setIsLoading(true);
     try {
       const { album, songs } = await api.getAlbum(albumId);
@@ -251,7 +251,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [api, playTrack, songToTrack, toast]);
 
   const skipToTrackInQueue = useCallback((index: number) => {
     if (index >= 0 && index < queue.length) {

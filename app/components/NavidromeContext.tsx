@@ -53,7 +53,7 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
 
   const api = getNavidromeAPI();
 
-  const loadAlbums = async () => {
+  const loadAlbums = useCallback(async () => {
     setAlbumsLoading(true);
     setError(null);
     try {
@@ -73,9 +73,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     } finally {
       setAlbumsLoading(false);
     }
-  };
+  }, [api]);
 
-  const loadArtists = async () => {
+  const loadArtists = useCallback(async () => {
     setArtistsLoading(true);
     setError(null);
     try {
@@ -87,9 +87,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     } finally {
       setArtistsLoading(false);
     }
-  };
+  }, [api]);
 
-  const loadPlaylists = async () => {
+  const loadPlaylists = useCallback(async () => {
     setPlaylistsLoading(true);
     setError(null);
     try {
@@ -101,11 +101,11 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     } finally {
       setPlaylistsLoading(false);
     }
-  };
+  }, [api]);
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     await Promise.all([loadAlbums(), loadArtists(), loadPlaylists()]);
-  };
+  }, [loadAlbums, loadArtists, loadPlaylists]);
 
   const searchMusic = async (query: string) => {
     setError(null);
@@ -247,7 +247,7 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     };
 
     initialize();
-  }, []);
+  }, [api, refreshData]);
 
   const value: NavidromeContextType = {
     // Data

@@ -6,7 +6,7 @@ export interface NavidromeConfig {
   password: string;
 }
 
-export interface SubsonicResponse<T = any> {
+export interface SubsonicResponse<T = Record<string, unknown>> {
   'subsonic-response': {
     status: string;
     version: string;
@@ -99,7 +99,7 @@ class NavidromeAPI {
     return crypto.createHash('md5').update(password + salt).digest('hex');
   }
 
-  private async makeRequest(endpoint: string, params: Record<string, any> = {}): Promise<any> {
+  private async makeRequest(endpoint: string, params: Record<string, string | number> = {}): Promise<Record<string, unknown>> {
     const salt = this.generateSalt();
     const token = this.generateToken(this.config.password, salt);
 
@@ -216,7 +216,7 @@ class NavidromeAPI {
   }
 
   async createPlaylist(name: string, songIds?: string[]): Promise<Playlist> {
-    const params: Record<string, any> = { name };
+    const params: Record<string, string | number> = { name };
     if (songIds && songIds.length > 0) {
       songIds.forEach((id, index) => {
         params[`songId[${index}]`] = id;
@@ -224,11 +224,11 @@ class NavidromeAPI {
     }
     
     const response = await this.makeRequest('createPlaylist', params);
-    return response.playlist;
+    return response.playlist as Playlist;
   }
 
   async updatePlaylist(playlistId: string, name?: string, comment?: string, songIds?: string[]): Promise<void> {
-    const params: Record<string, any> = { playlistId };
+    const params: Record<string, string | number> = { playlistId };
     if (name) params.name = name;
     if (comment) params.comment = comment;
     if (songIds) {
