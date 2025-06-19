@@ -106,7 +106,7 @@ class NavidromeAPI {
     return crypto.createHash('md5').update(password + salt).digest('hex');
   }
 
-  private async makeRequest(endpoint: string, params: Record<string, string | number> = {}): Promise<Record<string, unknown>> {
+  async makeRequest(endpoint: string, params: Record<string, string | number> = {}): Promise<Record<string, unknown>> {
     const salt = this.generateSalt();
     const token = this.generateToken(this.config.password, salt);
 
@@ -175,7 +175,7 @@ class NavidromeAPI {
     };
   }
 
-  async getAlbums(type?: 'newest' | 'recent' | 'frequent' | 'random', size: number = 50, offset: number = 0): Promise<Album[]> {
+  async getAlbums(type?: 'newest' | 'recent' | 'frequent' | 'random' | 'alphabeticalByName' | 'alphabeticalByArtist' | 'starred' | 'highest', size: number = 500, offset: number = 0): Promise<Album[]> {
     const response = await this.makeRequest('getAlbumList2', { 
       type: type || 'newest',
       size,

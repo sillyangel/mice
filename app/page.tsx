@@ -59,14 +59,14 @@ export default function MusicPage() {
                 {isLoading ? (
                   // Loading skeletons
                   Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="w-[300px] h-[300px] bg-muted animate-pulse rounded-md" />
+                    <div key={i} className="w-[300px] h-[300px] bg-muted animate-pulse rounded-md flex-shrink-0" />
                   ))
                 ) : (
                   recentAlbums.map((album) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}
-                      className="w-[300px]"
+                      className="w-[300px] flex-shrink-0"
                       aspectRatio="square"
                       width={300}
                       height={300}
@@ -92,14 +92,14 @@ export default function MusicPage() {
             {isLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="w-[150px] h-[150px] bg-muted animate-pulse rounded-md" />
+                    <div key={i} className="w-[150px] h-[150px] bg-muted animate-pulse rounded-md flex-shrink-0" />
                   ))
                 ) : (
                   newestAlbums.map((album) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}
-                      className="w-[150px]"
+                      className="w-[150px] flex-shrink-0"
                       aspectRatio="square"
                       width={150}
                       height={150}

@@ -26,7 +26,9 @@ export default function BrowsePage() {
     try {
       setIsLoadingAlbums(true);
       const offset = page * albumsPerPage;
-      const newAlbums = await api.getAlbums('newest', albumsPerPage, offset);
+      
+      // Use alphabeticalByName to get all albums in alphabetical order
+      const newAlbums = await api.getAlbums('alphabeticalByName', albumsPerPage, offset);
       
       if (append) {
         setAlbums(prev => [...prev, ...newAlbums]);
@@ -126,7 +128,7 @@ export default function BrowsePage() {
           <div className="relative flex-grow">
             <ScrollArea className="h-full">
               <div className="h-full overflow-y-auto">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4 p-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4 p-4 pb-8">
                   {albums.map((album) => (
                     <AlbumArtwork
                       key={album.id}
@@ -139,7 +141,7 @@ export default function BrowsePage() {
                   ))}
                 </div>
                 {hasMoreAlbums && (
-                  <div className="flex justify-center p-4">
+                  <div className="flex justify-center p-4 pb-24">
                     <Button 
                       onClick={loadMore} 
                       disabled={isLoadingAlbums}
@@ -150,7 +152,7 @@ export default function BrowsePage() {
                   </div>
                 )}
                 {!hasMoreAlbums && albums.length > 0 && (
-                  <div className="flex justify-center p-4">
+                  <div className="flex justify-center p-4 pb-24">
                     <p className="text-sm text-muted-foreground">
                       All albums loaded ({albums.length} total)
                     </p>
