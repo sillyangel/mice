@@ -180,15 +180,17 @@ export const AudioPlayer: React.FC = () => {
               </div>
               <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
             </div>
-            <button 
-              className="p-2 hover:bg-gray-700/50 rounded-full transition-colors flex-shrink-0" 
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePlayPause();
-              }}
-            >
-              {isPlaying ? <FaPause className="w-4 h-4" /> : <FaPlay className="w-4 h-4" />}
-            </button>
+            <div className="flex items-center justify-center space-x-2">
+          <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
+            <FaBackward className="w-3 h-3" />
+          </button>
+          <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
+            {isPlaying ? <FaPause className="w-4 h-4" /> : <FaPlay className="w-4 h-4" />}
+          </button>
+          <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
+            <FaForward className="w-3 h-3" />
+          </button>
+        </div>
           </div>
         </div>
         <audio ref={audioRef} hidden />
@@ -199,7 +201,7 @@ export const AudioPlayer: React.FC = () => {
   // Compact floating player (default state)
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50">
-      <div className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 pb-0">
+      <div className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 pb-0 cursor-pointer hover:scale-[1.01] transition-transform">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center flex-1 min-w-0">
             <Image 
