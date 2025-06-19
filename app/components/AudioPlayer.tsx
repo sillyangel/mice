@@ -2,7 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
-import { FaPlay, FaPause, FaVolumeHigh, FaForward, FaBackward, FaCompress, FaVolumeXmark } from "react-icons/fa6";
+import { FullScreenPlayer } from '@/app/components/FullScreenPlayer';
+import { FaPlay, FaPause, FaVolumeHigh, FaForward, FaBackward, FaCompress, FaVolumeXmark, FaExpand } from "react-icons/fa6";
 import ColorThief from '@neutrixs/colorthief';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +17,7 @@ export const AudioPlayer: React.FC = () => {
   const [volume, setVolume] = useState(1);
   const [isClient, setIsClient] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const audioCurrent = audioRef.current;
   const { toast } = useToast();
   
@@ -231,6 +233,13 @@ export const AudioPlayer: React.FC = () => {
           <div className="flex items-center space-x-1 ml-2">
             <button 
               className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" 
+              onClick={() => setIsFullScreen(true)}
+              title="Full Screen"
+            >
+              <FaExpand className="w-3 h-3" />
+            </button>
+            <button 
+              className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" 
               onClick={() => setIsMinimized(true)}
               title="Minimize"
             >
@@ -240,6 +249,12 @@ export const AudioPlayer: React.FC = () => {
         </div>
       </div>
       <audio ref={audioRef} hidden />
+      
+      {/* Full Screen Player */}
+      <FullScreenPlayer 
+        isOpen={isFullScreen} 
+        onClose={() => setIsFullScreen(false)} 
+      />
     </div>
   );
 };

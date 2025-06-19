@@ -5,6 +5,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { AudioPlayerProvider } from "./components/AudioPlayerContext";
 import { NavidromeProvider } from "./components/NavidromeContext";
+import { NavidromeConfigProvider } from "./components/NavidromeConfigContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { Metadata } from "next";
 import type { Viewport } from 'next';
@@ -77,15 +78,17 @@ export default function Layout({ children }: LayoutProps) {
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background`}>
         <ThemeProvider>
-          <NavidromeProvider>
-            <AudioPlayerProvider>
-              <SpeedInsights />
-              <Analytics />
-              <Ihateserverside>
-                {children}
-              </Ihateserverside>
-            </AudioPlayerProvider>
-          </NavidromeProvider>
+          <NavidromeConfigProvider>
+            <NavidromeProvider>
+              <AudioPlayerProvider>
+                <SpeedInsights />
+                <Analytics />
+                <Ihateserverside>
+                  {children}
+                </Ihateserverside>
+              </AudioPlayerProvider>
+            </NavidromeProvider>
+          </NavidromeConfigProvider>
         </ThemeProvider>
       </body>
     </html>
