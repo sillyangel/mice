@@ -75,80 +75,101 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     loadLyrics();
   }, [currentTrack]);
 
-  // Update current lyric index based on time
+  // Update current lyric index based on time (with optimization to prevent unnecessary updates)
   useEffect(() => {
     const newIndex = lrcLibClient.getCurrentLyricIndex(lyrics, currentTime);
-    setCurrentLyricIndex(newIndex);
-  }, [lyrics, currentTime]);
+    if (newIndex !== currentLyricIndex) {
+      setCurrentLyricIndex(newIndex);
+    }
+  }, [lyrics, currentTime, currentLyricIndex]);
 
-  // Auto-scroll lyrics to center current line without cutting off text
+  // Auto-scroll lyrics using lyricsRef
   useEffect(() => {
-    if (currentLyricIndex >= 0 && lyrics.length > 0 && showLyrics) {
-      // Use a small delay to ensure the DOM is updated
+    if (currentLyricIndex >= 0 && lyrics.length > 0 && showLyrics && lyricsRef.current) {
       const scrollTimeout = setTimeout(() => {
-        const lyricsScrollArea = document.querySelector('[data-radix-scroll-area-viewport]');
-        if (lyricsScrollArea) {
-          const currentLyricElement = lyricsScrollArea.querySelector(`[data-lyric-index="${currentLyricIndex}"]`) as HTMLElement;
-          if (currentLyricElement) {
-            const containerHeight = lyricsScrollArea.clientHeight;
-            const elementHeight = currentLyricElement.offsetHeight;
-            const elementOffsetTop = currentLyricElement.offsetTop;
-            
-            // Calculate scroll position to center the current lyric
-            const targetScrollTop = elementOffsetTop - (containerHeight / 2) + (elementHeight / 2);
-            
-            lyricsScrollArea.scrollTo({
-              top: Math.max(0, targetScrollTop),
-              behavior: 'smooth'
-            });
-          }
+        // Find the ScrollArea viewport
+        const scrollViewport = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        const currentLyricElement = lyricsRef.current?.querySelector(`[data-lyric-index="${currentLyricIndex}"]`) as HTMLElement;
+        
+        if (scrollViewport && currentLyricElement) {
+          const containerHeight = scrollViewport.clientHeight;
+          const elementTop = currentLyricElement.offsetTop;
+          const elementHeight = currentLyricElement.offsetHeight;
+          
+          // Calculate scroll position to center the current lyric
+          const targetScrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
+          
+          scrollViewport.scrollTo({
+            top: Math.max(0, targetScrollTop),
+            behavior: 'smooth'
+          });
         }
-      }, 50);
+      }, 100);
       
       return () => clearTimeout(scrollTimeout);
     }
-  }, [currentLyricIndex, lyrics.length, showLyrics]);
+  }, [currentLyricIndex, showLyrics]);
 
-  // Reset lyrics to top when song ends or changes
+  // Reset lyrics to top when song changes
   useEffect(() => {
-    if (currentTrack && showLyrics) {
-      const lyricsScrollArea = document.querySelector('[data-radix-scroll-area-viewport]');
-      if (lyricsScrollArea) {
-        lyricsScrollArea.scrollTo({
-          top: 0,
-          behavior: 'smooth'
-        });
-      }
-      setCurrentLyricIndex(-1);
+    if (currentTrack && showLyrics && lyricsRef.current) {
+      // Reset scroll position using lyricsRef
+      const resetScroll = () => {
+        const scrollViewport = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        
+        if (scrollViewport) {
+          scrollViewport.scrollTo({
+            top: 0,
+            behavior: 'instant' // Use instant for track changes
+          });
+        }
+      };
+      
+      // Small delay to ensure DOM is ready
+      const resetTimeout = setTimeout(() => {
+        resetScroll();
+        setCurrentLyricIndex(-1);
+      }, 50);
+      
+      return () => clearTimeout(resetTimeout);
     }
-  }, [currentTrack, showLyrics]);
+  }, [currentTrack?.id, showLyrics]); // Only reset when track ID changes
 
-  // Sync with main audio player
+  // Sync with main audio player (throttled to prevent infinite loops)
   useEffect(() => {
+    let lastUpdate = 0;
+    const throttleMs = 200; // Update at most every 200ms
+    
     const syncWithMainPlayer = () => {
+      const now = Date.now();
+      if (now - lastUpdate < throttleMs) return;
+      lastUpdate = now;
+      
       const mainAudio = document.querySelector('audio') as HTMLAudioElement;
       if (mainAudio && currentTrack) {
         const newCurrentTime = mainAudio.currentTime;
         const newDuration = mainAudio.duration || 0;
         const newIsPlaying = !mainAudio.paused;
         
-        // Check if song ended (reset lyrics to top)
-        if (newCurrentTime === 0 && !newIsPlaying && currentTime > 0) {
-          const lyricsScrollArea = document.querySelector('[data-radix-scroll-area-viewport]');
-          if (lyricsScrollArea) {
-            lyricsScrollArea.scrollTo({
-              top: 0,
-              behavior: 'smooth'
-            });
-          }
-          setCurrentLyricIndex(-1);
+        // Only update state if values have changed significantly
+        if (Math.abs(newCurrentTime - currentTime) > 0.5) {
+          setCurrentTime(newCurrentTime);
         }
-        
-        setCurrentTime(newCurrentTime);
-        setDuration(newDuration);
-        setProgress(newDuration ? (newCurrentTime / newDuration) * 100 : 0);
-        setIsPlaying(newIsPlaying);
-        setVolume(mainAudio.volume);
+        if (Math.abs(newDuration - duration) > 0.1) {
+          setDuration(newDuration);
+        }
+        if (newDuration > 0) {
+          const newProgress = (newCurrentTime / newDuration) * 100;
+          if (Math.abs(newProgress - progress) > 0.1) {
+            setProgress(newProgress);
+          }
+        }
+        if (newIsPlaying !== isPlaying) {
+          setIsPlaying(newIsPlaying);
+        }
+        if (Math.abs(mainAudio.volume - volume) > 0.01) {
+          setVolume(mainAudio.volume);
+        }
       }
     };
 
@@ -160,7 +181,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       const interval = setInterval(syncWithMainPlayer, 100);
       return () => clearInterval(interval);
     }
-  }, [isOpen, currentTrack, currentTime]);
+  }, [isOpen, currentTrack]); // Removed currentTime from dependencies to prevent loop
 
   // Extract dominant color from cover art
   useEffect(() => {
@@ -372,7 +393,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
           {/* Right Side - Lyrics */}
           {showLyrics && lyrics.length > 0 && (
-            <div className="flex-1 lg:max-w-md min-h-0">
+            <div className="flex-1 lg:max-w-md min-h-0" ref={lyricsRef}>
               <div className="h-full flex flex-col">
                 <ScrollArea className="flex-1 min-h-0">
                   <div className="space-y-4 pr-4 px-2">
