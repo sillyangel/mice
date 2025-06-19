@@ -14,7 +14,8 @@ import {
   FaVolumeXmark,
   FaShuffle,
   FaRepeat,
-  FaXmark
+  FaXmark,
+  FaQuoteLeft
 } from "react-icons/fa6";
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -80,32 +81,73 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     setCurrentLyricIndex(newIndex);
   }, [lyrics, currentTime]);
 
-  // Auto-scroll lyrics to center current line
+  // Auto-scroll lyrics to center current line without cutting off text
   useEffect(() => {
-    if (currentLyricIndex >= 0 && lyrics.length > 0) {
-      const lyricsContainer = document.querySelector('.lyrics-container');
-      if (lyricsContainer) {
-        const currentLyricElement = lyricsContainer.children[currentLyricIndex] as HTMLElement;
-        if (currentLyricElement) {
-          currentLyricElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center',
-            inline: 'nearest'
-          });
+    if (currentLyricIndex >= 0 && lyrics.length > 0 && showLyrics) {
+      // Use a small delay to ensure the DOM is updated
+      const scrollTimeout = setTimeout(() => {
+        const lyricsScrollArea = document.querySelector('[data-radix-scroll-area-viewport]');
+        if (lyricsScrollArea) {
+          const currentLyricElement = lyricsScrollArea.querySelector(`[data-lyric-index="${currentLyricIndex}"]`) as HTMLElement;
+          if (currentLyricElement) {
+            const containerHeight = lyricsScrollArea.clientHeight;
+            const elementHeight = currentLyricElement.offsetHeight;
+            const elementOffsetTop = currentLyricElement.offsetTop;
+            
+            // Calculate scroll position to center the current lyric
+            const targetScrollTop = elementOffsetTop - (containerHeight / 2) + (elementHeight / 2);
+            
+            lyricsScrollArea.scrollTo({
+              top: Math.max(0, targetScrollTop),
+              behavior: 'smooth'
+            });
+          }
         }
-      }
+      }, 50);
+      
+      return () => clearTimeout(scrollTimeout);
     }
-  }, [currentLyricIndex, lyrics.length]);
+  }, [currentLyricIndex, lyrics.length, showLyrics]);
+
+  // Reset lyrics to top when song ends or changes
+  useEffect(() => {
+    if (currentTrack && showLyrics) {
+      const lyricsScrollArea = document.querySelector('[data-radix-scroll-area-viewport]');
+      if (lyricsScrollArea) {
+        lyricsScrollArea.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }
+      setCurrentLyricIndex(-1);
+    }
+  }, [currentTrack, showLyrics]);
 
   // Sync with main audio player
   useEffect(() => {
     const syncWithMainPlayer = () => {
       const mainAudio = document.querySelector('audio') as HTMLAudioElement;
       if (mainAudio && currentTrack) {
-        setCurrentTime(mainAudio.currentTime);
-        setDuration(mainAudio.duration || 0);
-        setProgress(mainAudio.duration ? (mainAudio.currentTime / mainAudio.duration) * 100 : 0);
-        setIsPlaying(!mainAudio.paused);
+        const newCurrentTime = mainAudio.currentTime;
+        const newDuration = mainAudio.duration || 0;
+        const newIsPlaying = !mainAudio.paused;
+        
+        // Check if song ended (reset lyrics to top)
+        if (newCurrentTime === 0 && !newIsPlaying && currentTime > 0) {
+          const lyricsScrollArea = document.querySelector('[data-radix-scroll-area-viewport]');
+          if (lyricsScrollArea) {
+            lyricsScrollArea.scrollTo({
+              top: 0,
+              behavior: 'smooth'
+            });
+          }
+          setCurrentLyricIndex(-1);
+        }
+        
+        setCurrentTime(newCurrentTime);
+        setDuration(newDuration);
+        setProgress(newDuration ? (newCurrentTime / newDuration) * 100 : 0);
+        setIsPlaying(newIsPlaying);
         setVolume(mainAudio.volume);
       }
     };
@@ -118,7 +160,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       const interval = setInterval(syncWithMainPlayer, 100);
       return () => clearInterval(interval);
     }
-  }, [isOpen, currentTrack]);
+  }, [isOpen, currentTrack, currentTime]);
 
   // Extract dominant color from cover art
   useEffect(() => {
@@ -286,7 +328,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               </button>
             </div>
 
-            {/* Volume */}
+            {/* Volume and Lyrics Toggle */}
             <div className="flex items-center gap-3 flex-shrink-0">
               <button
                 onMouseEnter={() => setShowVolumeSlider(true)}
@@ -297,6 +339,18 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                   <FaVolumeHigh className="w-5 h-5" />
                 )}
               </button>
+              
+              {lyrics.length > 0 && (
+                <button
+                  onClick={() => setShowLyrics(!showLyrics)}
+                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
+                    showLyrics ? 'text-primary' : 'text-gray-500'
+                  }`}
+                  title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
+                >
+                  <FaQuoteLeft className="w-5 h-5" />
+                </button>
+              )}
               
               {showVolumeSlider && (
                 <div 
@@ -319,50 +373,35 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
           {/* Right Side - Lyrics */}
           {showLyrics && lyrics.length > 0 && (
             <div className="flex-1 lg:max-w-md min-h-0">
-              <Card className="bg-black/30 backdrop-blur-sm border-white/20 h-full">
-                <CardContent className="p-4 lg:p-6 h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                    <h3 className="text-lg font-semibold text-foreground">Lyrics</h3>
-                    <button
-                      onClick={() => setShowLyrics(false)}
-                      className="text-foreground/60 hover:bg-foreground/20"
-                    >
-                      Hide
-                    </button>
+              <div className="h-full flex flex-col">
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="space-y-4 pr-4 px-2">
+                    {lyrics.map((line, index) => (
+                      <div
+                        key={index}
+                        data-lyric-index={index}
+                        className={`text-sm lg:text-base leading-relaxed transition-all duration-300 break-words ${
+                          index === currentLyricIndex
+                            ? 'text-primary font-semibold text-lg lg:text-xl scale-105'
+                            : index < currentLyricIndex
+                            ? 'text-primary/60'
+                            : 'text-primary/40'
+                        }`}
+                        style={{ 
+                          wordWrap: 'break-word',
+                          overflowWrap: 'break-word',
+                          hyphens: 'auto',
+                          paddingBottom: '8px'
+                        }}
+                      >
+                        {line.text || '♪'}
+                      </div>
+                    ))}
+                    {/* Add extra padding at the bottom to allow last lyric to center */}
+                    <div style={{ height: '200px' }} />
                   </div>
-                  
-                  <ScrollArea className="flex-1 min-h-0">
-                    <div className="space-y-3 pr-4">
-                      {lyrics.map((line, index) => (
-                        <div
-                          key={index}
-                          className={`text-sm leading-relaxed transition-all duration-300 ${
-                            index === currentLyricIndex
-                              ? 'text-foreground font-semibold text-base scale-105'
-                              : index < currentLyricIndex
-                              ? 'text-foreground/60'
-                              : 'text-foreground/40'
-                          }`}
-                        >
-                          {line.text || '♪'}
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Show Lyrics button when hidden */}
-          {!showLyrics && lyrics.length > 0 && (
-            <div className="lg:flex-1 lg:max-w-md flex items-start justify-center lg:justify-start pt-4 lg:pt-8 flex-shrink-0">
-              <button
-                onClick={() => setShowLyrics(true)}
-                className="bg-foreground/20 hover:bg-foreground/30 text-foreground backdrop-blur-sm"
-              >
-                Show Lyrics
-              </button>
+                </ScrollArea>
+              </div>
             </div>
           )}
         </div>
