@@ -82,6 +82,13 @@ export interface Playlist {
   coverArt?: string;
 }
 
+export interface RadioStation {
+  id: string;
+  streamUrl: string;
+  name: string;
+  homePageUrl?: string;
+}
+
 class NavidromeAPI {
   private config: NavidromeConfig;
   private clientName = 'stillnavidrome';
@@ -326,27 +333,90 @@ class NavidromeAPI {
     const searchData = response.searchResult3 as { song?: Song[] };
     return searchData?.song || [];
   }
+
+  async getRadioStations(): Promise<RadioStation[]> {
+    const response = await this.makeRequest('getRadioStations');
+    const radioStationsData = response.radioStations as { radioStation?: RadioStation[] };
+    return radioStationsData?.radioStation || [];
+  }
+
+  async getRadioStation(stationId: string): Promise<RadioStation> {
+    const response = await this.makeRequest('getRadioStation', { id: stationId });
+    return response.radioStation as RadioStation;
+  }
+
+  async getInternetRadioStations(): Promise<RadioStation[]> {
+    try {
+      const response = await this.makeRequest('getInternetRadioStations');
+      const radioData = response.internetRadioStations as { internetRadioStation?: RadioStation[] };
+      return radioData?.internetRadioStation || [];
+    } catch (error) {
+      console.error('Failed to get internet radio stations:', error);
+      return [];
+    }
+  }
+
+  async createInternetRadioStation(name: string, streamUrl: string, homePageUrl?: string): Promise<void> {
+    const params: Record<string, string> = { name, streamUrl };
+    if (homePageUrl) params.homePageUrl = homePageUrl;
+    await this.makeRequest('createInternetRadioStation', params);
+  }
+
+  async deleteInternetRadioStation(id: string): Promise<void> {
+    await this.makeRequest('deleteInternetRadioStation', { id });
+  }
 }
 
 // Singleton instance management
 let navidromeInstance: NavidromeAPI | null = null;
 
-export function getNavidromeAPI(): NavidromeAPI {
-  if (!navidromeInstance) {
-    const config: NavidromeConfig = {
-      serverUrl: process.env.NEXT_PUBLIC_NAVIDROME_URL || '',
-      username: process.env.NEXT_PUBLIC_NAVIDROME_USERNAME || '',
-      password: process.env.NEXT_PUBLIC_NAVIDROME_PASSWORD || ''
-    };
-    
-    if (!config.serverUrl || !config.username || !config.password) {
-      throw new Error('Navidrome configuration is incomplete. Please check environment variables.');
+export function getNavidromeAPI(customConfig?: NavidromeConfig): NavidromeAPI {
+  let config: NavidromeConfig;
+  
+  if (customConfig) {
+    config = customConfig;
+  } else {
+    // Try to get config from localStorage first (client-side)
+    if (typeof window !== 'undefined') {
+      const savedConfig = localStorage.getItem('navidrome-config');
+      if (savedConfig) {
+        try {
+          config = JSON.parse(savedConfig);
+        } catch (error) {
+          console.error('Failed to parse saved Navidrome config:', error);
+          config = getEnvConfig();
+        }
+      } else {
+        config = getEnvConfig();
+      }
+    } else {
+      // Server-side: use environment variables
+      config = getEnvConfig();
     }
-    
+  }
+  
+  if (!config.serverUrl || !config.username || !config.password) {
+    throw new Error('Navidrome configuration is incomplete. Please configure in settings or check environment variables.');
+  }
+  
+  // Always create a new instance if config is provided or if no instance exists
+  if (customConfig || !navidromeInstance) {
     navidromeInstance = new NavidromeAPI(config);
   }
   
   return navidromeInstance;
+}
+
+function getEnvConfig(): NavidromeConfig {
+  return {
+    serverUrl: process.env.NEXT_PUBLIC_NAVIDROME_URL || '',
+    username: process.env.NEXT_PUBLIC_NAVIDROME_USERNAME || '',
+    password: process.env.NEXT_PUBLIC_NAVIDROME_PASSWORD || ''
+  };
+}
+
+export function resetNavidromeAPI(): void {
+  navidromeInstance = null;
 }
 
 export default NavidromeAPI;

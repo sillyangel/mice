@@ -3,13 +3,15 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Album, Artist } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
+import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { AlbumArtwork } from '@/app/components/album-artwork';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Heart } from 'lucide-react';
+import { Heart, Play } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Loading from '@/app/components/loading';
 import { getNavidromeAPI } from '@/lib/navidrome';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ArtistPage() {
   const { artist: artistId } = useParams();
@@ -17,7 +19,10 @@ export default function ArtistPage() {
   const [artistAlbums, setArtistAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [artist, setArtist] = useState<Artist | null>(null);
+  const [isPlayingArtist, setIsPlayingArtist] = useState(false);
   const { getArtist, starItem, unstarItem } = useNavidrome();
+  const { addArtistToQueue, playAlbum, clearQueue } = useAudioPlayer();
+  const { toast } = useToast();
   const api = getNavidromeAPI();
 
   useEffect(() => {
@@ -52,6 +57,36 @@ export default function ArtistPage() {
       }
     } catch (error) {
       console.error('Failed to star/unstar artist:', error);
+    }
+  };
+
+  const handlePlayArtist = async () => {
+    if (!artist) return;
+    
+    setIsPlayingArtist(true);
+    try {
+      // Clear current queue and add all artist albums
+      clearQueue();
+      await addArtistToQueue(artist.id);
+      
+      // Start playing the first album if we have any
+      if (artistAlbums.length > 0) {
+        await playAlbum(artistAlbums[0].id);
+      }
+      
+      toast({
+        title: "Playing Artist",
+        description: `Now playing all albums by ${artist.name}`,
+      });
+    } catch (error) {
+      console.error('Failed to play artist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to play artist albums.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsPlayingArtist(false);
     }
   };
 
@@ -90,10 +125,20 @@ export default function ArtistPage() {
             <div className="flex-1">
               <h1 className="text-4xl font-bold text-white mb-2">{artist.name}</h1>
               <p className="text-white/80 mb-4">{artist.albumCount} albums</p>
-              <Button onClick={handleStar} variant="secondary" className="mr-4">
-                <Heart className={isStarred ? 'text-red-500' : 'text-gray-500'} fill={isStarred ? 'red' : 'none'}/>
-                {isStarred ? 'Starred' : 'Star Artist'}
-              </Button>
+              <div className="flex gap-3">
+                <Button 
+                  onClick={handlePlayArtist} 
+                  disabled={isPlayingArtist}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  {isPlayingArtist ? 'Adding to Queue...' : 'Play Artist'}
+                </Button>
+                <Button onClick={handleStar} variant="secondary">
+                  <Heart className={isStarred ? 'text-red-500' : 'text-gray-500'} fill={isStarred ? 'red' : 'none'}/>
+                  {isStarred ? 'Starred' : 'Star Artist'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
