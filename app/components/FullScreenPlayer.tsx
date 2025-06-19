@@ -344,7 +344,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 <button
                   onClick={() => setShowLyrics(!showLyrics)}
                   className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
-                    showLyrics ? 'text-primary' : 'text-gray-500'
+                    showLyrics ? 'text-foreground' : 'text-gray-500'
                   }`}
                   title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
                 >
@@ -382,10 +382,10 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                         data-lyric-index={index}
                         className={`text-sm lg:text-base leading-relaxed transition-all duration-300 break-words ${
                           index === currentLyricIndex
-                            ? 'text-primary font-semibold text-lg lg:text-xl scale-105'
+                            ? 'text-foreground font-semibold text-lg lg:text-xl scale-105'
                             : index < currentLyricIndex
-                            ? 'text-primary/60'
-                            : 'text-primary/40'
+                            ? 'text-foreground/60'
+                            : 'text-foreground/40'
                         }`}
                         style={{ 
                           wordWrap: 'break-word',
