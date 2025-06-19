@@ -5,6 +5,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { AudioPlayerProvider } from "./components/AudioPlayerContext";
 import { NavidromeProvider } from "./components/NavidromeContext";
+import { ThemeProvider } from "./components/ThemeProvider";
 import { Metadata } from "next";
 import type { Viewport } from 'next';
 import Ihateserverside from './components/ihateserverside';
@@ -54,16 +55,38 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiase dark bg-background`}>
-        <NavidromeProvider>
-          <AudioPlayerProvider>
-            <SpeedInsights />
-            <Analytics />
-            <Ihateserverside>
-              {children}
-            </Ihateserverside>
-          </AudioPlayerProvider>
-        </NavidromeProvider>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const savedTheme = localStorage.getItem('theme');
+                const theme = (savedTheme === 'blue' || savedTheme === 'violet') ? savedTheme : 'blue';
+                
+                // Apply theme class
+                document.documentElement.classList.add('theme-' + theme);
+                
+                // Apply dark mode based on system preference
+                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                  document.documentElement.classList.add('dark');
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background`}>
+        <ThemeProvider>
+          <NavidromeProvider>
+            <AudioPlayerProvider>
+              <SpeedInsights />
+              <Analytics />
+              <Ihateserverside>
+                {children}
+              </Ihateserverside>
+            </AudioPlayerProvider>
+          </NavidromeProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
