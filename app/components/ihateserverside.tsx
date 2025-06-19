@@ -45,16 +45,14 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
             />
           </div>
         )}
-        <div className={`flex-1 overflow-y-auto ${isStatusBarVisible ? 'pb-24' : ''}`}>
+        <div className="flex-1 overflow-y-auto">
           <div>{children}</div>
         </div>
       </div>
 
-      {/* Audio Player */}
+      {/* Floating Audio Player */}
       {isStatusBarVisible && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background">
-          <AudioPlayer />
-        </div>
+        <AudioPlayer />
       )}
       <Toaster />
     </div>
