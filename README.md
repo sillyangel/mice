@@ -20,7 +20,7 @@ This is a modern music streaming web application built with [Next.js](https://ne
 - 📊 **Scrobbling** - Track your listening history
 
 ### Preview
-![preview](https://github.com/sillyangel/mice/blob/main/image.png?raw=true)
+![preview](https://github.com/sillyangel/mice/blob/main/public/screen.png?raw=true)
 
 ## Quick Start
 
