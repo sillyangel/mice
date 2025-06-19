@@ -395,7 +395,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
           {showLyrics && lyrics.length > 0 && (
             <div className="flex-1 lg:max-w-md min-h-0" ref={lyricsRef}>
               <div className="h-full flex flex-col">
-                <ScrollArea className="flex-1 min-h-0">
+                <ScrollArea className="flex-1 min-h-0 w-90">
                   <div className="space-y-4 pr-4 px-2">
                     {lyrics.map((line, index) => (
                       <div
@@ -412,7 +412,8 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                           wordWrap: 'break-word',
                           overflowWrap: 'break-word',
                           hyphens: 'auto',
-                          paddingBottom: '8px'
+                          paddingBottom: '8px',
+                          paddingLeft: '9px'
                         }}
                       >
                         {line.text || '♪'}
