@@ -15,11 +15,12 @@ interface Track {
   coverArt?: string;
   albumId: string;
   artistId: string;
+  autoPlay?: boolean; // Flag to control auto-play
 }
 
 interface AudioPlayerContextProps {
   currentTrack: Track | null;
-  playTrack: (track: Track) => void;
+  playTrack: (track: Track, autoPlay?: boolean) => void;
   queue: Track[];
   addToQueue: (track: Track) => void;
   playNextTrack: () => void;
@@ -92,14 +93,17 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, [api]);
 
-  const playTrack = useCallback((track: Track) => {
+  const playTrack = useCallback((track: Track, autoPlay: boolean = false) => {
     // Clear saved timestamp when manually playing a track
     localStorage.removeItem('navidrome-current-track-time');
     
     if (currentTrack) {
       setPlayedTracks((prev) => [...prev, currentTrack]);
     }
-    setCurrentTrack(track);
+    
+    // Set autoPlay flag on the track
+    const trackWithAutoPlay = { ...track, autoPlay };
+    setCurrentTrack(trackWithAutoPlay);
     
     // Scrobble the track
     api.scrobble(track.id).catch(error => {
@@ -126,7 +130,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (queue.length > 0) {
       const nextTrack = queue[0];
       setQueue((prevQueue) => prevQueue.slice(1));
-      playTrack(nextTrack);
+      playTrack(nextTrack, true); // Auto-play next track
     }
   }, [queue, playTrack]);
 
@@ -143,9 +147,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setQueue((prevQueue) => [currentTrack, ...prevQueue]);
       }
       
-      setCurrentTrack(previousTrack);
+      playTrack(previousTrack, true); // Auto-play previous track
     }
-  }, [playedTracks, currentTrack]);
+  }, [playedTracks, currentTrack, playTrack]);
 
   const addAlbumToQueue = useCallback(async (albumId: string) => {
     setIsLoading(true);

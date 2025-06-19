@@ -84,8 +84,17 @@ export const AudioPlayer: React.FC = () => {
         localStorage.removeItem('navidrome-current-track-time');
       }
       
-      audioCurrent.play();
-      setIsPlaying(true);
+      // Auto-play only if the track has the autoPlay flag
+      if (currentTrack.autoPlay) {
+        audioCurrent.play().then(() => {
+          setIsPlaying(true);
+        }).catch((error) => {
+          console.error('Failed to auto-play:', error);
+          setIsPlaying(false);
+        });
+      } else {
+        setIsPlaying(false);
+      }
     }
   }, [currentTrack]);
 
@@ -121,11 +130,21 @@ export const AudioPlayer: React.FC = () => {
         lastSavedTime = audioCurrent.currentTime;
       }
     };
+
+    const handlePlay = () => {
+      setIsPlaying(true);
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
     
     if (audioCurrent) {
       audioCurrent.addEventListener('timeupdate', updateProgress);
       audioCurrent.addEventListener('ended', handleTrackEnd);
       audioCurrent.addEventListener('seeked', handleSeeked);
+      audioCurrent.addEventListener('play', handlePlay);
+      audioCurrent.addEventListener('pause', handlePause);
     }
     
     return () => {
@@ -133,6 +152,8 @@ export const AudioPlayer: React.FC = () => {
         audioCurrent.removeEventListener('timeupdate', updateProgress);
         audioCurrent.removeEventListener('ended', handleTrackEnd);
         audioCurrent.removeEventListener('seeked', handleSeeked);
+        audioCurrent.removeEventListener('play', handlePlay);
+        audioCurrent.removeEventListener('pause', handlePause);
       }
     };
   }, [playNextTrack, currentTrack]);
@@ -213,10 +234,15 @@ export const AudioPlayer: React.FC = () => {
     if (audioCurrent) {
       if (isPlaying) {
         audioCurrent.pause();
+        setIsPlaying(false);
       } else {
-        audioCurrent.play();
+        audioCurrent.play().then(() => {
+          setIsPlaying(true);
+        }).catch((error) => {
+          console.error('Failed to play audio:', error);
+          setIsPlaying(false);
+        });
       }
-      setIsPlaying(!isPlaying);
     }
   };
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {

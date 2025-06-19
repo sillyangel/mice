@@ -139,53 +139,35 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
   // Sync with main audio player (improved responsiveness)
   useEffect(() => {
-    let lastUpdate = 0;
-    const throttleMs = 100; // Update at most every 100ms for better responsiveness
-    
     const syncWithMainPlayer = () => {
-      const now = Date.now();
-      if (now - lastUpdate < throttleMs) return;
-      lastUpdate = now;
-      
       const mainAudio = document.querySelector('audio') as HTMLAudioElement;
       if (mainAudio && currentTrack) {
         const newCurrentTime = mainAudio.currentTime;
         const newDuration = mainAudio.duration || 0;
         const newIsPlaying = !mainAudio.paused;
         
-        // Always update playing state for better responsiveness
-        if (newIsPlaying !== isPlaying) {
-          setIsPlaying(newIsPlaying);
-        }
+        // Always update playing state immediately
+        setIsPlaying(newIsPlaying);
+        setCurrentTime(newCurrentTime);
+        setDuration(newDuration);
+        setVolume(mainAudio.volume);
         
-        // Only update state if values have changed significantly
-        if (Math.abs(newCurrentTime - currentTime) > 0.3) {
-          setCurrentTime(newCurrentTime);
-        }
-        if (Math.abs(newDuration - duration) > 0.1) {
-          setDuration(newDuration);
-        }
         if (newDuration > 0) {
           const newProgress = (newCurrentTime / newDuration) * 100;
-          if (Math.abs(newProgress - progress) > 0.1) {
-            setProgress(newProgress);
-          }
-        }
-        if (Math.abs(mainAudio.volume - volume) > 0.01) {
-          setVolume(mainAudio.volume);
+          setProgress(newProgress);
         }
       }
     };
 
-    if (isOpen) {
+    if (isOpen && currentTrack) {
       // Initial sync
       syncWithMainPlayer();
       
-      // Set up interval to keep syncing - more frequent for better responsiveness
-      const interval = setInterval(syncWithMainPlayer, 50);
+      // Set up interval to keep syncing
+      const interval = setInterval(syncWithMainPlayer, 100);
       return () => clearInterval(interval);
     }
-  }, [isOpen, currentTrack]); // Removed other dependencies to prevent loop
+  }, [isOpen, currentTrack?.id]); // React to track changes
 
   // Extract dominant color from cover art
   useEffect(() => {
