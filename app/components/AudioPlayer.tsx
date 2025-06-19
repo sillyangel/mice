@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
-import { FaPlay, FaPause, FaVolumeHigh, FaForward, FaBackward } from "react-icons/fa6";
+import { FaPlay, FaPause, FaVolumeHigh, FaForward, FaBackward, FaCompress, FaVolumeXmark } from "react-icons/fa6";
 import ColorThief from '@neutrixs/colorthief';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +15,7 @@ export const AudioPlayer: React.FC = () => {
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isClient, setIsClient] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const audioCurrent = audioRef.current;
   const { toast } = useToast();
   
@@ -151,65 +152,106 @@ export const AudioPlayer: React.FC = () => {
     return `${minutes}:${secs}`;
   }
   
-  if (!isClient) {
+  if (!isClient || !currentTrack) {
     return null;
   }
 
+  // Mini player (collapsed state)
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-4 left-4 z-50">
+        <div 
+          className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg cursor-pointer hover:scale-[1.02] transition-transform w-80"
+          onClick={() => setIsMinimized(false)}
+        >
+          <div className="flex items-center p-3">
+            <Image 
+              src={currentTrack.coverArt || '/default-user.jpg'} 
+              alt={currentTrack.name} 
+              width={40} 
+              height={40} 
+              className="w-10 h-10 rounded-md flex-shrink-0" 
+            />
+            <div className="flex-1 min-w-0 mx-3 group">
+              <div className="overflow-hidden">
+                <p className="font-semibold text-sm whitespace-nowrap group-hover:animate-scroll">
+                  {currentTrack.name}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
+            </div>
+            <div className="flex items-center justify-center space-x-2">
+          <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
+            <FaBackward className="w-3 h-3" />
+          </button>
+          <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
+            {isPlaying ? <FaPause className="w-4 h-4" /> : <FaPlay className="w-4 h-4" />}
+          </button>
+          <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
+            <FaForward className="w-3 h-3" />
+          </button>
+        </div>
+          </div>
+        </div>
+        <audio ref={audioRef} hidden />
+      </div>
+    );
+  }
+
+  // Compact floating player (default state)
   return (
-    <div className="bg-background w-full text-white border-t border-t-1">
-      {currentTrack ? (
-        <div className="flex items-center justify-between px-4 py-4">
-          {/* Left side - Album art and track info */}
+    <div className="fixed bottom-4 left-4 right-4 z-50">
+      <div className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 pb-0 cursor-pointer hover:scale-[1.01] transition-transform">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center flex-1 min-w-0">
             <Image 
               src={currentTrack.coverArt || '/default-user.jpg'} 
               alt={currentTrack.name} 
-              width={96} 
-              height={96} 
-              className="w-12 h-12 mr-3 rounded-md flex-shrink-0" 
+              width={40} 
+              height={40} 
+              className="w-10 h-10 rounded-md mr-3 flex-shrink-0" 
             />
             <div className="flex-1 min-w-0">
-              <p className="font-semibold truncate">{currentTrack.name}</p>
-              <p className='text-sm text-gray-400 truncate'>{currentTrack.artist}</p>
+              <p className="font-semibold truncate text-sm">{currentTrack.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
             </div>
           </div>
-          
-          {/* Center - Control buttons and progress bar */}
-          <div className="flex flex-col items-center flex-1 max-w-md mx-6">
-            {/* Control buttons */}
-            <div className="flex items-center space-x-2 mb-2">
-              <button className="p-2 hover:bg-gray-700 rounded-full transition-colors" onClick={playPreviousTrack}>
-                <FaBackward className="w-4 h-4" />
-              </button>
-              <button className='p-3 hover:bg-gray-700 rounded-full transition-colors' onClick={togglePlayPause}>
-                {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
-              </button>
-              <button className='p-2 hover:bg-gray-700 rounded-full transition-colors' onClick={playNextTrack}>
-                <FaForward className="w-4 h-4" />
-              </button>
-            </div>
-            
-            {/* Progress bar below buttons - full width of this section */}
-            <div className="flex items-center space-x-2 w-full">
-              <span className="text-xs text-gray-400 w-10 text-right">
-                {formatTime(audioCurrent?.currentTime ?? 0)}
-              </span>
-              <Progress value={progress} className="flex-1 cursor-pointer" onClick={handleProgressClick}/>
-              <span className="text-xs text-gray-400 w-10">
-                {formatTime(audioCurrent?.duration ?? 0)}
-              </span>
-            </div>
+          {/* Control buttons */}
+        <div className="flex items-center justify-center space-x-2">
+          <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
+            <FaBackward className="w-3 h-3" />
+          </button>
+          <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
+            {isPlaying ? <FaPause className="w-4 h-4" /> : <FaPlay className="w-4 h-4" />}
+          </button>
+          <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
+            <FaForward className="w-3 h-3" />
+          </button>
+        </div>
+          <div className="flex items-center space-x-1 ml-2">
+            <button 
+              className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" 
+              onClick={() => setIsMinimized(true)}
+              title="Minimize"
+            >
+              <FaCompress className="w-3 h-3" />
+            </button>
           </div>
-          
-          {/* Right side - Extra space for balance */}
-          <div className="flex-1"></div>
         </div>
-      ) : (
-        <div className="p-4">
-          <p>No track playing</p>
-        </div>
-      )}
+      </div>
       <audio ref={audioRef} hidden />
     </div>
   );
 };
+
+
+//  {/* Progress bar */}
+//         <div className="flex items-center space-x-2">
+//           <span className="text-xs text-muted-foreground w-8 text-right">
+//             {formatTime(audioCurrent?.currentTime ?? 0)}
+//           </span>
+//           <Progress value={progress} className="flex-1 cursor-pointer h-1" onClick={handleProgressClick}/>
+//           <span className="text-xs text-muted-foreground w-8">
+//             {formatTime(audioCurrent?.duration ?? 0)}
+//           </span>
+//         </div>

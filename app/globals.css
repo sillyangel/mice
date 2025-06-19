@@ -11,6 +11,19 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  
+  .animate-scroll {
+    animation: scroll 8s linear infinite;
+  }
+}
+
+@keyframes scroll {
+  0%, 20% {
+    transform: translateX(0);
+  }
+  80%, 100% {
+    transform: translateX(-100%);
+  }
 }
 
 @layer base {
