@@ -15,7 +15,8 @@ import {
   FaShuffle,
   FaRepeat,
   FaXmark,
-  FaQuoteLeft
+  FaQuoteLeft,
+  FaListUl
 } from "react-icons/fa6";
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,9 +29,10 @@ interface LyricLine {
 interface FullScreenPlayerProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenQueue?: () => void;
 }
 
-export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onClose }) => {
+export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onClose, onOpenQueue }) => {
   const { currentTrack, playPreviousTrack, playNextTrack } = useAudioPlayer();
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -135,10 +137,10 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     }
   }, [currentTrack?.id, showLyrics]); // Only reset when track ID changes
 
-  // Sync with main audio player (throttled to prevent infinite loops)
+  // Sync with main audio player (improved responsiveness)
   useEffect(() => {
     let lastUpdate = 0;
-    const throttleMs = 200; // Update at most every 200ms
+    const throttleMs = 100; // Update at most every 100ms for better responsiveness
     
     const syncWithMainPlayer = () => {
       const now = Date.now();
@@ -151,8 +153,13 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
         const newDuration = mainAudio.duration || 0;
         const newIsPlaying = !mainAudio.paused;
         
+        // Always update playing state for better responsiveness
+        if (newIsPlaying !== isPlaying) {
+          setIsPlaying(newIsPlaying);
+        }
+        
         // Only update state if values have changed significantly
-        if (Math.abs(newCurrentTime - currentTime) > 0.5) {
+        if (Math.abs(newCurrentTime - currentTime) > 0.3) {
           setCurrentTime(newCurrentTime);
         }
         if (Math.abs(newDuration - duration) > 0.1) {
@@ -164,9 +171,6 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             setProgress(newProgress);
           }
         }
-        if (newIsPlaying !== isPlaying) {
-          setIsPlaying(newIsPlaying);
-        }
         if (Math.abs(mainAudio.volume - volume) > 0.01) {
           setVolume(mainAudio.volume);
         }
@@ -177,11 +181,11 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       // Initial sync
       syncWithMainPlayer();
       
-      // Set up interval to keep syncing
-      const interval = setInterval(syncWithMainPlayer, 100);
+      // Set up interval to keep syncing - more frequent for better responsiveness
+      const interval = setInterval(syncWithMainPlayer, 50);
       return () => clearInterval(interval);
     }
-  }, [isOpen, currentTrack]); // Removed currentTime from dependencies to prevent loop
+  }, [isOpen, currentTrack]); // Removed other dependencies to prevent loop
 
   // Extract dominant color from cover art
   useEffect(() => {
@@ -265,22 +269,47 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
   if (!isOpen || !currentTrack) return null;
 
-  const backgroundStyle = {
-    background: `linear-gradient(135deg, ${dominantColor}40 0%, ${dominantColor}20 50%, transparent 100%)`
-  };
-
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-95 backdrop-blur-sm overflow-hidden">
-      <div className="h-full w-full flex flex-col" style={backgroundStyle}>
+    <div className="fixed inset-0 z-50 bg-black overflow-hidden">
+      {/* Blurred background image */}
+      {currentTrack.coverArt && (
+        <div 
+          className="absolute inset-0 w-full h-full"
+          style={{
+            backgroundImage: `url(${currentTrack.coverArt})`,
+            backgroundSize: '120%',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            filter: 'blur(20px) brightness(0.3)',
+            transform: 'scale(1.1)',
+          }}
+        />
+      )}
+      
+      {/* Overlay for better contrast */}
+      <div className="absolute inset-0 bg-black/50" />
+      
+      <div className="relative h-full w-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 flex-shrink-0">
           <h2 className="text-lg lg:text-xl font-semibold text-white">Now Playing</h2>
-          <button 
-            onClick={onClose}
-            className="text-white hover:bg-white/20"
-          >
-            <FaXmark className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-3">
+            {onOpenQueue && (
+              <button 
+                onClick={onOpenQueue}
+                className="text-white hover:bg-white/20 p-2 rounded-full transition-colors"
+                title="Open Queue"
+              >
+                <FaListUl className="w-5 h-5" />
+              </button>
+            )}
+            <button 
+              onClick={onClose}
+              className="text-white hover:bg-white/20 p-2 rounded-full transition-colors"
+            >
+              <FaXmark className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Main Content */}
@@ -349,7 +378,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               </button>
             </div>
 
-            {/* Volume and Lyrics Toggle */}
+            {/* Volume and Queue */}
             <div className="flex items-center gap-3 flex-shrink-0">
               <button
                 onMouseEnter={() => setShowVolumeSlider(true)}

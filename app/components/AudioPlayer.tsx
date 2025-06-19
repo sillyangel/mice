@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { FullScreenPlayer } from '@/app/components/FullScreenPlayer';
 import { FaPlay, FaPause, FaVolumeHigh, FaForward, FaBackward, FaCompress, FaVolumeXmark, FaExpand } from "react-icons/fa6";
@@ -10,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export const AudioPlayer: React.FC = () => {
   const { currentTrack, playPreviousTrack, addToQueue, playNextTrack, clearQueue } = useAudioPlayer();
+  const router = useRouter();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -20,6 +22,11 @@ export const AudioPlayer: React.FC = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const audioCurrent = audioRef.current;
   const { toast } = useToast();
+  
+  const handleOpenQueue = () => {
+    setIsFullScreen(false);
+    router.push('/queue');
+  };
   
   useEffect(() => {
     setIsClient(true);
@@ -114,6 +121,66 @@ export const AudioPlayer: React.FC = () => {
       }
     };
   }, [playNextTrack, currentTrack]);
+
+  // Media Session API integration
+  useEffect(() => {
+    if (!isClient || !currentTrack || !('mediaSession' in navigator)) return;
+
+    // Set metadata
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentTrack.name,
+      artist: currentTrack.artist,
+      album: currentTrack.album,
+      artwork: currentTrack.coverArt ? [
+        { src: currentTrack.coverArt, sizes: '512x512', type: 'image/jpeg' }
+      ] : undefined,
+    });
+
+    // Set playback state
+    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+
+    // Set action handlers
+    navigator.mediaSession.setActionHandler('play', () => {
+      const audioCurrent = audioRef.current;
+      if (audioCurrent) {
+        audioCurrent.play();
+        setIsPlaying(true);
+      }
+    });
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      const audioCurrent = audioRef.current;
+      if (audioCurrent) {
+        audioCurrent.pause();
+        setIsPlaying(false);
+      }
+    });
+
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      playPreviousTrack();
+    });
+
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      playNextTrack();
+    });
+
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      const audioCurrent = audioRef.current;
+      if (audioCurrent && details.seekTime !== undefined) {
+        audioCurrent.currentTime = details.seekTime;
+      }
+    });
+
+    return () => {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', null);
+        navigator.mediaSession.setActionHandler('pause', null);
+        navigator.mediaSession.setActionHandler('previoustrack', null);
+        navigator.mediaSession.setActionHandler('nexttrack', null);
+        navigator.mediaSession.setActionHandler('seekto', null);
+      }
+    };
+  }, [currentTrack, isPlaying, isClient, playPreviousTrack, playNextTrack]);
   
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     if (audioCurrent && currentTrack) {
@@ -254,6 +321,7 @@ export const AudioPlayer: React.FC = () => {
       <FullScreenPlayer 
         isOpen={isFullScreen} 
         onClose={() => setIsFullScreen(false)} 
+        onOpenQueue={handleOpenQueue}
       />
     </div>
   );
