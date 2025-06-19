@@ -30,6 +30,16 @@ export const AudioPlayer: React.FC = () => {
   
   useEffect(() => {
     setIsClient(true);
+    
+    // Clean up old localStorage entries with track IDs
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('navidrome-track-time-')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
   }, []);
 
   // Save position when component unmounts or track changes
@@ -37,7 +47,7 @@ export const AudioPlayer: React.FC = () => {
     const audioCurrent = audioRef.current;
     return () => {
       if (audioCurrent && currentTrack && audioCurrent.currentTime > 10) {
-        localStorage.setItem(`navidrome-track-time-${currentTrack.id}`, audioCurrent.currentTime.toString());
+        localStorage.setItem('navidrome-current-track-time', audioCurrent.currentTime.toString());
       }
     };
   }, [currentTrack]);
@@ -49,7 +59,7 @@ export const AudioPlayer: React.FC = () => {
       audioCurrent.src = currentTrack.url;
       
       // Check for saved timestamp (only restore if more than 10 seconds in)
-      const savedTime = localStorage.getItem(`navidrome-track-time-${currentTrack.id}`);
+      const savedTime = localStorage.getItem('navidrome-current-track-time');
       if (savedTime) {
         const time = parseFloat(savedTime);
         // Only restore if we were at least 10 seconds in and not near the end
@@ -66,7 +76,13 @@ export const AudioPlayer: React.FC = () => {
           } else {
             audioCurrent.addEventListener('loadeddata', restorePosition);
           }
+        } else {
+          // Clear saved time if we're not restoring it
+          localStorage.removeItem('navidrome-current-track-time');
         }
+      } else {
+        // Clear saved time if no saved time exists
+        localStorage.removeItem('navidrome-current-track-time');
       }
       
       audioCurrent.play();
@@ -82,10 +98,10 @@ export const AudioPlayer: React.FC = () => {
       if (audioCurrent && currentTrack) {
         setProgress((audioCurrent.currentTime / audioCurrent.duration) * 100);
         
-        // Save current time every 10 seconds, but only if we've moved forward significantly
+        // Save current time every 30 seconds, but only if we've moved forward significantly
         const currentTime = audioCurrent.currentTime;
-        if (Math.abs(currentTime - lastSavedTime) >= 10 && currentTime > 10) {
-          localStorage.setItem(`navidrome-track-time-${currentTrack.id}`, currentTime.toString());
+        if (Math.abs(currentTime - lastSavedTime) >= 30 && currentTime > 10) {
+          localStorage.setItem('navidrome-current-track-time', currentTime.toString());
           lastSavedTime = currentTime;
         }
       }
@@ -94,7 +110,7 @@ export const AudioPlayer: React.FC = () => {
     const handleTrackEnd = () => {
       if (currentTrack) {
         // Clear saved time when track ends
-        localStorage.removeItem(`navidrome-track-time-${currentTrack.id}`);
+        localStorage.removeItem('navidrome-current-track-time');
       }
       playNextTrack();
     };
@@ -102,7 +118,7 @@ export const AudioPlayer: React.FC = () => {
     const handleSeeked = () => {
       if (audioCurrent && currentTrack) {
         // Save immediately when user seeks
-        localStorage.setItem(`navidrome-track-time-${currentTrack.id}`, audioCurrent.currentTime.toString());
+        localStorage.setItem('navidrome-current-track-time', audioCurrent.currentTime.toString());
         lastSavedTime = audioCurrent.currentTime;
       }
     };
@@ -190,7 +206,7 @@ export const AudioPlayer: React.FC = () => {
       audioCurrent.currentTime = newTime;
       
       // Save the new position immediately
-      localStorage.setItem(`navidrome-track-time-${currentTrack.id}`, newTime.toString());
+      localStorage.setItem('navidrome-current-track-time', newTime.toString());
     }
   };
 
