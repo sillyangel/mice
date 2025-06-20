@@ -10,10 +10,13 @@ import { AlbumArtwork } from '@/app/components/album-artwork';
 import { ArtistIcon } from '@/app/components/artist-icon';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { getNavidromeAPI, Album } from '@/lib/navidrome';
+import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
+import { Shuffle } from 'lucide-react';
 import Loading from '@/app/components/loading';
 
 export default function BrowsePage() {
   const { artists, isLoading: contextLoading } = useNavidrome();
+  const { shuffleAllAlbums } = useAudioPlayer();
   const [albums, setAlbums] = useState<Album[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoadingAlbums, setIsLoadingAlbums] = useState(false);
@@ -86,6 +89,7 @@ export default function BrowsePage() {
     <>
       <Tabs defaultValue="music" className="h-full flex flex-col space-y-6">
         <TabsContent value="music" className="border-none p-0 outline-none flex flex-col flex-grow">
+        
         <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-2xl font-semibold tracking-tight">
@@ -95,6 +99,10 @@ export default function BrowsePage() {
                 the people who make the music
               </p>
             </div>
+            <Button onClick={shuffleAllAlbums} className="flex items-center gap-2">
+              <Shuffle className="w-4 h-4" />
+              Shuffle All Albums
+            </Button>
           </div>
           <Separator className="my-4" />
           <div className="relative flex-grow">

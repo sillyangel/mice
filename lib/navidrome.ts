@@ -89,6 +89,26 @@ export interface RadioStation {
   homePageUrl?: string;
 }
 
+export interface AlbumInfo {
+  notes?: string;
+  musicBrainzId?: string;
+  lastFmUrl?: string;
+  smallImageUrl?: string;
+  mediumImageUrl?: string;
+  largeImageUrl?: string;
+  biography?: string;
+}
+
+export interface ArtistInfo {
+  biography?: string;
+  musicBrainzId?: string;
+  lastFmUrl?: string;
+  smallImageUrl?: string;
+  mediumImageUrl?: string;
+  largeImageUrl?: string;
+  similarArtist?: Artist[];
+}
+
 class NavidromeAPI {
   private config: NavidromeConfig;
   private clientName = 'stillnavidrome';
@@ -364,6 +384,67 @@ class NavidromeAPI {
 
   async deleteInternetRadioStation(id: string): Promise<void> {
     await this.makeRequest('deleteInternetRadioStation', { id });
+  }
+
+  async getArtistInfo(artistId: string): Promise<{ artist: Artist; info: ArtistInfo }> {
+    const response = await this.makeRequest('getArtistInfo2', { id: artistId });
+    const artistData = response.artist as Artist;
+    const artistInfo = response.info as ArtistInfo;
+    return {
+      artist: artistData,
+      info: artistInfo
+    };
+  }
+
+  async getAlbumInfo(albumId: string): Promise<{ album: Album; info: AlbumInfo }> {
+    const response = await this.makeRequest('getAlbumInfo2', { id: albumId });
+    const albumData = response.album as Album;
+    const albumInfo = response.info as AlbumInfo;
+    return {
+      album: albumData,
+      info: albumInfo
+    };
+  }
+
+  async search2(query: string, artistCount = 20, albumCount = 20, songCount = 20): Promise<{
+    artists: Artist[];
+    albums: Album[];
+    songs: Song[];
+  }> {
+    const response = await this.makeRequest('search2', {
+      query,
+      artistCount,
+      albumCount,
+      songCount
+    });
+
+    const searchData = response.searchResult2 as {
+      artist?: Artist[];
+      album?: Album[];
+      song?: Song[];
+    };
+
+    return {
+      artists: searchData?.artist || [],
+      albums: searchData?.album || [],
+      songs: searchData?.song || []
+    };
+  }
+
+  async getArtistInfo2(artistId: string, count = 20, includeNotPresent = false): Promise<ArtistInfo> {
+    const response = await this.makeRequest('getArtistInfo2', {
+      id: artistId,
+      count,
+      includeNotPresent: includeNotPresent.toString()
+    });
+    return response.artistInfo2 as ArtistInfo;
+  }
+
+  async getAlbumInfo2(albumId: string): Promise<AlbumInfo> {
+    const response = await this.makeRequest('getAlbumInfo2', {
+      id: albumId
+    });
+    return response.albumInfo2 as AlbumInfo;
   }
 }
 

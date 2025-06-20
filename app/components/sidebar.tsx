@@ -15,6 +15,7 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Sidebar({ className, playlists }: SidebarProps) {
   const isRoot = usePathname() === "/";
   const isBrowse = usePathname() === "/browse";
+  const isSearch = usePathname() === "/search";
   const isAlbums = usePathname() === "/library/albums";
   const isArtists = usePathname() === "/library/artists";
   const isQueue = usePathname() === "/queue";
@@ -66,6 +67,24 @@ export function Sidebar({ className, playlists }: SidebarProps) {
                   <rect width="7" height="7" x="3" y="14" rx="1" />
                 </svg>
                 Browse
+              </Button>
+            </Link>
+            <Link href="/search">
+              <Button variant={isSearch ? "secondary" : "ghost"} className="w-full justify-start mb-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mr-2 h-4 w-4"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                Search
               </Button>
             </Link>
             <Link href="/queue">

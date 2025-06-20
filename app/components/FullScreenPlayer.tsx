@@ -33,7 +33,7 @@ interface FullScreenPlayerProps {
 }
 
 export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onClose, onOpenQueue }) => {
-  const { currentTrack, playPreviousTrack, playNextTrack } = useAudioPlayer();
+  const { currentTrack, playPreviousTrack, playNextTrack, shuffle, toggleShuffle } = useAudioPlayer();
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -351,6 +351,16 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
             {/* Controls */}
             <div className="flex items-center gap-4 lg:gap-6 mb-4 lg:mb-6 flex-shrink-0">
+              <button
+                onClick={toggleShuffle}
+                className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
+                  shuffle ? 'text-primary' : 'text-gray-400'
+                }`}
+                title={shuffle ? 'Disable Shuffle' : 'Enable Shuffle'}
+              >
+                <FaShuffle className="w-5 h-5" />
+              </button>
+
               <button
                 onClick={playPreviousTrack}
                 className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">

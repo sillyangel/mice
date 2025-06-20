@@ -33,6 +33,9 @@ interface AudioPlayerContextProps {
   addArtistToQueue: (artistId: string) => Promise<void>;
   playPreviousTrack: () => void;
   isLoading: boolean;
+  shuffle: boolean;
+  toggleShuffle: () => void;
+  shuffleAllAlbums: () => Promise<void>;
 }
 
 const AudioPlayerContext = createContext<AudioPlayerContextProps | undefined>(undefined);
@@ -42,6 +45,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [queue, setQueue] = useState<Track[]>([]);
   const [playedTracks, setPlayedTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [shuffle, setShuffle] = useState(false);
   const { toast } = useToast();
   const api = useMemo(() => getNavidromeAPI(), []);
 
@@ -128,11 +132,20 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     localStorage.removeItem('navidrome-current-track-time');
     
     if (queue.length > 0) {
-      const nextTrack = queue[0];
-      setQueue((prevQueue) => prevQueue.slice(1));
+      let nextTrack;
+      if (shuffle) {
+        // Pick a random track from the queue
+        const randomIndex = Math.floor(Math.random() * queue.length);
+        nextTrack = queue[randomIndex];
+        setQueue((prevQueue) => prevQueue.filter((_, i) => i !== randomIndex));
+      } else {
+        // Pick the first track in order
+        nextTrack = queue[0];
+        setQueue((prevQueue) => prevQueue.slice(1));
+      }
       playTrack(nextTrack, true); // Auto-play next track
     }
-  }, [queue, playTrack]);
+  }, [queue, playTrack, shuffle]);
 
   const playPreviousTrack = useCallback(() => {
     // Clear saved timestamp when changing tracks  
@@ -276,6 +289,45 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [queue, playTrack]);
 
+  const toggleShuffle = useCallback(() => {
+    setShuffle(prev => !prev);
+  }, []);
+
+  const shuffleAllAlbums = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const albums = await api.getAlbums('alphabeticalByName', 500, 0);
+      let allTracks: Track[] = [];
+      
+      // Concatenate all tracks from each album into a single array
+      for (const album of albums) {
+        const { songs } = await api.getAlbum(album.id);
+        const tracks = songs.map(songToTrack);
+        allTracks = allTracks.concat(tracks);
+      }
+      
+      // Shuffle the combined tracks array
+      allTracks.sort(() => Math.random() - 0.5);
+      
+      // Set the shuffled tracks as the new queue
+      setQueue(allTracks);
+      
+      toast({
+        title: "Shuffle All Albums",
+        description: `Shuffled ${allTracks.length} tracks from all albums`,
+      });
+    } catch (error) {
+      console.error('Failed to shuffle all albums:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to shuffle all albums",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [api, songToTrack, toast]);
+
   const contextValue = useMemo(() => ({
     currentTrack, 
     playTrack, 
@@ -290,7 +342,10 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     isLoading,
     playAlbum,
     playAlbumFromTrack,
-    skipToTrackInQueue
+    skipToTrackInQueue,
+    shuffle,
+    toggleShuffle,
+    shuffleAllAlbums
   }), [
     currentTrack, 
     queue, 
@@ -305,7 +360,10 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     playPreviousTrack,
     playAlbum,
     playAlbumFromTrack,
-    skipToTrackInQueue
+    skipToTrackInQueue,
+    shuffle,
+    toggleShuffle,
+    shuffleAllAlbums
   ]);
 
   return (

@@ -1,6 +1,6 @@
 'use client';
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getNavidromeAPI, Album, Artist, Song, Playlist } from '@/lib/navidrome';
+import { getNavidromeAPI, Album, Artist, Song, Playlist, AlbumInfo, ArtistInfo } from '@/lib/navidrome';
 import { useCallback } from 'react';
 
 interface NavidromeContextType {
@@ -23,8 +23,11 @@ interface NavidromeContextType {
   
   // Methods
   searchMusic: (query: string) => Promise<{ artists: Artist[]; albums: Album[]; songs: Song[] }>;
+  search2: (query: string) => Promise<{ artists: Artist[]; albums: Album[]; songs: Song[] }>;
   getAlbum: (albumId: string) => Promise<{ album: Album; songs: Song[] }>;
   getArtist: (artistId: string) => Promise<{ artist: Artist; albums: Album[] }>;
+  getArtistInfo2: (artistId: string) => Promise<ArtistInfo>;
+  getAlbumInfo2: (albumId: string) => Promise<AlbumInfo>;
   getPlaylist: (playlistId: string) => Promise<{ playlist: Playlist; songs: Song[] }>;
   getAllSongs: () => Promise<Song[]>;
   refreshData: () => Promise<void>;
@@ -123,6 +126,17 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     }
   };
 
+  const search2 = async (query: string) => {
+    setError(null);
+    try {
+      return await api.search2(query);
+    } catch (err) {
+      console.error('Search2 failed:', err);
+      setError('Search failed');
+      return { artists: [], albums: [], songs: [] };
+    }
+  };
+
   const getAlbum = async (albumId: string) => {
     setError(null);
     try {
@@ -141,6 +155,28 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     } catch (err) {
       console.error('Failed to get artist:', err);
       setError('Failed to get artist');
+      throw err;
+    }
+  };
+
+  const getArtistInfo2 = async (artistId: string) => {
+    setError(null);
+    try {
+      return await api.getArtistInfo2(artistId);
+    } catch (err) {
+      console.error('Failed to get artist info:', err);
+      setError('Failed to get artist info');
+      throw err;
+    }
+  };
+
+  const getAlbumInfo2 = async (albumId: string) => {
+    setError(null);
+    try {
+      return await api.getAlbumInfo2(albumId);
+    } catch (err) {
+      console.error('Failed to get album info:', err);
+      setError('Failed to get album info');
       throw err;
     }
   };
@@ -276,8 +312,11 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     
     // Methods
     searchMusic,
+    search2,
     getAlbum,
     getArtist,
+    getArtistInfo2,
+    getAlbumInfo2,
     getPlaylist,
     getAllSongs,
     refreshData,

@@ -108,36 +108,42 @@ export default function ArtistPage() {
     : '/default-user.jpg';
 
   return (
-    <div className="h-full px-4 py-6 lg:px-8">
+    <div className="h-full px-4 py-6 lg:px-8 pb-24">
       <div className="space-y-6">
         {/* Artist Header */}
-        <div className="relative bg-gradient-to-r from-blue-900 to-purple-900 rounded-lg p-8">
-          <div className="flex items-center space-x-6">
-            <div className="relative">
-              <Image 
-                src={artistImageUrl} 
-                alt={artist.name} 
-                width={120} 
-                height={120}
-                className="rounded-full border-4 border-white shadow-lg"
-              />
-            </div>
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold text-white mb-2">{artist.name}</h1>
-              <p className="text-white/80 mb-4">{artist.albumCount} albums</p>
-              <div className="flex gap-3">
-                <Button 
-                  onClick={handlePlayArtist} 
-                  disabled={isPlayingArtist}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  {isPlayingArtist ? 'Adding to Queue...' : 'Play Artist'}
-                </Button>
-                <Button onClick={handleStar} variant="secondary">
-                  <Heart className={isStarred ? 'text-red-500' : 'text-gray-500'} fill={isStarred ? 'red' : 'none'}/>
-                  {isStarred ? 'Starred' : 'Star Artist'}
-                </Button>
+        <div className="relative rounded-lg p-8">
+          <div className="relative rounded-sm p-10">
+            <div
+              className="absolute inset-0 bg-center bg-cover bg-no-repeat blur-xl"
+              style={{ backgroundImage: `url(${artistImageUrl})` }}
+            />
+            <div className="relative z-10 flex items-center space-x-6">
+              <div className="relative">
+                <Image
+                  src={artistImageUrl}
+                  alt={artist.name}
+                  width={120}
+                  height={120}
+                  className="rounded-full shadow-lg"
+                />
+              </div>
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold text-white mb-2">{artist.name}</h1>
+                <p className="text-white/80 mb-4">{artist.albumCount} albums</p>
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={handlePlayArtist} 
+                    disabled={isPlayingArtist}
+                    className="bg-primary hover:bg-primary/70"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    {isPlayingArtist ? 'Adding to Queue...' : 'Play Artist'}
+                  </Button>
+                  <Button onClick={handleStar} variant="secondary">
+                    <Heart className={isStarred ? 'text-red-500' : 'text-gray-500'} fill={isStarred ? 'red' : 'none'} />
+                    {isStarred ? 'Starred' : 'Star Artist'}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
