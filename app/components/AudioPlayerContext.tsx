@@ -116,8 +116,19 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [currentTrack, api]);
 
   const addToQueue = useCallback((track: Track) => {
-    setQueue((prevQueue) => [...prevQueue, track]);
-  }, []);
+    setQueue((prevQueue) => {
+      if (shuffle && prevQueue.length > 0) {
+        // If shuffle is enabled, insert the track at a random position
+        const randomIndex = Math.floor(Math.random() * (prevQueue.length + 1));
+        const newQueue = [...prevQueue];
+        newQueue.splice(randomIndex, 0, track);
+        return newQueue;
+      } else {
+        // Normal behavior: add to the end
+        return [...prevQueue, track];
+      }
+    });
+  }, [shuffle]);
 
   const clearQueue = useCallback(() => {
     setQueue([]);
@@ -132,20 +143,13 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     localStorage.removeItem('navidrome-current-track-time');
     
     if (queue.length > 0) {
-      let nextTrack;
-      if (shuffle) {
-        // Pick a random track from the queue
-        const randomIndex = Math.floor(Math.random() * queue.length);
-        nextTrack = queue[randomIndex];
-        setQueue((prevQueue) => prevQueue.filter((_, i) => i !== randomIndex));
-      } else {
-        // Pick the first track in order
-        nextTrack = queue[0];
-        setQueue((prevQueue) => prevQueue.slice(1));
-      }
+      // Always pick the first track from the queue
+      // If shuffle is enabled, the queue will already be shuffled
+      const nextTrack = queue[0];
+      setQueue((prevQueue) => prevQueue.slice(1));
       playTrack(nextTrack, true); // Auto-play next track
     }
-  }, [queue, playTrack, shuffle]);
+  }, [queue, playTrack]);
 
   const playPreviousTrack = useCallback(() => {
     // Clear saved timestamp when changing tracks  
@@ -169,7 +173,29 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       const { album, songs } = await api.getAlbum(albumId);
       const tracks = songs.map(songToTrack);
-      setQueue((prevQueue) => [...prevQueue, ...tracks]);
+      
+      setQueue((prevQueue) => {
+        if (shuffle && prevQueue.length > 0) {
+          // If shuffle is enabled, shuffle the new tracks and insert them randomly
+          const shuffledTracks = [...tracks];
+          // Fisher-Yates shuffle algorithm
+          for (let i = shuffledTracks.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
+          }
+          
+          // Insert each track at a random position
+          const newQueue = [...prevQueue];
+          shuffledTracks.forEach(track => {
+            const randomIndex = Math.floor(Math.random() * (newQueue.length + 1));
+            newQueue.splice(randomIndex, 0, track);
+          });
+          return newQueue;
+        } else {
+          // Normal behavior: add to the end
+          return [...prevQueue, ...tracks];
+        }
+      });
       
       toast({
         title: "Album Added",
@@ -185,19 +211,43 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  }, [api, songToTrack, toast]);
+  }, [api, songToTrack, toast, shuffle]);
 
   const addArtistToQueue = useCallback(async (artistId: string) => {
     setIsLoading(true);
     try {
       const { artist, albums } = await api.getArtist(artistId);
+      let allTracks: Track[] = [];
       
-      // Add all albums from this artist to queue
+      // Collect all tracks from all albums
       for (const album of albums) {
         const { songs } = await api.getAlbum(album.id);
         const tracks = songs.map(songToTrack);
-        setQueue((prevQueue) => [...prevQueue, ...tracks]);
+        allTracks = allTracks.concat(tracks);
       }
+      
+      setQueue((prevQueue) => {
+        if (shuffle && prevQueue.length > 0) {
+          // If shuffle is enabled, shuffle the new tracks and insert them randomly
+          const shuffledTracks = [...allTracks];
+          // Fisher-Yates shuffle algorithm
+          for (let i = shuffledTracks.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
+          }
+          
+          // Insert each track at a random position
+          const newQueue = [...prevQueue];
+          shuffledTracks.forEach(track => {
+            const randomIndex = Math.floor(Math.random() * (newQueue.length + 1));
+            newQueue.splice(randomIndex, 0, track);
+          });
+          return newQueue;
+        } else {
+          // Normal behavior: add to the end
+          return [...prevQueue, ...allTracks];
+        }
+      });
       
       toast({
         title: "Artist Added",
@@ -213,24 +263,36 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  }, [api, songToTrack, toast]);
+  }, [api, songToTrack, toast, shuffle]);
   const playAlbum = useCallback(async (albumId: string) => {
     setIsLoading(true);
     try {
       const { album, songs } = await api.getAlbum(albumId);
       const tracks = songs.map(songToTrack);
       
-      // Clear the queue and set the new tracks
-      setQueue(tracks.slice(1)); // All tracks except the first one
-      
-      // Play the first track immediately
       if (tracks.length > 0) {
-        playTrack(tracks[0]);
+        if (shuffle) {
+          // If shuffle is enabled, shuffle the tracks
+          const shuffledTracks = [...tracks];
+          // Fisher-Yates shuffle algorithm
+          for (let i = shuffledTracks.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
+          }
+          
+          // Play the first shuffled track and set the rest as queue
+          playTrack(shuffledTracks[0]);
+          setQueue(shuffledTracks.slice(1));
+        } else {
+          // Normal order: play first track and set the rest as queue
+          playTrack(tracks[0]);
+          setQueue(tracks.slice(1));
+        }
       }
       
       toast({
         title: "Playing Album",
-        description: `Now playing "${album.name}"`,
+        description: `Now playing "${album.name}"${shuffle ? ' (shuffled)' : ''}`,
       });
     } catch (error) {
       console.error('Failed to play album:', error);
@@ -242,7 +304,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  }, [api, playTrack, songToTrack, toast]);
+  }, [api, playTrack, songToTrack, toast, shuffle]);
 
   const playAlbumFromTrack = useCallback(async (albumId: string, startingSongId: string) => {
     setIsLoading(true);
@@ -257,15 +319,28 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         throw new Error('Starting song not found in album');
       }
       
-      // Clear the queue and set the remaining tracks after the starting track
-      setQueue(tracks.slice(startingIndex + 1));
-      
-      // Play the starting track immediately
-      playTrack(tracks[startingIndex]);
+      if (shuffle) {
+        // If shuffle is enabled, create a shuffled queue but start with the selected track
+        const remainingTracks = [...tracks];
+        remainingTracks.splice(startingIndex, 1); // Remove the starting track
+        
+        // Shuffle the remaining tracks
+        for (let i = remainingTracks.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [remainingTracks[i], remainingTracks[j]] = [remainingTracks[j], remainingTracks[i]];
+        }
+        
+        setQueue(remainingTracks);
+        playTrack(tracks[startingIndex]);
+      } else {
+        // Normal order: set the remaining tracks after the starting track as queue
+        setQueue(tracks.slice(startingIndex + 1));
+        playTrack(tracks[startingIndex]);
+      }
       
       toast({
         title: "Playing Album",
-        description: `Playing "${album.name}" from "${tracks[startingIndex].name}"`,
+        description: `Playing "${album.name}" from "${tracks[startingIndex].name}"${shuffle ? ' (shuffled)' : ''}`,
       });
     } catch (error) {
       console.error('Failed to play album from track:', error);
@@ -277,7 +352,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  }, [api, playTrack, songToTrack, toast]);
+  }, [api, playTrack, songToTrack, toast, shuffle]);
 
   const skipToTrackInQueue = useCallback((index: number) => {
     if (index >= 0 && index < queue.length) {
@@ -290,8 +365,25 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [queue, playTrack]);
 
   const toggleShuffle = useCallback(() => {
-    setShuffle(prev => !prev);
-  }, []);
+    setShuffle(prev => {
+      const newShuffleState = !prev;
+      
+      // If turning shuffle ON, shuffle the current queue
+      if (newShuffleState && queue.length > 0) {
+        setQueue(prevQueue => {
+          const shuffledQueue = [...prevQueue];
+          // Fisher-Yates shuffle algorithm
+          for (let i = shuffledQueue.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledQueue[i], shuffledQueue[j]] = [shuffledQueue[j], shuffledQueue[i]];
+          }
+          return shuffledQueue;
+        });
+      }
+      
+      return newShuffleState;
+    });
+  }, [queue.length]);
 
   const shuffleAllAlbums = useCallback(async () => {
     setIsLoading(true);

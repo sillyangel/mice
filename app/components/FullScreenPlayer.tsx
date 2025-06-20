@@ -354,9 +354,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               <button
                 onClick={toggleShuffle}
                 className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
-                  shuffle ? 'text-primary' : 'text-gray-400'
+                  shuffle ? 'text-primary bg-primary/20' : 'text-gray-400'
                 }`}
-                title={shuffle ? 'Disable Shuffle' : 'Enable Shuffle'}
+                title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
               >
                 <FaShuffle className="w-5 h-5" />
               </button>
