@@ -1,6 +1,4 @@
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import React from 'react';
-import { Analytics }  from "@vercel/analytics/react";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AudioPlayerProvider } from "./components/AudioPlayerContext";
@@ -81,8 +79,6 @@ export default function Layout({ children }: LayoutProps) {
           <NavidromeConfigProvider>
             <NavidromeProvider>
               <AudioPlayerProvider>
-                <SpeedInsights />
-                <Analytics />
                 <Ihateserverside>
                   {children}
                 </Ihateserverside>
