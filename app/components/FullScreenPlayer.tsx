@@ -288,7 +288,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       <div className="relative h-full w-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 flex-shrink-0">
-          <h2 className="text-lg lg:text-xl font-semibold text-white">Now Playing</h2>
+          <h2 className="text-lg lg:text-xl font-semibold text-white"></h2>
           <div className="flex items-center gap-3">
             {onOpenQueue && (
               <button 
@@ -311,10 +311,10 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
         {/* Main Content */}
         <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-8 p-4 lg:p-6 pt-0 overflow-hidden min-h-0">
           {/* Left Side - Album Art and Controls */}
-          <div className={`flex flex-col items-center min-h-0 ${
+          <div className={`flex flex-col items-center min-h-0 flex-1 min-w-0 ${
             showLyrics && lyrics.length > 0 
-              ? 'flex-1 justify-center lg:justify-start' 
-              : 'flex-1 justify-center'
+              ? 'justify-center lg:justify-start' 
+              : 'justify-center'
           }`}>
             {/* Album Art */}
             <div className="relative mb-4 lg:mb-6 flex-shrink-0">
@@ -386,6 +386,19 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
                 <FaForward className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
+
+              {lyrics.length > 0 && (
+                <button
+                  onClick={() => setShowLyrics(!showLyrics)}
+                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
+                    showLyrics ? 'text-primary bg-primary/20' : 'text-gray-500'
+                  }`}
+                  title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
+                >
+                  <FaQuoteLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
+              
             </div>
 
             {/* Volume and Lyrics Toggle */}
@@ -400,17 +413,6 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 )}
               </button>
               
-              {lyrics.length > 0 && (
-                <button
-                  onClick={() => setShowLyrics(!showLyrics)}
-                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
-                    showLyrics ? 'text-foreground' : 'text-gray-500'
-                  }`}
-                  title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
-                >
-                  <FaQuoteLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-              )}
               
               {showVolumeSlider && (
                 <div 
@@ -432,7 +434,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
           {/* Right Side - Lyrics */}
           {showLyrics && lyrics.length > 0 && (
-            <div className="flex-1 lg:max-w-md min-h-0 flex flex-col" ref={lyricsRef}>
+            <div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}>
               <div className="h-full flex flex-col">
                 <ScrollArea className="flex-1 min-h-0">
                   <div className="space-y-3 sm:space-y-4 pr-4 px-2 py-4">
