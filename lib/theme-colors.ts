@@ -3,11 +3,11 @@
 export const themeColors = {
   blue: {
     background: 'hsl(240, 10%, 3.9%)', // Dark blue background
-    hex: '#0f0f23' // Hex equivalent for theme-color
+    hex: '#09090b' // Hex equivalent for theme-color
   },
   violet: {
     background: 'hsl(224, 71.4%, 4.1%)', // Dark violet background  
-    hex: '#0c0a2e' // Hex equivalent for theme-color
+    hex: '#030712' // Hex equivalent for theme-color
   }
 } as const;
 
