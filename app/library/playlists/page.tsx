@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -8,9 +9,11 @@ import Loading from '@/app/components/loading';
 import { Button } from '@/components/ui/button';
 import { PlusCircledIcon } from "@radix-ui/react-icons";
 import Link from 'next/link';
+import { getNavidromeAPI } from '@/lib/navidrome';
 
 const PlaylistsPage: React.FC = () => {
   const { playlists, isLoading, createPlaylist } = useNavidrome();
+  const api = getNavidromeAPI();
 
   const handleCreatePlaylist = async () => {
     const name = prompt('Enter playlist name:');
@@ -49,39 +52,42 @@ const PlaylistsPage: React.FC = () => {
           <div className="relative">
             <ScrollArea>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
-                {playlists.map((playlist) => (
-                  <Link key={playlist.id} href={`/playlist/${playlist.id}`}>
-                    <div className="p-4 rounded-lg border border-border hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            className="h-6 w-6"
-                            viewBox="0 0 24 24"
-                          >
-                            <path d="M21 15V6M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM12 12H3M16 6H3M12 18H3" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium leading-none truncate">{playlist.name}</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {playlist.songCount} songs
-                          </p>
-                          {playlist.comment && (
-                            <p className="text-xs text-muted-foreground mt-1 truncate">
-                              {playlist.comment}
+                {playlists.map((playlist) => {
+                  const playlistCoverUrl = playlist.coverArt
+                    ? api.getCoverArtUrl(playlist.coverArt, 200)
+                    : '/default-user.jpg';
+                  
+                  return (
+                    <Link key={playlist.id} href={`/playlist/${playlist.id}`}>
+                      <div className="p-4 rounded-lg border border-border hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer h-32">
+                        <div className="flex items-center space-x-4 h-full">
+                          <div className="w-12 h-12 bg-muted rounded-md overflow-hidden flex-shrink-0">
+                            <Image
+                              src={playlistCoverUrl}
+                              alt={playlist.name}
+                              width={48}
+                              height={48}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0 flex flex-col justify-center">
+                            <p className="font-medium leading-none truncate">{playlist.name}</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {playlist.songCount} songs
                             </p>
-                          )}
+                            <div className="h-4 mt-1">
+                              {playlist.comment && (
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {playlist.comment}
+                                </p>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
