@@ -1,19 +1,14 @@
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import React from 'react';
-import { Analytics }  from "@vercel/analytics/react";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AudioPlayerProvider } from "./components/AudioPlayerContext";
 import { NavidromeProvider } from "./components/NavidromeContext";
 import { NavidromeConfigProvider } from "./components/NavidromeConfigContext";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { PostHogProvider } from "./components/PostHogProvider";
 import { Metadata } from "next";
-import type { Viewport } from 'next';
 import Ihateserverside from './components/ihateserverside';
-
-export const viewport: Viewport = {
-  themeColor: 'black',
-};
+import DynamicViewportTheme from './components/DynamicViewportTheme';
 
 export const metadata: Metadata = {
   title: {
@@ -71,25 +66,37 @@ export default function Layout({ children }: LayoutProps) {
                 if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
                   document.documentElement.classList.add('dark');
                 }
+                
+                // Set initial theme color based on theme
+                const themeColors = {
+                  blue: '#0f0f23',
+                  violet: '#0c0a2e'
+                };
+                
+                const metaThemeColor = document.createElement('meta');
+                metaThemeColor.name = 'theme-color';
+                metaThemeColor.content = themeColors[theme];
+                document.head.appendChild(metaThemeColor);
               })();
             `,
           }}
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background`}>
-        <ThemeProvider>
-          <NavidromeConfigProvider>
-            <NavidromeProvider>
-              <AudioPlayerProvider>
-                <SpeedInsights />
-                <Analytics />
-                <Ihateserverside>
-                  {children}
-                </Ihateserverside>
-              </AudioPlayerProvider>
-            </NavidromeProvider>
-          </NavidromeConfigProvider>
-        </ThemeProvider>
+        <PostHogProvider>
+          <ThemeProvider>
+            <DynamicViewportTheme />
+            <NavidromeConfigProvider>
+              <NavidromeProvider>
+                <AudioPlayerProvider>
+                  <Ihateserverside>
+                    {children}
+                  </Ihateserverside>
+                </AudioPlayerProvider>
+              </NavidromeProvider>
+            </NavidromeConfigProvider>
+          </ThemeProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

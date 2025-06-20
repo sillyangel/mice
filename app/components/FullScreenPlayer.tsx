@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Progress } from '@/components/ui/progress';
 import { lrcLibClient } from '@/lib/lrclib';
+import Link from 'next/link';
 import { 
   FaPlay, 
   FaPause, 
@@ -333,19 +334,15 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               <h1 className="text-lg sm:text-xl lg:text-3xl font-bold text-foreground mb-2 line-clamp-2 leading-tight">
                 {currentTrack.name}
               </h1>
-              <p className="text-base sm:text-lg lg:text-xl text-foreground/80 mb-1 line-clamp-1">{currentTrack.artist}</p>
+              <Link href={`/album/${currentTrack.artistId}`} className="text-base sm:text-lg lg:text-xl text-foreground/80 mb-1 line-clamp-1">
+              {currentTrack.artist}
+              </Link>
             </div>
 
             {/* Progress */}
             <div className="w-full max-w-sm lg:max-w-md mb-4 lg:mb-6 px-4 flex-shrink-0">
-              <div 
-                className="h-2 bg-white/20 rounded-full cursor-pointer relative overflow-hidden"
-                onClick={handleSeek}
-              >
-                <div 
-                  className="h-full bg-foreground transition-all duration-150"
-                  style={{ width: `${progress}%` }}
-                />
+              <div className="w-full" onClick={handleSeek}>
+                <Progress value={progress} className="h-2 cursor-pointer" />
               </div>
               <div className="flex justify-between text-sm text-foreground/60 mt-2">
                 <span>{formatTime(currentTime)}</span>

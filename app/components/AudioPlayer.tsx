@@ -10,9 +10,10 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 
 export const AudioPlayer: React.FC = () => {
-  const { currentTrack, playPreviousTrack, addToQueue, playNextTrack, clearQueue } = useAudioPlayer();
+  const { currentTrack, playPreviousTrack, addToQueue, playNextTrack, clearQueue, queue } = useAudioPlayer();
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement>(null);
+  const preloadAudioRef = useRef<HTMLAudioElement>(null);
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
@@ -31,6 +32,19 @@ export const AudioPlayer: React.FC = () => {
   useEffect(() => {
     setIsClient(true);
     
+    // Load saved volume
+    const savedVolume = localStorage.getItem('navidrome-volume');
+    if (savedVolume) {
+      try {
+        const volumeValue = parseFloat(savedVolume);
+        if (volumeValue >= 0 && volumeValue <= 1) {
+          setVolume(volumeValue);
+        }
+      } catch (error) {
+        console.error('Failed to parse saved volume:', error);
+      }
+    }
+    
     // Clean up old localStorage entries with track IDs
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -41,6 +55,16 @@ export const AudioPlayer: React.FC = () => {
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
   }, []);
+
+  // Apply volume to audio element when volume changes
+  useEffect(() => {
+    const audioCurrent = audioRef.current;
+    if (audioCurrent) {
+      audioCurrent.volume = volume;
+    }
+    // Save volume to localStorage
+    localStorage.setItem('navidrome-volume', volume.toString());
+  }, [volume]);
 
   // Save position when component unmounts or track changes
   useEffect(() => {
@@ -248,9 +272,6 @@ export const AudioPlayer: React.FC = () => {
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
-    if (audioCurrent) {
-      audioCurrent.volume = newVolume;
-    }
   };
   
   function formatTime(seconds: number): string {
@@ -304,6 +325,7 @@ export const AudioPlayer: React.FC = () => {
           </div>
         </div>
         <audio ref={audioRef} hidden />
+        <audio ref={preloadAudioRef} hidden preload="metadata" />
       </div>
     );
   }
@@ -357,6 +379,7 @@ export const AudioPlayer: React.FC = () => {
         </div>
       </div>
       <audio ref={audioRef} hidden />
+      <audio ref={preloadAudioRef} hidden preload="metadata" />
       
       {/* Full Screen Player */}
       <FullScreenPlayer 

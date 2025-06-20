@@ -69,7 +69,10 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const savedCurrentTrack = localStorage.getItem('navidrome-currentTrack');
     if (savedCurrentTrack) {
       try {
-        setCurrentTrack(JSON.parse(savedCurrentTrack));
+        const track = JSON.parse(savedCurrentTrack);
+        // Clear autoPlay flag when loading from localStorage to prevent auto-play on refresh
+        track.autoPlay = false;
+        setCurrentTrack(track);
       } catch (error) {
         console.error('Failed to parse saved current track:', error);
       }
@@ -78,7 +81,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   useEffect(() => {
     if (currentTrack) {
-      localStorage.setItem('navidrome-currentTrack', JSON.stringify(currentTrack));
+      // Remove autoPlay flag when saving to localStorage
+      const { autoPlay, ...trackToSave } = currentTrack;
+      localStorage.setItem('navidrome-currentTrack', JSON.stringify(trackToSave));
     } else {
       localStorage.removeItem('navidrome-currentTrack');
     }
@@ -282,11 +287,11 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
           
           // Play the first shuffled track and set the rest as queue
-          playTrack(shuffledTracks[0]);
+          playTrack(shuffledTracks[0], true); // Enable autoplay
           setQueue(shuffledTracks.slice(1));
         } else {
           // Normal order: play first track and set the rest as queue
-          playTrack(tracks[0]);
+          playTrack(tracks[0], true); // Enable autoplay
           setQueue(tracks.slice(1));
         }
       }
@@ -332,11 +337,11 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
         
         setQueue(remainingTracks);
-        playTrack(tracks[startingIndex]);
+        playTrack(tracks[startingIndex], true); // Enable autoplay
       } else {
         // Normal order: set the remaining tracks after the starting track as queue
         setQueue(tracks.slice(startingIndex + 1));
-        playTrack(tracks[startingIndex]);
+        playTrack(tracks[startingIndex], true); // Enable autoplay
       }
       
       toast({
@@ -360,8 +365,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const targetTrack = queue[index];
       // Remove all tracks before the target track (including the target track)
       setQueue((prevQueue) => prevQueue.slice(index + 1));
-      // Play the target track
-      playTrack(targetTrack);
+      // Play the target track with autoplay enabled
+      playTrack(targetTrack, true);
     }
   }, [queue, playTrack]);
 
@@ -445,11 +450,11 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
           }
           
           // Play the first shuffled track and set the rest as queue
-          playTrack(shuffledTracks[0]);
+          playTrack(shuffledTracks[0], true); // Enable autoplay
           setQueue(shuffledTracks.slice(1));
         } else {
           // Normal order: play first track and set the rest as queue
-          playTrack(allTracks[0]);
+          playTrack(allTracks[0], true); // Enable autoplay
           setQueue(allTracks.slice(1));
         }
       }
