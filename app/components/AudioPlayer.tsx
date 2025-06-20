@@ -31,6 +31,19 @@ export const AudioPlayer: React.FC = () => {
   useEffect(() => {
     setIsClient(true);
     
+    // Load saved volume
+    const savedVolume = localStorage.getItem('navidrome-volume');
+    if (savedVolume) {
+      try {
+        const volumeValue = parseFloat(savedVolume);
+        if (volumeValue >= 0 && volumeValue <= 1) {
+          setVolume(volumeValue);
+        }
+      } catch (error) {
+        console.error('Failed to parse saved volume:', error);
+      }
+    }
+    
     // Clean up old localStorage entries with track IDs
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -41,6 +54,16 @@ export const AudioPlayer: React.FC = () => {
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
   }, []);
+
+  // Apply volume to audio element when volume changes
+  useEffect(() => {
+    const audioCurrent = audioRef.current;
+    if (audioCurrent) {
+      audioCurrent.volume = volume;
+    }
+    // Save volume to localStorage
+    localStorage.setItem('navidrome-volume', volume.toString());
+  }, [volume]);
 
   // Save position when component unmounts or track changes
   useEffect(() => {
@@ -248,9 +271,6 @@ export const AudioPlayer: React.FC = () => {
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
-    if (audioCurrent) {
-      audioCurrent.volume = newVolume;
-    }
   };
   
   function formatTime(seconds: number): string {

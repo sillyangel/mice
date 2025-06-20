@@ -334,7 +334,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               <h1 className="text-lg sm:text-xl lg:text-3xl font-bold text-foreground mb-2 line-clamp-2 leading-tight">
                 {currentTrack.name}
               </h1>
-              <Link href={`/album${currentTrack.artistId}`} className="text-base sm:text-lg lg:text-xl text-foreground/80 mb-1 line-clamp-1">
+              <Link href={`/album/${currentTrack.artistId}`} className="text-base sm:text-lg lg:text-xl text-foreground/80 mb-1 line-clamp-1">
               {currentTrack.artist}
               </Link>
             </div>
