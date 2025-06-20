@@ -110,7 +110,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       
       return () => clearTimeout(scrollTimeout);
     }
-  }, [currentLyricIndex, showLyrics]);
+  }, [currentLyricIndex, showLyrics, lyrics.length]);
 
   // Reset lyrics to top when song changes
   useEffect(() => {
@@ -135,7 +135,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       
       return () => clearTimeout(resetTimeout);
     }
-  }, [currentTrack?.id, showLyrics]); // Only reset when track ID changes
+  }, [currentTrack?.id, showLyrics, currentTrack]); // Only reset when track ID changes
 
   // Sync with main audio player (improved responsiveness)
   useEffect(() => {
@@ -167,7 +167,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       const interval = setInterval(syncWithMainPlayer, 100);
       return () => clearInterval(interval);
     }
-  }, [isOpen, currentTrack?.id]); // React to track changes
+  }, [isOpen, currentTrack]); // React to track changes
 
   // Extract dominant color from cover art
   useEffect(() => {
