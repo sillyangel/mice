@@ -21,7 +21,7 @@ export default function ArtistPage() {
   const [artist, setArtist] = useState<Artist | null>(null);
   const [isPlayingArtist, setIsPlayingArtist] = useState(false);
   const { getArtist, starItem, unstarItem } = useNavidrome();
-  const { addArtistToQueue, playAlbum, clearQueue } = useAudioPlayer();
+  const { playArtist } = useAudioPlayer();
   const { toast } = useToast();
   const api = getNavidromeAPI();
 
@@ -65,19 +65,7 @@ export default function ArtistPage() {
     
     setIsPlayingArtist(true);
     try {
-      // Clear current queue and add all artist albums
-      clearQueue();
-      await addArtistToQueue(artist.id);
-      
-      // Start playing the first album if we have any
-      if (artistAlbums.length > 0) {
-        await playAlbum(artistAlbums[0].id);
-      }
-      
-      toast({
-        title: "Playing Artist",
-        description: `Now playing all albums by ${artist.name}`,
-      });
+      await playArtist(artist.id);
     } catch (error) {
       console.error('Failed to play artist:', error);
       toast({

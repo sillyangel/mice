@@ -36,6 +36,7 @@ interface AudioPlayerContextProps {
   shuffle: boolean;
   toggleShuffle: () => void;
   shuffleAllAlbums: () => Promise<void>;
+  playArtist: (artistId: string) => Promise<void>;
 }
 
 const AudioPlayerContext = createContext<AudioPlayerContextProps | undefined>(undefined);
@@ -420,6 +421,55 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [api, songToTrack, toast]);
 
+  const playArtist = useCallback(async (artistId: string) => {
+    setIsLoading(true);
+    try {
+      const { artist, albums } = await api.getArtist(artistId);
+      let allTracks: Track[] = [];
+      
+      // Collect all tracks from all albums
+      for (const album of albums) {
+        const { songs } = await api.getAlbum(album.id);
+        const tracks = songs.map(songToTrack);
+        allTracks = allTracks.concat(tracks);
+      }
+      
+      if (allTracks.length > 0) {
+        if (shuffle) {
+          // If shuffle is enabled, shuffle all tracks
+          const shuffledTracks = [...allTracks];
+          // Fisher-Yates shuffle algorithm
+          for (let i = shuffledTracks.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
+          }
+          
+          // Play the first shuffled track and set the rest as queue
+          playTrack(shuffledTracks[0]);
+          setQueue(shuffledTracks.slice(1));
+        } else {
+          // Normal order: play first track and set the rest as queue
+          playTrack(allTracks[0]);
+          setQueue(allTracks.slice(1));
+        }
+      }
+      
+      toast({
+        title: "Playing Artist",
+        description: `Now playing all albums by "${artist.name}"${shuffle ? ' (shuffled)' : ''}`,
+      });
+    } catch (error) {
+      console.error('Failed to play artist:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to play artist albums",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [api, songToTrack, toast, shuffle, playTrack]);
+
   const contextValue = useMemo(() => ({
     currentTrack, 
     playTrack, 
@@ -437,7 +487,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     skipToTrackInQueue,
     shuffle,
     toggleShuffle,
-    shuffleAllAlbums
+    shuffleAllAlbums,
+    playArtist
   }), [
     currentTrack, 
     queue, 
@@ -455,7 +506,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     skipToTrackInQueue,
     shuffle,
     toggleShuffle,
-    shuffleAllAlbums
+    shuffleAllAlbums,
+    playArtist
   ]);
 
   return (
