@@ -33,7 +33,7 @@ interface FullScreenPlayerProps {
 }
 
 export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onClose, onOpenQueue }) => {
-  const { currentTrack, playPreviousTrack, playNextTrack } = useAudioPlayer();
+  const { currentTrack, playPreviousTrack, playNextTrack, shuffle, toggleShuffle } = useAudioPlayer();
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -139,53 +139,35 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
   // Sync with main audio player (improved responsiveness)
   useEffect(() => {
-    let lastUpdate = 0;
-    const throttleMs = 100; // Update at most every 100ms for better responsiveness
-    
     const syncWithMainPlayer = () => {
-      const now = Date.now();
-      if (now - lastUpdate < throttleMs) return;
-      lastUpdate = now;
-      
       const mainAudio = document.querySelector('audio') as HTMLAudioElement;
       if (mainAudio && currentTrack) {
         const newCurrentTime = mainAudio.currentTime;
         const newDuration = mainAudio.duration || 0;
         const newIsPlaying = !mainAudio.paused;
         
-        // Always update playing state for better responsiveness
-        if (newIsPlaying !== isPlaying) {
-          setIsPlaying(newIsPlaying);
-        }
+        // Always update playing state immediately
+        setIsPlaying(newIsPlaying);
+        setCurrentTime(newCurrentTime);
+        setDuration(newDuration);
+        setVolume(mainAudio.volume);
         
-        // Only update state if values have changed significantly
-        if (Math.abs(newCurrentTime - currentTime) > 0.3) {
-          setCurrentTime(newCurrentTime);
-        }
-        if (Math.abs(newDuration - duration) > 0.1) {
-          setDuration(newDuration);
-        }
         if (newDuration > 0) {
           const newProgress = (newCurrentTime / newDuration) * 100;
-          if (Math.abs(newProgress - progress) > 0.1) {
-            setProgress(newProgress);
-          }
-        }
-        if (Math.abs(mainAudio.volume - volume) > 0.01) {
-          setVolume(mainAudio.volume);
+          setProgress(newProgress);
         }
       }
     };
 
-    if (isOpen) {
+    if (isOpen && currentTrack) {
       // Initial sync
       syncWithMainPlayer();
       
-      // Set up interval to keep syncing - more frequent for better responsiveness
-      const interval = setInterval(syncWithMainPlayer, 50);
+      // Set up interval to keep syncing
+      const interval = setInterval(syncWithMainPlayer, 100);
       return () => clearInterval(interval);
     }
-  }, [isOpen, currentTrack]); // Removed other dependencies to prevent loop
+  }, [isOpen, currentTrack?.id]); // React to track changes
 
   // Extract dominant color from cover art
   useEffect(() => {
@@ -260,6 +242,20 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     setVolume(newVolume);
   };
 
+  const handleLyricClick = (time: number) => {
+    const mainAudio = document.querySelector('audio') as HTMLAudioElement;
+    if (!mainAudio) return;
+
+    mainAudio.currentTime = time;
+    setCurrentTime(time);
+    
+    // Update progress bar as well
+    if (duration > 0) {
+      const newProgress = (time / duration) * 100;
+      setProgress(newProgress);
+    }
+  };
+
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -292,7 +288,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       <div className="relative h-full w-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 flex-shrink-0">
-          <h2 className="text-lg lg:text-xl font-semibold text-white">Now Playing</h2>
+          <h2 className="text-lg lg:text-xl font-semibold text-white"></h2>
           <div className="flex items-center gap-3">
             {onOpenQueue && (
               <button 
@@ -315,29 +311,33 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
         {/* Main Content */}
         <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-8 p-4 lg:p-6 pt-0 overflow-hidden min-h-0">
           {/* Left Side - Album Art and Controls */}
-          <div className="flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto lg:mx-0 min-h-0">
+          <div className={`flex flex-col items-center min-h-0 flex-1 min-w-0 ${
+            showLyrics && lyrics.length > 0 
+              ? 'justify-center lg:justify-start' 
+              : 'justify-center'
+          }`}>
             {/* Album Art */}
-            <div className="relative mb-4 lg:mb-8 flex-shrink-0">
+            <div className="relative mb-4 lg:mb-6 flex-shrink-0">
               <Image
                 src={currentTrack.coverArt || '/default-album.png'}
                 alt={currentTrack.album}
                 width={320}
                 height={320}
-                className="w-64 h-64 lg:w-80 lg:h-80 rounded-lg shadow-2xl object-cover"
+                className="w-56 h-56 sm:w-64 sm:h-64 lg:w-80 lg:h-80 rounded-lg shadow-2xl object-cover"
                 priority
               />
             </div>
 
             {/* Track Info */}
-            <div className="text-center mb-4 lg:mb-8 px-4 flex-shrink-0">
-              <h1 className="text-xl lg:text-3xl font-bold text-foreground mb-2 line-clamp-2">
+            <div className="text-center mb-4 lg:mb-6 px-4 flex-shrink-0 max-w-full">
+              <h1 className="text-lg sm:text-xl lg:text-3xl font-bold text-foreground mb-2 line-clamp-2 leading-tight">
                 {currentTrack.name}
               </h1>
-              <p className="text-lg lg:text-xl text-foreground/80 mb-1 line-clamp-1">{currentTrack.artist}</p>
+              <p className="text-base sm:text-lg lg:text-xl text-foreground/80 mb-1 line-clamp-1">{currentTrack.artist}</p>
             </div>
 
             {/* Progress */}
-            <div className="w-full max-w-md mb-4 lg:mb-6 px-4 flex-shrink-0">
+            <div className="w-full max-w-sm lg:max-w-md mb-4 lg:mb-6 px-4 flex-shrink-0">
               <div 
                 className="h-2 bg-white/20 rounded-full cursor-pointer relative overflow-hidden"
                 onClick={handleSeek}
@@ -354,57 +354,69 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             </div>
 
             {/* Controls */}
-            <div className="flex items-center gap-4 lg:gap-6 mb-4 lg:mb-6 flex-shrink-0">
+            <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mb-4 lg:mb-6 flex-shrink-0">
+              <button
+                onClick={toggleShuffle}
+                className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
+                  shuffle ? 'text-primary bg-primary/20' : 'text-gray-400'
+                }`}
+                title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
+              >
+                <FaShuffle className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+
               <button
                 onClick={playPreviousTrack}
                 className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
-                <FaBackward className="w-5 h-5" />
+                <FaBackward className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
               <button
                 onClick={togglePlayPause}
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                className="p-3 hover:bg-gray-700/50 rounded-full transition-colors">
                 {isPlaying ? (
-                  <FaPause className="w-10 h-10" />
+                  <FaPause className="w-8 h-8 sm:w-10 sm:h-10" />
                 ) : (
-                  <FaPlay className="w-10 h-10" />
+                  <FaPlay className="w-8 h-8 sm:w-10 sm:h-10" />
                 )}
               </button>
 
               <button
                 onClick={playNextTrack}
                 className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
-                <FaForward className="w-5 h-5" />
+                <FaForward className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
-            </div>
 
-            {/* Volume and Queue */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <button
-                onMouseEnter={() => setShowVolumeSlider(true)}
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
-                {volume === 0 ? (
-                  <FaVolumeXmark className="w-5 h-5" />
-                ) : (
-                  <FaVolumeHigh className="w-5 h-5" />
-                )}
-              </button>
-              
               {lyrics.length > 0 && (
                 <button
                   onClick={() => setShowLyrics(!showLyrics)}
                   className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
-                    showLyrics ? 'text-foreground' : 'text-gray-500'
+                    showLyrics ? 'text-primary bg-primary/20' : 'text-gray-500'
                   }`}
                   title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
                 >
-                  <FaQuoteLeft className="w-5 h-5" />
+                  <FaQuoteLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               )}
               
+            </div>
+
+            {/* Volume and Lyrics Toggle */}
+            <div className="flex items-center gap-3 flex-shrink-0 justify-center">
+              <button
+                onMouseEnter={() => setShowVolumeSlider(true)}
+                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                {volume === 0 ? (
+                  <FaVolumeXmark className="w-4 h-4 sm:w-5 sm:h-5" />
+                ) : (
+                  <FaVolumeHigh className="w-4 h-4 sm:w-5 sm:h-5" />
+                )}
+              </button>
+              
+              
               {showVolumeSlider && (
                 <div 
-                  className="w-20 lg:w-24"
+                  className="w-16 sm:w-20 lg:w-24"
                   onMouseLeave={() => setShowVolumeSlider(false)}
                 >
                   <input
@@ -422,17 +434,18 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
           {/* Right Side - Lyrics */}
           {showLyrics && lyrics.length > 0 && (
-            <div className="flex-1 lg:max-w-md min-h-0" ref={lyricsRef}>
+            <div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}>
               <div className="h-full flex flex-col">
-                <ScrollArea className="flex-1 min-h-0 w-90">
-                  <div className="space-y-4 pr-4 px-2">
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="space-y-3 sm:space-y-4 pr-4 px-2 py-4">
                     {lyrics.map((line, index) => (
                       <div
                         key={index}
                         data-lyric-index={index}
-                        className={`text-sm lg:text-base leading-relaxed transition-all duration-300 break-words ${
+                        onClick={() => handleLyricClick(line.time)}
+                        className={`text-sm sm:text-base lg:text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground hover:scale-102 ${
                           index === currentLyricIndex
-                            ? 'text-foreground font-semibold text-lg lg:text-xl scale-105'
+                            ? 'text-foreground font-semibold text-base sm:text-lg lg:text-xl scale-105'
                             : index < currentLyricIndex
                             ? 'text-foreground/60'
                             : 'text-foreground/40'
@@ -441,9 +454,10 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                           wordWrap: 'break-word',
                           overflowWrap: 'break-word',
                           hyphens: 'auto',
-                          paddingBottom: '8px',
-                          paddingLeft: '9px'
+                          paddingBottom: '6px',
+                          paddingLeft: '8px'
                         }}
+                        title={`Click to jump to ${formatTime(line.time)}`}
                       >
                         {line.text || '♪'}
                       </div>

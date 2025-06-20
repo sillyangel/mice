@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -18,7 +19,7 @@ const QueuePage: React.FC = () => {
   };
 
   return (
-    <div className="h-full px-4 py-6 lg:px-8">
+    <div className="h-full px-4 py-6 lg:px-8 pb-24">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -69,11 +70,15 @@ const QueuePage: React.FC = () => {
                   <div className="flex items-center text-sm text-muted-foreground space-x-4">
                     <div className="flex items-center gap-1">
                       <User className="w-3 h-3" />
-                      <span className="truncate">{currentTrack.artist}</span>
+                      <Link href={`/artist/${currentTrack.artistId}`} className="truncate hover:text-primary hover:underline">
+                        {currentTrack.artist}
+                      </Link>
                     </div>
                     <div className="flex items-center gap-1">
                       <Disc className="w-3 h-3" />
-                      <span className="truncate">{currentTrack.album}</span>
+                      <Link href={`/album/${currentTrack.albumId}`} className="truncate hover:text-primary hover:underline">
+                        {currentTrack.album}
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -143,11 +148,23 @@ const QueuePage: React.FC = () => {
                       <div className="flex items-center text-sm text-muted-foreground space-x-4">
                         <div className="flex items-center gap-1">
                           <User className="w-3 h-3" />
-                          <span className="truncate">{track.artist}</span>
+                          <Link 
+                            href={`/artist/${track.artistId}`} 
+                            className="truncate hover:text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {track.artist}
+                          </Link>
                         </div>
                         <div className="flex items-center gap-1">
                           <Disc className="w-3 h-3" />
-                          <span className="truncate">{track.album}</span>
+                          <Link 
+                            href={`/album/${track.albumId}`} 
+                            className="truncate hover:text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {track.album}
+                          </Link>
                         </div>
                       </div>
                     </div>
