@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,7 @@ export default function SearchPage() {
     }, 300);
 
     return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   const handlePlaySong = (song: Song) => {
@@ -118,7 +120,7 @@ export default function SearchPage() {
           <div className="space-y-6">
             {searchResults.artists.length === 0 && searchResults.albums.length === 0 && searchResults.songs.length === 0 && !isSearching && (
               <div className="text-center py-12">
-                <p className="text-muted-foreground text-lg">No results found for "{searchQuery}"</p>
+                <p className="text-muted-foreground text-lg">No results found for &quot;{searchQuery}&quot;</p>
                 <p className="text-muted-foreground text-sm mt-2">Try different keywords or check your spelling</p>
               </div>
             )}
@@ -181,9 +183,11 @@ export default function SearchPage() {
                       
                       {/* Song Cover */}
                       <div className="flex-shrink-0">
-                        <img
+                        <Image
                           src={song.coverArt ? api.getCoverArtUrl(song.coverArt, 64) : '/default-user.jpg'}
                           alt={song.album}
+                          width={48}
+                          height={48}
                           className="w-12 h-12 rounded-md object-cover"
                         />
                       </div>

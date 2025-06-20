@@ -50,6 +50,7 @@ export default function BrowsePage() {
 
   useEffect(() => {
     loadAlbums(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Infinite scroll handler
@@ -71,6 +72,7 @@ export default function BrowsePage() {
       scrollArea.addEventListener('scroll', handleScroll);
       return () => scrollArea.removeEventListener('scroll', handleScroll);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoadingAlbums, hasMoreAlbums, currentPage]);
 
   const loadMore = () => {
