@@ -5,6 +5,7 @@ import { AudioPlayerProvider } from "./components/AudioPlayerContext";
 import { NavidromeProvider } from "./components/NavidromeContext";
 import { NavidromeConfigProvider } from "./components/NavidromeConfigContext";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { PostHogProvider } from "./components/PostHogProvider";
 import { Metadata } from "next";
 import type { Viewport } from 'next';
 import Ihateserverside from './components/ihateserverside';
@@ -75,17 +76,19 @@ export default function Layout({ children }: LayoutProps) {
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background`}>
-        <ThemeProvider>
-          <NavidromeConfigProvider>
-            <NavidromeProvider>
-              <AudioPlayerProvider>
-                <Ihateserverside>
-                  {children}
-                </Ihateserverside>
-              </AudioPlayerProvider>
-            </NavidromeProvider>
-          </NavidromeConfigProvider>
-        </ThemeProvider>
+        <PostHogProvider>
+          <ThemeProvider>
+            <NavidromeConfigProvider>
+              <NavidromeProvider>
+                <AudioPlayerProvider>
+                  <Ihateserverside>
+                    {children}
+                  </Ihateserverside>
+                </AudioPlayerProvider>
+              </NavidromeProvider>
+            </NavidromeConfigProvider>
+          </ThemeProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

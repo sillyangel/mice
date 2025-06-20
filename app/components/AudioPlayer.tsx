@@ -10,9 +10,10 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 
 export const AudioPlayer: React.FC = () => {
-  const { currentTrack, playPreviousTrack, addToQueue, playNextTrack, clearQueue } = useAudioPlayer();
+  const { currentTrack, playPreviousTrack, addToQueue, playNextTrack, clearQueue, queue } = useAudioPlayer();
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement>(null);
+  const preloadAudioRef = useRef<HTMLAudioElement>(null);
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
@@ -324,6 +325,7 @@ export const AudioPlayer: React.FC = () => {
           </div>
         </div>
         <audio ref={audioRef} hidden />
+        <audio ref={preloadAudioRef} hidden preload="metadata" />
       </div>
     );
   }
@@ -377,6 +379,7 @@ export const AudioPlayer: React.FC = () => {
         </div>
       </div>
       <audio ref={audioRef} hidden />
+      <audio ref={preloadAudioRef} hidden preload="metadata" />
       
       {/* Full Screen Player */}
       <FullScreenPlayer 
