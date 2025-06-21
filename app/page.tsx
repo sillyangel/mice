@@ -25,12 +25,18 @@ export default function MusicPage() {
 
   if (error) {
     return (
-      <div className="h-full px-4 py-6 lg:px-8 flex items-center justify-center">
+      <div className="h-full px-4 py-6 lg:px-8 pb-24">
         <div className="text-center">
-          <p className="text-xl font-semibold text-destructive mb-2">Connection Error</p>
+          <p className="text-xl font-semibold text-red/50 mb-2">Connection Error</p>
           <p className="text-muted-foreground">{error}</p>
           <p className="text-sm text-muted-foreground mt-2">
-            Please check your Navidrome server configuration.
+          If you need to change your settings, please go to the{' '}
+            <a
+              href="/settings"
+              className="text-sm text-blue-500 hover:underline"
+            >
+              Settings
+            </a>
           </p>
         </div>
       </div>

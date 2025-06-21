@@ -451,7 +451,7 @@ class NavidromeAPI {
 // Singleton instance management
 let navidromeInstance: NavidromeAPI | null = null;
 
-export function getNavidromeAPI(customConfig?: NavidromeConfig): NavidromeAPI {
+export function getNavidromeAPI(customConfig?: NavidromeConfig): NavidromeAPI | null {
   let config: NavidromeConfig;
   
   if (customConfig) {
@@ -477,7 +477,9 @@ export function getNavidromeAPI(customConfig?: NavidromeConfig): NavidromeAPI {
   }
   
   if (!config.serverUrl || !config.username || !config.password) {
-    throw new Error('Navidrome configuration is incomplete. Please configure in settings or check environment variables.');
+    // Return null instead of throwing an error when configuration is incomplete
+    console.log('Navidrome configuration is incomplete. Please configure in settings.');
+    return null;
   }
   
   // Always create a new instance if config is provided or if no instance exists
