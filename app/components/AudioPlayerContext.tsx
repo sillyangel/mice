@@ -5,7 +5,7 @@ import { Song, Album, Artist } from '@/lib/navidrome';
 import { getNavidromeAPI } from '@/lib/navidrome';
 import { useToast } from "@/hooks/use-toast";
 
-interface Track {
+export interface Track {
   id: string;
   name: string;
   url: string;
@@ -90,6 +90,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [currentTrack]);
 
   const songToTrack = useMemo(() => (song: Song): Track => {
+    if (!api) {
+      throw new Error('Navidrome API not configured');
+    }
     return {
       id: song.id,
       name: song.title,
@@ -115,10 +118,12 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const trackWithAutoPlay = { ...track, autoPlay };
     setCurrentTrack(trackWithAutoPlay);
     
-    // Scrobble the track
-    api.scrobble(track.id).catch(error => {
-      console.error('Failed to scrobble track:', error);
-    });
+    // Scrobble the track if API is available
+    if (api) {
+      api.scrobble(track.id).catch(error => {
+        console.error('Failed to scrobble track:', error);
+      });
+    }
   }, [currentTrack, api]);
 
   const addToQueue = useCallback((track: Track) => {
@@ -175,6 +180,15 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [playedTracks, currentTrack, playTrack]);
 
   const addAlbumToQueue = useCallback(async (albumId: string) => {
+    if (!api) {
+      toast({
+        variant: "destructive",
+        title: "Configuration Required",
+        description: "Please configure Navidrome connection in settings",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { album, songs } = await api.getAlbum(albumId);
@@ -220,6 +234,15 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [api, songToTrack, toast, shuffle]);
 
   const addArtistToQueue = useCallback(async (artistId: string) => {
+    if (!api) {
+      toast({
+        variant: "destructive",
+        title: "Configuration Required",
+        description: "Please configure Navidrome connection in settings",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { artist, albums } = await api.getArtist(artistId);
@@ -271,6 +294,15 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [api, songToTrack, toast, shuffle]);
   const playAlbum = useCallback(async (albumId: string) => {
+    if (!api) {
+      toast({
+        variant: "destructive",
+        title: "Configuration Required",
+        description: "Please configure Navidrome connection in settings",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { album, songs } = await api.getAlbum(albumId);
@@ -313,6 +345,15 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [api, playTrack, songToTrack, toast, shuffle]);
 
   const playAlbumFromTrack = useCallback(async (albumId: string, startingSongId: string) => {
+    if (!api) {
+      toast({
+        variant: "destructive",
+        title: "Configuration Required",
+        description: "Please configure Navidrome connection in settings",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { album, songs } = await api.getAlbum(albumId);
@@ -392,6 +433,15 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [queue.length]);
 
   const shuffleAllAlbums = useCallback(async () => {
+    if (!api) {
+      toast({
+        variant: "destructive",
+        title: "Configuration Required",
+        description: "Please configure Navidrome connection in settings",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const albums = await api.getAlbums('alphabeticalByName', 500, 0);
@@ -427,6 +477,15 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [api, songToTrack, toast]);
 
   const playArtist = useCallback(async (artistId: string) => {
+    if (!api) {
+      toast({
+        variant: "destructive",
+        title: "Configuration Required",
+        description: "Please configure Navidrome connection in settings",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { artist, albums } = await api.getArtist(artistId);

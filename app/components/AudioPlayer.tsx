@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { FullScreenPlayer } from '@/app/components/FullScreenPlayer';
 import { FaPlay, FaPause, FaVolumeHigh, FaForward, FaBackward, FaCompress, FaVolumeXmark, FaExpand } from "react-icons/fa6";
-import ColorThief from '@neutrixs/colorthief';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { useLastFmScrobbler } from '@/hooks/use-lastfm-scrobbler';
 
 export const AudioPlayer: React.FC = () => {
   const { currentTrack, playPreviousTrack, addToQueue, playNextTrack, clearQueue, queue } = useAudioPlayer();
@@ -23,6 +23,15 @@ export const AudioPlayer: React.FC = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const audioCurrent = audioRef.current;
   const { toast } = useToast();
+  
+  // Last.fm scrobbler integration
+  const {
+    onTrackStart,
+    onTrackPlay,
+    onTrackPause,
+    onTrackProgress,
+    onTrackEnd,
+  } = useLastFmScrobbler();
   
   const handleOpenQueue = () => {
     setIsFullScreen(false);
@@ -85,6 +94,9 @@ export const AudioPlayer: React.FC = () => {
       
       audioCurrent.src = currentTrack.url;
       
+      // Notify scrobbler about new track
+      onTrackStart(currentTrack);
+      
       // Check for saved timestamp (only restore if more than 10 seconds in)
       const savedTime = localStorage.getItem('navidrome-current-track-time');
       if (savedTime) {
@@ -112,6 +124,8 @@ export const AudioPlayer: React.FC = () => {
       if (currentTrack.autoPlay) {
         audioCurrent.play().then(() => {
           setIsPlaying(true);
+          // Notify scrobbler about play
+          onTrackPlay(currentTrack);
         }).catch((error) => {
           console.error('Failed to auto-play:', error);
           setIsPlaying(false);
@@ -120,7 +134,7 @@ export const AudioPlayer: React.FC = () => {
         setIsPlaying(false);
       }
     }
-  }, [currentTrack]);
+  }, [currentTrack, onTrackStart, onTrackPlay]);
 
   useEffect(() => {
     const audioCurrent = audioRef.current;
@@ -136,13 +150,19 @@ export const AudioPlayer: React.FC = () => {
           localStorage.setItem('navidrome-current-track-time', currentTime.toString());
           lastSavedTime = currentTime;
         }
+
+        // Update scrobbler with progress
+        onTrackProgress(currentTrack, currentTime, audioCurrent.duration);
       }
     };
 
     const handleTrackEnd = () => {
-      if (currentTrack) {
+      if (currentTrack && audioCurrent) {
         // Clear saved time when track ends
         localStorage.removeItem('navidrome-current-track-time');
+        
+        // Notify scrobbler about track end
+        onTrackEnd(currentTrack, audioCurrent.currentTime, audioCurrent.duration);
       }
       playNextTrack();
     };
@@ -157,10 +177,16 @@ export const AudioPlayer: React.FC = () => {
 
     const handlePlay = () => {
       setIsPlaying(true);
+      if (currentTrack) {
+        onTrackPlay(currentTrack);
+      }
     };
 
     const handlePause = () => {
       setIsPlaying(false);
+      if (audioCurrent && currentTrack) {
+        onTrackPause(audioCurrent.currentTime);
+      }
     };
     
     if (audioCurrent) {
@@ -180,7 +206,7 @@ export const AudioPlayer: React.FC = () => {
         audioCurrent.removeEventListener('pause', handlePause);
       }
     };
-  }, [playNextTrack, currentTrack]);
+  }, [playNextTrack, currentTrack, onTrackProgress, onTrackEnd, onTrackPlay, onTrackPause]);
 
   // Media Session API integration
   useEffect(() => {
@@ -202,17 +228,19 @@ export const AudioPlayer: React.FC = () => {
     // Set action handlers
     navigator.mediaSession.setActionHandler('play', () => {
       const audioCurrent = audioRef.current;
-      if (audioCurrent) {
+      if (audioCurrent && currentTrack) {
         audioCurrent.play();
         setIsPlaying(true);
+        onTrackPlay(currentTrack);
       }
     });
 
     navigator.mediaSession.setActionHandler('pause', () => {
       const audioCurrent = audioRef.current;
-      if (audioCurrent) {
+      if (audioCurrent && currentTrack) {
         audioCurrent.pause();
         setIsPlaying(false);
+        onTrackPause(audioCurrent.currentTime);
       }
     });
 
@@ -240,7 +268,7 @@ export const AudioPlayer: React.FC = () => {
         navigator.mediaSession.setActionHandler('seekto', null);
       }
     };
-  }, [currentTrack, isPlaying, isClient, playPreviousTrack, playNextTrack]);
+  }, [currentTrack, isPlaying, isClient, playPreviousTrack, playNextTrack, onTrackPlay, onTrackPause]);
   
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     if (audioCurrent && currentTrack) {
@@ -255,13 +283,15 @@ export const AudioPlayer: React.FC = () => {
   };
 
   const togglePlayPause = () => {
-    if (audioCurrent) {
+    if (audioCurrent && currentTrack) {
       if (isPlaying) {
         audioCurrent.pause();
         setIsPlaying(false);
+        onTrackPause(audioCurrent.currentTime);
       } else {
         audioCurrent.play().then(() => {
           setIsPlaying(true);
+          onTrackPlay(currentTrack);
         }).catch((error) => {
           console.error('Failed to play audio:', error);
           setIsPlaying(false);

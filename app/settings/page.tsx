@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/app/components/ThemeProvider';
 import { useNavidromeConfig } from '@/app/components/NavidromeConfigContext';
 import { useToast } from '@/hooks/use-toast';
-import { FaServer, FaUser, FaLock, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm } from 'react-icons/fa';
 
 const SettingsPage = () => {
     const { theme, setTheme } = useTheme();
@@ -23,6 +23,14 @@ const SettingsPage = () => {
     });
     const [isTesting, setIsTesting] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    
+    // Last.fm scrobbling settings
+    const [scrobblingEnabled, setScrobblingEnabled] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('lastfm-scrobbling-enabled') === 'true';
+        }
+        return true;
+    });
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -112,6 +120,17 @@ const SettingsPage = () => {
         toast({
             title: "Configuration Cleared",
             description: "Navidrome configuration has been cleared.",
+        });
+    };
+
+    const handleScrobblingToggle = (enabled: boolean) => {
+        setScrobblingEnabled(enabled);
+        localStorage.setItem('lastfm-scrobbling-enabled', enabled.toString());
+        toast({
+            title: enabled ? "Scrobbling Enabled" : "Scrobbling Disabled",
+            description: enabled 
+                ? "Tracks will now be scrobbled to Last.fm via Navidrome" 
+                : "Last.fm scrobbling has been disabled",
         });
     };
 
@@ -207,6 +226,53 @@ const SettingsPage = () => {
                             <p><strong>Note:</strong> Your credentials are stored locally in your browser</p>
                             <p><strong>Security:</strong> Always use HTTPS for your Navidrome server</p>
                         </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <FaLastfm className="w-5 h-5" />
+                            Last.fm Integration
+                        </CardTitle>
+                        <CardDescription>
+                            Configure Last.fm scrobbling through your Navidrome server
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="scrobbling-enabled">Enable Scrobbling</Label>
+                            <Select 
+                                value={scrobblingEnabled ? "enabled" : "disabled"} 
+                                onValueChange={(value) => handleScrobblingToggle(value === "enabled")}
+                            >
+                                <SelectTrigger id="scrobbling-enabled">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="enabled">Enabled</SelectItem>
+                                    <SelectItem value="disabled">Disabled</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="text-sm text-muted-foreground space-y-2">
+                            <p><strong>How it works:</strong></p>
+                            <ul className="list-disc list-inside space-y-1 ml-2">
+                                <li>Tracks are scrobbled to Last.fm through your Navidrome server</li>
+                                <li>Configure Last.fm credentials in your Navidrome admin panel</li>
+                                <li>Scrobbling occurs when you listen to at least 30 seconds or half the track</li>
+                                <li>&quot;Now Playing&quot; updates are sent when tracks start</li>
+                            </ul>
+                            <p className="mt-3"><strong>Note:</strong> Last.fm credentials must be configured in Navidrome, not here.</p>
+                        </div>
+
+                        {!isConnected && (
+                            <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                                <FaTimes className="w-4 h-4 text-yellow-600" />
+                                <span className="text-sm text-yellow-600">Connect to Navidrome first to enable scrobbling</span>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

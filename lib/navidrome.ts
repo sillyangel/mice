@@ -111,7 +111,7 @@ export interface ArtistInfo {
 
 class NavidromeAPI {
   private config: NavidromeConfig;
-  private clientName = 'stillnavidrome';
+  private clientName = 'miceclient';
   private version = '1.16.0';
 
   constructor(config: NavidromeConfig) {
@@ -339,6 +339,42 @@ class NavidromeAPI {
       submission: submission.toString(),
       time: Date.now()
     });
+  }
+
+  // Enhanced scrobbling functionality for Last.fm integration
+  async updateNowPlaying(songId: string): Promise<void> {
+    try {
+      await this.makeRequest('scrobble', { 
+        id: songId, 
+        submission: 'false',
+        time: Date.now()
+      });
+    } catch (error) {
+      console.error('Failed to update now playing:', error);
+      // Don't throw - this is not critical
+    }
+  }
+
+  async scrobbleTrack(songId: string, timestamp?: number): Promise<void> {
+    try {
+      await this.makeRequest('scrobble', { 
+        id: songId, 
+        submission: 'true',
+        time: timestamp || Date.now()
+      });
+    } catch (error) {
+      console.error('Failed to scrobble track:', error);
+      // Don't throw - this is not critical
+    }
+  }
+
+  // Helper method to determine if a track should be scrobbled
+  // According to Last.fm guidelines: track should be scrobbled if played for at least 
+  // 30 seconds OR half the track duration, whichever comes first
+  shouldScrobble(playedDuration: number, totalDuration: number): boolean {
+    const minimumTime = 30; // 30 seconds minimum
+    const halfTrackTime = totalDuration / 2;
+    return playedDuration >= Math.min(minimumTime, halfTrackTime);
   }
 
   async getAllSongs(size = 500, offset = 0): Promise<Song[]> {
