@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { Song, Album, Artist } from '@/lib/navidrome';
 import { getNavidromeAPI } from '@/lib/navidrome';
 import { useToast } from "@/hooks/use-toast";
+import { audioCacheService } from '@/lib/audio-cache';
 
 export interface Track {
   id: string;
@@ -37,6 +38,9 @@ interface AudioPlayerContextProps {
   toggleShuffle: () => void;
   shuffleAllAlbums: () => Promise<void>;
   playArtist: (artistId: string) => Promise<void>;
+  // New caching-related props
+  cacheStatus: { size: number; maxSize: number; tracks: string[] };
+  clearCache: () => void;
 }
 
 const AudioPlayerContext = createContext<AudioPlayerContextProps | undefined>(undefined);
@@ -47,6 +51,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [playedTracks, setPlayedTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [shuffle, setShuffle] = useState(false);
+  const [cacheStatus, setCacheStatus] = useState(audioCacheService.getCacheStatus());
   const { toast } = useToast();
   const api = useMemo(() => getNavidromeAPI(), []);
 
@@ -105,7 +110,6 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       artistId: song.artistId
     };
   }, [api]);
-
   const playTrack = useCallback((track: Track, autoPlay: boolean = false) => {
     // Clear saved timestamp when manually playing a track
     localStorage.removeItem('navidrome-current-track-time');
@@ -118,26 +122,47 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const trackWithAutoPlay = { ...track, autoPlay };
     setCurrentTrack(trackWithAutoPlay);
     
+    // Preload upcoming tracks in the queue
+    if (queue.length > 0) {
+      const upcomingTrackIds = queue.slice(0, 3).map(t => t.id);
+      const upcomingTrackUrls = queue.slice(0, 3).map(t => t.url);
+      audioCacheService.preloadUpcomingTracks(upcomingTrackIds, upcomingTrackUrls)
+        .then(() => {
+          setCacheStatus(audioCacheService.getCacheStatus());
+        })
+        .catch(error => console.error('Failed to preload tracks:', error));
+    }
+    
     // Scrobble the track if API is available
     if (api) {
       api.scrobble(track.id).catch(error => {
         console.error('Failed to scrobble track:', error);
       });
     }
-  }, [currentTrack, api]);
-
+  }, [currentTrack, api, queue]);
   const addToQueue = useCallback((track: Track) => {
     setQueue((prevQueue) => {
+      let newQueue;
       if (shuffle && prevQueue.length > 0) {
         // If shuffle is enabled, insert the track at a random position
         const randomIndex = Math.floor(Math.random() * (prevQueue.length + 1));
-        const newQueue = [...prevQueue];
+        newQueue = [...prevQueue];
         newQueue.splice(randomIndex, 0, track);
-        return newQueue;
       } else {
         // Normal behavior: add to the end
-        return [...prevQueue, track];
+        newQueue = [...prevQueue, track];
       }
+      
+      // Preload the first few tracks in the queue
+      const upcomingTrackIds = newQueue.slice(0, 3).map(t => t.id);
+      const upcomingTrackUrls = newQueue.slice(0, 3).map(t => t.url);
+      audioCacheService.preloadUpcomingTracks(upcomingTrackIds, upcomingTrackUrls)
+        .then(() => {
+          setCacheStatus(audioCacheService.getCacheStatus());
+        })
+        .catch(error => console.error('Failed to preload tracks:', error));
+      
+      return newQueue;
     });
   }, [shuffle]);
 
@@ -531,8 +556,22 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       });
     } finally {
       setIsLoading(false);
-    }
-  }, [api, songToTrack, toast, shuffle, playTrack]);
+    }  }, [api, songToTrack, toast, shuffle, playTrack]);
+
+  // Cache management functions
+  const clearCache = useCallback(() => {
+    audioCacheService.clearCache();
+    setCacheStatus(audioCacheService.getCacheStatus());
+  }, []);
+
+  // Update cache status periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCacheStatus(audioCacheService.getCacheStatus());
+    }, 10000); // Update every 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const contextValue = useMemo(() => ({
     currentTrack, 
@@ -552,7 +591,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     shuffle,
     toggleShuffle,
     shuffleAllAlbums,
-    playArtist
+    playArtist,    cacheStatus,
+    clearCache
   }), [
     currentTrack, 
     queue, 
@@ -571,7 +611,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     shuffle,
     toggleShuffle,
     shuffleAllAlbums,
-    playArtist
+    playArtist,
+    cacheStatus,
+    clearCache
   ]);
 
   return (

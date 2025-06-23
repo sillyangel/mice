@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Menu } from "@/app/components/menu";
 import { Sidebar } from "@/app/components/sidebar";
 import { useNavidrome } from "@/app/components/NavidromeContext";
-import { AudioPlayer } from "./AudioPlayer";
+import EnhancedAudioPlayer from "./EnhancedAudioPlayer";
 import { Toaster } from "@/components/ui/toaster"
 
 interface IhateserversideProps {
@@ -48,11 +48,9 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
         <div className="flex-1 overflow-y-auto">
           <div>{children}</div>
         </div>
-      </div>
-
-      {/* Floating Audio Player */}
+      </div>      {/* Enhanced Audio Player with Caching and Gapless Playback */}
       {isStatusBarVisible && (
-        <AudioPlayer />
+        <EnhancedAudioPlayer />
       )}
       <Toaster />
     </div>

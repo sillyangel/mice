@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/app/components/ThemeProvider';
 import { useNavidromeConfig } from '@/app/components/NavidromeConfigContext';
 import { useToast } from '@/hooks/use-toast';
+import { AudioSettings } from '@/app/components/AudioSettings';
 import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm } from 'react-icons/fa';
 
 const SettingsPage = () => {
@@ -23,13 +24,21 @@ const SettingsPage = () => {
     });
     const [isTesting, setIsTesting] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    
-    // Last.fm scrobbling settings
+      // Last.fm scrobbling settings
     const [scrobblingEnabled, setScrobblingEnabled] = useState(() => {
         if (typeof window !== 'undefined') {
             return localStorage.getItem('lastfm-scrobbling-enabled') === 'true';
         }
         return true;
+    });
+
+    // Audio settings
+    const [crossfadeDuration, setCrossfadeDuration] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('crossfade-duration');
+            return saved ? parseInt(saved) : 3;
+        }
+        return 3;
     });
 
     const handleInputChange = (field: string, value: string) => {
@@ -300,9 +309,14 @@ const SettingsPage = () => {
                         <div className="text-sm text-muted-foreground">
                             <p><strong>Theme:</strong> Choose between blue and violet color schemes</p>
                             <p><strong>Dark Mode:</strong> Automatically follows your system preferences</p>
-                        </div>
-                    </CardContent>
+                        </div>                    </CardContent>
                 </Card>
+
+                {/* Audio Settings */}
+                <AudioSettings
+                    crossfadeDuration={crossfadeDuration}
+                    setCrossfadeDuration={setCrossfadeDuration}
+                />
 
                 {/* Theme Preview */}
                 <Card>
