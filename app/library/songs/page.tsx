@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Play, Plus, Clock, User, Disc } from 'lucide-react';
+import { Search, Play, Plus, User, Disc } from 'lucide-react';
 import Loading from '@/app/components/loading';
 import { getNavidromeAPI } from '@/lib/navidrome';
 
@@ -274,7 +274,6 @@ export default function SongsPage() {
 
                   {/* Duration */}
                   <div className="flex items-center text-sm text-muted-foreground mr-4">
-                    <Clock className="w-3 h-3 mr-1" />
                     {formatDuration(song.duration)}
                   </div>
 

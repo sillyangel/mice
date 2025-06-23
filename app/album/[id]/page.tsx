@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Album, Song } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
-import { Play, Heart, Clock, User, Plus } from 'lucide-react';
+import { Play, Heart, User, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { PlusIcon } from "@radix-ui/react-icons";
@@ -198,7 +198,6 @@ export default function AlbumPage() {
 
                     {/* Duration */}
                     <div className="flex items-center text-sm text-muted-foreground mr-4">
-                      <Clock className="w-3 h-3 mr-1" />
                       {formatDuration(song.duration)}
                     </div>
 

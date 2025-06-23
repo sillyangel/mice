@@ -7,7 +7,7 @@ import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Play, X, Clock, User, Disc, Trash2, SkipForward } from 'lucide-react';
+import { Play, X, User, Disc, Trash2, SkipForward } from 'lucide-react';
 
 const QueuePage: React.FC = () => {
   const { queue, currentTrack, removeTrackFromQueue, clearQueue, skipToTrackInQueue } = useAudioPlayer();
@@ -85,7 +85,6 @@ const QueuePage: React.FC = () => {
 
                 {/* Duration */}
                 <div className="flex items-center text-sm text-muted-foreground">
-                  <Clock className="w-3 h-3 mr-1" />
                   {formatDuration(currentTrack.duration)}
                 </div>
               </div>
@@ -171,7 +170,6 @@ const QueuePage: React.FC = () => {
 
                     {/* Duration */}
                     <div className="flex items-center text-sm text-muted-foreground mr-4">
-                      <Clock className="w-3 h-3 mr-1" />
                       {formatDuration(track.duration)}
                     </div>
 

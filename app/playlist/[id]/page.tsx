@@ -8,7 +8,7 @@ import { Playlist, Song } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { getNavidromeAPI } from '@/lib/navidrome';
-import { Play, Heart, Plus, Clock, User, Disc } from 'lucide-react';
+import { Play, Heart, Plus, User, Disc } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Loading from "@/app/components/loading";
 import { Separator } from '@/components/ui/separator';
@@ -251,7 +251,6 @@ export default function PlaylistPage() {
 
                     {/* Duration */}
                     <div className="flex items-center text-sm text-muted-foreground mr-4">
-                      <Clock className="w-3 h-3 mr-1" />
                       {formatDuration(song.duration)}
                     </div>
 
