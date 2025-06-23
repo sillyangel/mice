@@ -101,8 +101,12 @@ export default function SongsPage() {
 
     setFilteredSongs(filtered);
   }, [songs, searchQuery, sortBy, sortDirection]);
-
   const handlePlaySong = (song: Song) => {
+    if (!api) {
+      console.error('Navidrome API not available');
+      return;
+    }
+    
     const track = {
       id: song.id,
       name: song.title,
@@ -117,8 +121,12 @@ export default function SongsPage() {
 
     playTrack(track);
   };
-
   const handleAddToQueue = (song: Song) => {
+    if (!api) {
+      console.error('Navidrome API not available');
+      return;
+    }
+    
     const track = {
       id: song.id,
       name: song.title,
@@ -229,9 +237,8 @@ export default function SongsPage() {
                   </div>
 
                   {/* Album Art */}
-                  <div className="w-12 h-12 mr-4 flex-shrink-0">
-                    <Image
-                      src={song.coverArt ? api.getCoverArtUrl(song.coverArt, 100) : '/default-user.jpg'}
+                  <div className="w-12 h-12 mr-4 flex-shrink-0">                    <Image
+                      src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 100) : '/default-user.jpg'}
                       alt={song.album}
                       width={48}
                       height={48}

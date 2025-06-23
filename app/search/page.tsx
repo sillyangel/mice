@@ -51,8 +51,12 @@ export default function SearchPage() {
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
-
   const handlePlaySong = (song: Song) => {
+    if (!api) {
+      console.error('Navidrome API not available');
+      return;
+    }
+    
     const track = {
       id: song.id,
       name: song.title,
@@ -67,8 +71,12 @@ export default function SearchPage() {
 
     playTrack(track);
   };
-
   const handleAddToQueue = (song: Song) => {
+    if (!api) {
+      console.error('Navidrome API not available');
+      return;
+    }
+    
     const track = {
       id: song.id,
       name: song.title,
@@ -182,9 +190,8 @@ export default function SearchPage() {
                       </div>
                       
                       {/* Song Cover */}
-                      <div className="flex-shrink-0">
-                        <Image
-                          src={song.coverArt ? api.getCoverArtUrl(song.coverArt, 64) : '/default-user.jpg'}
+                      <div className="flex-shrink-0">                        <Image
+                          src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 64) : '/default-user.jpg'}
                           alt={song.album}
                           width={48}
                           height={48}

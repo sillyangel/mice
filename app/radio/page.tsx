@@ -22,11 +22,13 @@ const RadioStationsPage = () => {
   });
   const { toast } = useToast();
   const { playTrack } = useAudioPlayer();
-
   const loadRadioStations = useCallback(async () => {
     setIsLoading(true);
     try {
       const api = getNavidromeAPI();
+      if (!api) {
+        throw new Error('Navidrome API not available');
+      }
       const stationList = await api.getInternetRadioStations();
       setStations(stationList);
     } catch (error) {
@@ -53,10 +55,11 @@ const RadioStationsPage = () => {
         variant: "destructive"
       });
       return;
-    }
-
-    try {
+    }    try {
       const api = getNavidromeAPI();
+      if (!api) {
+        throw new Error('Navidrome API not available');
+      }
       await api.createInternetRadioStation(
         newStation.name,
         newStation.streamUrl,
@@ -81,9 +84,11 @@ const RadioStationsPage = () => {
     }
   };
 
-  const deleteRadioStation = async (stationId: string) => {
-    try {
+  const deleteRadioStation = async (stationId: string) => {    try {
       const api = getNavidromeAPI();
+      if (!api) {
+        throw new Error('Navidrome API not available');
+      }
       await api.deleteInternetRadioStation(stationId);
       
       toast({

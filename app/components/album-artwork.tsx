@@ -57,9 +57,8 @@ export function AlbumArtwork({
       starItem(album.id, 'album');
     }
   };
-
   // Get cover art URL with proper fallback
-  const coverArtUrl = album.coverArt 
+  const coverArtUrl = album.coverArt && api
     ? api.getCoverArtUrl(album.coverArt, 300)
     : '/default-user.jpg';
 

@@ -24,8 +24,12 @@ export default function BrowsePage() {
   const albumsPerPage = 84;
 
   const api = getNavidromeAPI();
-
   const loadAlbums = async (page: number, append: boolean = false) => {
+    if (!api) {
+      console.error('Navidrome API not available');
+      return;
+    }
+    
     try {
       setIsLoadingAlbums(true);
       const offset = page * albumsPerPage;

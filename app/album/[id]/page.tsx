@@ -80,8 +80,12 @@ export default function AlbumPage() {
       console.error('Failed to play album from track:', error);
     }
   };
-
   const handleAddToQueue = (song: Song) => {
+    if (!api) {
+      console.error('Navidrome API not available');
+      return;
+    }
+    
     const track = {
       id: song.id,
       name: song.title,
@@ -106,9 +110,8 @@ export default function AlbumPage() {
     const seconds = duration % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
-
   // Get cover art URL with proper fallback
-  const coverArtUrl = album.coverArt 
+  const coverArtUrl = album.coverArt && api
     ? api.getCoverArtUrl(album.coverArt, 300)
     : '/default-user.jpg';
 
