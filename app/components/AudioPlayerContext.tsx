@@ -37,6 +37,8 @@ interface AudioPlayerContextProps {
   toggleShuffle: () => void;
   shuffleAllAlbums: () => Promise<void>;
   playArtist: (artistId: string) => Promise<void>;
+  playedTracks: Track[];
+  clearHistory: () => void;
 }
 
 const AudioPlayerContext = createContext<AudioPlayerContextProps | undefined>(undefined);
@@ -534,6 +536,27 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [api, songToTrack, toast, shuffle, playTrack]);
 
+  const clearHistory = useCallback(() => {
+    setPlayedTracks([]);
+    localStorage.removeItem('navidrome-playedTracks');
+  }, []);
+
+  // Persist played tracks to localStorage
+  useEffect(() => {
+    localStorage.setItem('navidrome-playedTracks', JSON.stringify(playedTracks));
+  }, [playedTracks]);
+
+  // Load played tracks from localStorage on mount
+  useEffect(() => {
+    const savedPlayedTracks = localStorage.getItem('navidrome-playedTracks');
+    if (savedPlayedTracks) {
+      try {
+        setPlayedTracks(JSON.parse(savedPlayedTracks));
+      } catch (error) {
+        console.error('Failed to parse saved played tracks:', error);
+      }
+    }
+  }, []);
   const contextValue = useMemo(() => ({
     currentTrack, 
     playTrack, 
@@ -552,7 +575,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     shuffle,
     toggleShuffle,
     shuffleAllAlbums,
-    playArtist
+    playArtist,
+    playedTracks,
+    clearHistory
   }), [
     currentTrack, 
     queue, 
@@ -571,7 +596,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     shuffle,
     toggleShuffle,
     shuffleAllAlbums,
-    playArtist
+    playArtist,
+    playedTracks,
+    clearHistory
   ]);
 
   return (

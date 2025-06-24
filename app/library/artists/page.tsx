@@ -5,29 +5,50 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useState, useEffect } from 'react';
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArtistIcon } from '@/app/components/artist-icon';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { Artist } from '@/lib/navidrome';
-import Loading  from '@/app/components/loading';
+import Loading from '@/app/components/loading';
+import { Search } from 'lucide-react';
 
 export default function ArtistPage() {
   const { artists, isLoading } = useNavidrome();
-  const [sortedArtists, setSortedArtists] = useState<Artist[]>([]);
+  const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'albumCount'>('name');
 
   useEffect(() => {
     if (artists.length > 0) {
-      // Sort artists alphabetically by name
-      const sorted = [...artists].sort((a, b) => a.name.localeCompare(b.name));
-      setSortedArtists(sorted);
+      let filtered = [...artists];
+      
+      // Filter by search query
+      if (searchQuery) {
+        filtered = filtered.filter(artist =>
+          artist.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      
+      // Sort artists
+      filtered.sort((a, b) => {
+        if (sortBy === 'name') {
+          return a.name.localeCompare(b.name);
+        } else {
+          return (b.albumCount || 0) - (a.albumCount || 0);
+        }
+      });
+      
+      setFilteredArtists(filtered);
     }
-  }, [artists]);
+  }, [artists, searchQuery, sortBy]);
 
   if (isLoading) {
     return <Loading />;
   }
 
   return (
-    <div className="h-full px-4 py-6 lg:px-8">
+    <div className="h-full px-4 py-6 lg:px-8 mb-24">
       <Tabs defaultValue="music" className="h-full space-y-6">
         <TabsContent value="music" className="border-none p-0 outline-none">
           <div className="flex items-center justify-between">
@@ -36,15 +57,38 @@ export default function ArtistPage() {
                 Artists
               </p>
               <p className="text-sm text-muted-foreground">
-                All artists in your music library ({sortedArtists.length} artists)
+                {filteredArtists.length} of {artists.length} artists
               </p>
             </div>
           </div>
+          
+          {/* Search and Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-4 my-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search artists..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={sortBy} onValueChange={(value: 'name' | 'albumCount') => setSortBy(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Sort by Name</SelectItem>
+                <SelectItem value="albumCount">Sort by Album Count</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
           <Separator className="my-4" />
           <div className="relative">
             <ScrollArea>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 pb-4">
-                {sortedArtists.map((artist) => (
+                {filteredArtists.map((artist) => (
                   <ArtistIcon
                     key={artist.id}
                     artist={artist}

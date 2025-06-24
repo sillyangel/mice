@@ -285,16 +285,15 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       
       {/* Overlay for better contrast */}
       <div className="absolute inset-0 bg-black/50" />
-      
-      <div className="relative h-full w-full flex flex-col">
+        <div className="relative h-full w-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 flex-shrink-0">
           <h2 className="text-lg lg:text-xl font-semibold text-white"></h2>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {onOpenQueue && (
               <button 
                 onClick={onOpenQueue}
-                className="text-white hover:bg-white/20 p-2 rounded-full transition-colors"
+                className="text-white hover:bg-white/20 p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10"
                 title="Open Queue"
               >
                 <FaListUl className="w-5 h-5" />
@@ -302,7 +301,8 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             )}
             <button 
               onClick={onClose}
-              className="text-white hover:bg-white/20 p-2 rounded-full transition-colors"
+              className="text-white hover:bg-white/20 p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10"
+              title="Close Player"
             >
               <FaXmark className="w-5 h-5" />
             </button>
