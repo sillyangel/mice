@@ -57,7 +57,7 @@ export default function Layout({ children }: LayoutProps) {
             __html: `
               (function() {
                 const savedTheme = localStorage.getItem('theme');
-                const theme = (savedTheme === 'blue' || savedTheme === 'violet') ? savedTheme : 'blue';
+                const theme = (savedTheme === 'blue' || savedTheme === 'violet' || savedTheme === 'red' || savedTheme === 'rose' || savedTheme === 'orange' || savedTheme === 'green' || savedTheme === 'yellow') ? savedTheme : 'blue';
                 
                 // Apply theme class
                 document.documentElement.classList.add('theme-' + theme);
@@ -69,8 +69,13 @@ export default function Layout({ children }: LayoutProps) {
                 
                 // Set initial theme color based on theme
                 const themeColors = {
-                  blue: '#0f0f23',
-                  violet: '#0c0a2e'
+                  blue: '#09090b',
+                  violet: '#030712',
+                  red: '#0a0a0a',
+                  rose: '#0c0a09',
+                  orange: '#0c0a09',
+                  green: '#0c0a09',
+                  yellow: '#0c0a09'
                 };
                 
                 const metaThemeColor = document.createElement('meta');

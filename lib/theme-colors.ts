@@ -8,7 +8,27 @@ export const themeColors = {
   violet: {
     background: 'hsl(224, 71.4%, 4.1%)', // Dark violet background  
     hex: '#030712' // Hex equivalent for theme-color
-  }
+  },
+  red: {
+    background: 'hsl(0, 0%, 3.9%)', // Dark red background
+    hex: '#0a0a0a' // Hex equivalent for theme-color
+  },
+  rose: {
+    background: 'hsl(20, 14.3%, 4.1%)', // Dark rose background
+    hex: '#0c0a09' // Hex equivalent for theme-color
+  },
+  orange: {
+    background: 'hsl(20, 14.3%, 4.1%)', // Dark orange background
+    hex: '#0c0a09' // Hex equivalent for theme-color
+  },
+  green: {
+    background: 'hsl(20, 14.3%, 4.1%)', // Dark green background
+    hex: '#0c0a09' // Hex equivalent for theme-color
+  },
+  yellow: {
+    background: 'hsl(20, 14.3%, 4.1%)', // Dark yellow background
+    hex: '#0c0a09' // Hex equivalent for theme-color
+  },
 } as const;
 
 export type Theme = keyof typeof themeColors;

@@ -293,6 +293,11 @@ const SettingsPage = () => {
                                 <SelectContent>
                                     <SelectItem value="blue">Blue</SelectItem>
                                     <SelectItem value="violet">Violet</SelectItem>
+                                    <SelectItem value="red">Red</SelectItem>
+                                    <SelectItem value="rose">Rose</SelectItem>
+                                    <SelectItem value="orange">Orange</SelectItem>
+                                    <SelectItem value="green">Green</SelectItem>
+                                    <SelectItem value="yellow">Yellow</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

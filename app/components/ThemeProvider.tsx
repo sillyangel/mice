@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'blue' | 'violet';
+
+type Theme = 'blue' | 'violet' | 'red' | 'rose' | 'orange' | 'green' | 'yellow';
 
 interface ThemeContextType {
   theme: Theme;
@@ -30,11 +31,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Load theme settings from localStorage on component mount
   useEffect(() => {
     setMounted(true);
+    const savedTheme = localStorage.getItem('theme');
+    const validThemes: Theme[] = ['blue', 'violet', 'red', 'rose', 'orange', 'green', 'yellow'];
     
-    const savedTheme = localStorage.getItem('theme') as Theme | null;
-    
-    if (savedTheme && (savedTheme === 'blue' || savedTheme === 'violet')) {
-      setTheme(savedTheme);
+    if (savedTheme && validThemes.includes(savedTheme as Theme)) {
+      setTheme(savedTheme as Theme);
     }
   }, []);
 
