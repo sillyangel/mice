@@ -7,6 +7,7 @@ import { AlbumArtwork } from './components/album-artwork';
 import { useNavidrome } from './components/NavidromeContext';
 import { useEffect, useState } from 'react';
 import { Album } from '@/lib/navidrome';
+import { LoginForm } from '@/app/components/start-screen';
 
 export default function MusicPage() {
   const { albums, isLoading, error } = useNavidrome();
@@ -25,20 +26,23 @@ export default function MusicPage() {
 
   if (error) {
     return (
-      <div className="h-full px-4 py-6 lg:px-8 pb-24">
-        <div className="text-center">
-          <p className="text-xl font-semibold text-red/50 mb-2">Connection Error</p>
-          <p className="text-muted-foreground">{error}</p>
-          <p className="text-sm text-muted-foreground mt-2">
-          If you need to change your settings, please go to the{' '}
-            <a
-              href="/settings"
-              className="text-sm text-blue-500 hover:underline"
-            >
-              Settings
-            </a>
-          </p>
-        </div>
+      // <div className="h-full px-4 py-6 lg:px-8 pb-24">
+      //   <div className="text-center">
+      //     <p className="text-xl font-semibold text-red/50 mb-2">Connection Error</p>
+      //     <p className="text-muted-foreground">{error}</p>
+      //     <p className="text-sm text-muted-foreground mt-2">
+      //     If you need to change your settings, please go to the{' '}
+      //       <a
+      //         href="/settings"
+      //         className="text-sm text-blue-500 hover:underline"
+      //       >
+      //         Settings
+      //       </a>
+      //     </p>
+      //   </div>
+      // </div>
+      <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+        <LoginForm className="max-w-md mx-auto" />
       </div>
     );
   }

@@ -46,7 +46,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const root = document.documentElement;
     
     // Remove existing theme classes
-    root.classList.remove('theme-blue', 'theme-violet', 'dark');
+    root.classList.remove('theme-blue', 'theme-violet', 'theme-red', 'theme-rose', 'theme-orange', 'theme-green', 'theme-yellow', 'dark');
     
     // Add new theme class
     root.classList.add(`theme-${theme}`);
