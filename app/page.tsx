@@ -7,10 +7,10 @@ import { AlbumArtwork } from './components/album-artwork';
 import { useNavidrome } from './components/NavidromeContext';
 import { useEffect, useState } from 'react';
 import { Album } from '@/lib/navidrome';
-import { LoginForm } from '@/app/components/start-screen';
+import { useNavidromeConfig } from './components/NavidromeConfigContext';
 
 export default function MusicPage() {
-  const { albums, isLoading} = useNavidrome();
+  const { albums, isLoading } = useNavidrome();
   const [recentAlbums, setRecentAlbums] = useState<Album[]>([]);
   const [newestAlbums, setNewestAlbums] = useState<Album[]>([]);
 
@@ -24,20 +24,32 @@ export default function MusicPage() {
     }
   }, [albums]);
 
+  // Get greeting based on time
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : 'Good afternoon';
+
+  // Try to get user name from navidrome context, fallback to 'user'
+  let userName = '';
+  // If you add user info to NavidromeContext, update this logic
+  const { config } = useNavidromeConfig();
+  if (config && config.username) {
+    userName = config.username;
+  }
 
 
   return (
     <div className="h-full px-4 py-6 lg:px-8 pb-24">
-    <>
+      <h1 className="text-2xl font-bold mb-4">{greeting}{userName ? `, ${userName}` : ''}!</h1>
+      <>
       <Tabs defaultValue="music" className="h-full space-y-6">
         <TabsContent value="music" className="border-none p-0 outline-none">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-2xl font-semibold tracking-tight">
-                Recently Added
+                Recently Played
               </p>
               <p className="text-sm text-muted-foreground">
-                Latest additions to your music library.
+                Albums you've listened to recently.
               </p>
             </div>
           </div>
