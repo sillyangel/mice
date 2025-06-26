@@ -39,7 +39,18 @@ export default function MusicPage() {
 
   return (
     <div className="h-full px-4 py-6 lg:px-8 pb-24">
-      <h1 className="text-3xl font-bold mb-4">{greeting}{userName ? `, ${userName}` : ''}!</h1>
+      <div className="relative rounded-lg p-8">
+          <div className="relative rounded-sm p-10">
+            <div
+              className="absolute inset-0 bg-center bg-cover bg-no-repeat blur-xl bg-gradient-to-r from-primary to-secondary"
+            />
+            <div className="relative z-10 flex items-center space-x-6">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold mb-4">{greeting}{userName ? `, ${userName}` : ''}!</h1>
+              </div>
+          </div>
+        </div>
+       </div>
       <>
       <Tabs defaultValue="music" className="h-full space-y-6">
         <TabsContent value="music" className="border-none p-0 outline-none">

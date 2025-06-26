@@ -4,13 +4,13 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { FullScreenPlayer } from '@/app/components/FullScreenPlayer';
-import { FaPlay, FaPause, FaVolumeHigh, FaForward, FaBackward, FaCompress, FaVolumeXmark, FaExpand } from "react-icons/fa6";
+import { FaPlay, FaPause, FaVolumeHigh, FaForward, FaBackward, FaCompress, FaVolumeXmark, FaExpand, FaShuffle } from "react-icons/fa6";
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useLastFmScrobbler } from '@/hooks/use-lastfm-scrobbler';
 
 export const AudioPlayer: React.FC = () => {
-  const { currentTrack, playPreviousTrack, addToQueue, playNextTrack, clearQueue, queue } = useAudioPlayer();
+  const { currentTrack, playPreviousTrack, addToQueue, playNextTrack, clearQueue, queue, toggleShuffle, shuffle } = useAudioPlayer();
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement>(null);
   const preloadAudioRef = useRef<HTMLAudioElement>(null);
@@ -377,8 +377,13 @@ export const AudioPlayer: React.FC = () => {
               <p className="font-semibold truncate text-sm">{currentTrack.name}</p>
               <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
             </div>
+            {/* faviorte icon or smthing here */}
           </div>
           {/* Control buttons */}
+          <button
+                onClick={toggleShuffle} className={`p-1.5 hover:bg-gray-700/50 rounded-full transition-colors ${   shuffle ? 'text-primary bg-primary/20' : '' }`} title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}>
+                <FaShuffle className="w-3 h-3" />
+              </button>
         <div className="flex items-center justify-center space-x-2">
           <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
             <FaBackward className="w-3 h-3" />
