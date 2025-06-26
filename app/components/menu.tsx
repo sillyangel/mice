@@ -266,25 +266,34 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
             <DialogHeader>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div>
+              <div className="flex items-center gap-4">
                 <Image
-                  src="/splash.png"
+                  src="/icon-512.png"
                   alt="music"
-                  width={400}
-                  height={400}
-                  />
+                  width={100}
+                  height={100}
+                />
+                <h1 className="text-5xl font-bold">mice</h1>
               </div>
+                <p className="text-sm text-muted-foreground pt-0">
+                  A Navidrome client built with Next.js and Shadcn/UI.
+                </p>
               <Separator />
-              <p>
-                a music player that doesn&apos;t (yet) play music
-              </p>
-                <div className="flex space-x-4">
-                <a href="https://github.com/sillyangel/project-still" target="_blank" rel="noreferrer">
-                  <Github />
-                </a>
-                <a href="mailto:angel@sillyangel.xyz">
-                  <Mail />
-                </a>
+                <p>
+                built by <a href="https://github.com/sillyangel" target="_blank" rel="noreferrer" className="underline">sillyangel</a>
+                </p>
+                <div className="flex flex-col items-center gap-1 text-xs w-full mt-2">
+                  <div className="flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-400"}`} />
+                  <span>
+                    Navidrome: <span className={isConnected ? "text-green-600" : "text-red-500"}>{isConnected ? "Connected" : "Not connected"}</span>
+                  </span>
+                  </div>
+                  <div className="truncate max-w-[220px] text-center text-muted-foreground">
+                  URL: {typeof window !== "undefined"
+                    ? localStorage.getItem("navidromeUrl") || <span className="italic text-gray-400">Not set</span>
+                    : <span className="italic text-gray-400">Not available</span>}
+                  </div>
                 </div>
             </div>
           </DialogContent>

@@ -3,10 +3,14 @@ import localFont from "next/font/local";
 import "./globals.css";
 import RootLayoutClient from "./components/RootLayoutClient";
 
+// Get the short commit hash from env (set in dev via .env or prebuild script)
+const isDev = process.env.NODE_ENV === 'development';
+const shortCommit = isDev ? process.env.NEXT_PUBLIC_COMMIT_SHA || '' : '';
+
 export const metadata = {
   title: {
-    template: 'mice | %s',
-    default: 'mice',
+    template: isDev && shortCommit ? `mice (dev: ${shortCommit}) | %s` : 'mice | %s',
+    default: isDev && shortCommit ? `mice (dev: ${shortCommit})` : 'mice',
   },
   description: 'a very awesome music streaming service',
   robots: {

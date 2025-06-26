@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "predev": "echo NEXT_PUBLIC_COMMIT_SHA=$(git rev-parse --short HEAD) > .env.local",
     "dev": "next dev -p 40624",
     "build": "next build",
     "start": "next start -p 40624",
