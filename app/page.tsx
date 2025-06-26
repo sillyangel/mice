@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { Album } from '@/lib/navidrome';
 import { useNavidromeConfig } from './components/NavidromeConfigContext';
 
+type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 export default function MusicPage() {
   const { albums, isLoading } = useNavidrome();
   const [recentAlbums, setRecentAlbums] = useState<Album[]>([]);
@@ -24,9 +25,18 @@ export default function MusicPage() {
     }
   }, [albums]);
 
-  // Get greeting based on time
+  // Get greeting and time of day
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : 'Good afternoon';
+  let timeOfDay: TimeOfDay;
+  if (hour >= 5 && hour < 12) {
+    timeOfDay = 'morning';
+  } else if (hour >= 12 && hour < 18) {
+    timeOfDay = 'afternoon';
+  } else {
+    timeOfDay = 'evening';
+  }
+
 
   // Try to get user name from navidrome context, fallback to 'user'
   let userName = '';
@@ -43,7 +53,14 @@ export default function MusicPage() {
           <div className="relative rounded-sm p-10">
             <div
               className="absolute inset-0 bg-center bg-cover bg-no-repeat blur-xl bg-gradient-to-r from-primary to-secondary"
-            />
+ style={{
+                backgroundImage:
+ timeOfDay === 'morning'
+ ? 'linear-gradient(to right, #ff9a9e, #fad0c4, #fad0c4)' // Warm tones for morning
+ : timeOfDay === 'evening'
+ ? 'linear-gradient(to right, #a18cd1, #fbc2eb)' // Cool tones for evening
+ : 'linear-gradient(to right, #a8edea, #fed6e3)', // Default/afternoon colors
+ }} />
             <div className="relative z-10 flex items-center space-x-6">
               <div className="flex-1">
                 <h1 className="text-3xl font-bold mb-4">{greeting}{userName ? `, ${userName}` : ''}!</h1>
