@@ -39,7 +39,7 @@ export default function MusicPage() {
 
   return (
     <div className="h-full px-4 py-6 lg:px-8 pb-24">
-      <h1 className="text-2xl font-bold mb-4">{greeting}{userName ? `, ${userName}` : ''}!</h1>
+      <h1 className="text-3xl font-bold mb-4">{greeting}{userName ? `, ${userName}` : ''}!</h1>
       <>
       <Tabs defaultValue="music" className="h-full space-y-6">
         <TabsContent value="music" className="border-none p-0 outline-none">
@@ -60,17 +60,17 @@ export default function MusicPage() {
                 {isLoading ? (
                   // Loading skeletons
                   Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="w-[300px] h-[300px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                    <div key={i} className="w-[220px] h-[220px] bg-muted animate-pulse rounded-md flex-shrink-0" />
                   ))
                 ) : (
                   recentAlbums.map((album) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}
-                      className="w-[300px] flex-shrink-0"
+                      className="w-[220px] flex-shrink-0"
                       aspectRatio="square"
-                      width={300}
-                      height={300}
+                      width={220}
+                      height={220}
                     />
                   ))
                 )}
@@ -93,17 +93,17 @@ export default function MusicPage() {
             {isLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="w-[150px] h-[150px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                    <div key={i} className="w-[220px] h-[200px] bg-muted animate-pulse rounded-md flex-shrink-0" />
                   ))
                 ) : (
                   newestAlbums.map((album) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}
-                      className="w-[150px] flex-shrink-0"
+                      className="w-[220px] flex-shrink-0"
                       aspectRatio="square"
-                      width={150}
-                      height={150}
+                      width={220}
+                      height={220}
                     />
                   ))
                 )}
