@@ -90,8 +90,15 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
         </div>
           <div style={{ marginRight: '0.24rem' }} className="border-r-4 w-0"><p className="invisible">j</p></div>
 
-        <Menubar className="rounded-none border-b border-none px-0 lg:px-0 flex-1" style={{ minWidth: 0 }}>
-          <MenubarMenu>
+        <Menubar
+          className="rounded-none border-b border-none px-0 lg:px-0 flex-1"
+          style={{
+            minWidth: 0,
+            WebkitAppRegion: "drag"
+          } as any}
+        >
+        <div style={{ WebkitAppRegion: "no-drag" } as any} className="flex items-center gap-2">
+        <MenubarMenu>
         <MenubarTrigger className="font-bold">mice</MenubarTrigger>
         <MenubarContent>
           <MenubarItem onClick={() => setOpen(true)}>About Music</MenubarItem>
@@ -249,6 +256,7 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           </MenubarItem>
         </MenubarContent>
           </MenubarMenu>
+          </div>
         </Menubar>
         
       </div>

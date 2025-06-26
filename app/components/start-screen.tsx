@@ -137,7 +137,6 @@ export function LoginForm({
               {/* Theme Selection */}
               <div className="grid gap-3">
                 <span>
-                  <FaPalette className="w-5 h-5" />
                   <Label htmlFor="theme">Theme</Label>
                 </span>
                 <Select value={theme} onValueChange={setTheme}>

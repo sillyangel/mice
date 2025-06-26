@@ -25,7 +25,13 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
   return (
     <div className="hidden md:flex md:flex-col md:h-screen">
       {/* Top Menu */}
-      <div className="sticky top-0 z-10 bg-background border-b">
+      <div
+        className="sticky z-10 bg-background border-b"
+        style={{
+          left: 'env(titlebar-area-x, 0)',
+          top: 'env(titlebar-area-y, 0)',
+        }}
+      >
         <Menu
           toggleSidebar={() => setIsSidebarVisible(!isSidebarVisible)}
           isSidebarVisible={isSidebarVisible}
