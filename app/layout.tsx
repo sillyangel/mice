@@ -1,16 +1,9 @@
 import React from 'react';
 import localFont from "next/font/local";
 import "./globals.css";
-import { AudioPlayerProvider } from "./components/AudioPlayerContext";
-import { NavidromeProvider } from "./components/NavidromeContext";
-import { NavidromeConfigProvider } from "./components/NavidromeConfigContext";
-import { ThemeProvider } from "./components/ThemeProvider";
-import { PostHogProvider } from "./components/PostHogProvider";
-import { Metadata } from "next";
-import Ihateserverside from './components/ihateserverside';
-import DynamicViewportTheme from './components/DynamicViewportTheme';
+import RootLayoutClient from "./components/RootLayoutClient";
 
-export const metadata: Metadata = {
+export const metadata = {
   title: {
     template: 'mice | %s',
     default: 'mice',
@@ -47,8 +40,6 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  
-
   return (
     <html lang="en">
       <head>
@@ -58,16 +49,10 @@ export default function Layout({ children }: LayoutProps) {
               (function() {
                 const savedTheme = localStorage.getItem('theme');
                 const theme = (savedTheme === 'blue' || savedTheme === 'violet' || savedTheme === 'red' || savedTheme === 'rose' || savedTheme === 'orange' || savedTheme === 'green' || savedTheme === 'yellow') ? savedTheme : 'blue';
-                
-                // Apply theme class
                 document.documentElement.classList.add('theme-' + theme);
-                
-                // Apply dark mode based on system preference
                 if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
                   document.documentElement.classList.add('dark');
                 }
-                
-                // Set initial theme color based on theme
                 const themeColors = {
                   blue: '#09090b',
                   violet: '#030712',
@@ -77,7 +62,6 @@ export default function Layout({ children }: LayoutProps) {
                   green: '#0c0a09',
                   yellow: '#0c0a09'
                 };
-                
                 const metaThemeColor = document.createElement('meta');
                 metaThemeColor.name = 'theme-color';
                 metaThemeColor.content = themeColors[theme];
@@ -88,20 +72,7 @@ export default function Layout({ children }: LayoutProps) {
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background`}>
-        <PostHogProvider>
-          <ThemeProvider>
-            <DynamicViewportTheme />
-            <NavidromeConfigProvider>
-              <NavidromeProvider>
-                <AudioPlayerProvider>
-                  <Ihateserverside>
-                    {children}
-                  </Ihateserverside>
-                </AudioPlayerProvider>
-              </NavidromeProvider>
-            </NavidromeConfigProvider>
-          </ThemeProvider>
-        </PostHogProvider>
+        <RootLayoutClient>{children}</RootLayoutClient>
       </body>
     </html>
   );

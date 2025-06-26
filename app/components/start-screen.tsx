@@ -126,7 +126,6 @@ export function LoginForm({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FaPalette className="w-5 h-5" />
               Customize Your Experience
             </CardTitle>
             <CardDescription>
@@ -137,7 +136,10 @@ export function LoginForm({
             <div className="flex flex-col gap-6">
               {/* Theme Selection */}
               <div className="grid gap-3">
-                <Label htmlFor="theme">Theme</Label>
+                <span>
+                  <FaPalette className="w-5 h-5" />
+                  <Label htmlFor="theme">Theme</Label>
+                </span>
                 <Select value={theme} onValueChange={setTheme}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a theme" />
@@ -204,7 +206,6 @@ export function LoginForm({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FaServer className="w-5 h-5" />
             Connect to Navidrome
           </CardTitle>
           <CardDescription>
