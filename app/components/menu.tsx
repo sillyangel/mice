@@ -262,42 +262,69 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
       </Menubar>
 
       <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="flex items-center gap-4">
-                <Image
-                  src="/icon-512.png"
-                  alt="music"
-                  width={100}
-                  height={100}
-                />
-                <h1 className="text-5xl font-bold">mice</h1>
-              </div>
-                <p className="text-sm text-muted-foreground pt-0">
-                  A Navidrome client built with Next.js and Shadcn/UI.
-                </p>
-              <Separator />
-                <p>
-                built by <a href="https://github.com/sillyangel" target="_blank" rel="noreferrer" className="underline">sillyangel</a>
-                </p>
-                <div className="flex flex-col items-center gap-1 text-xs w-full mt-2">
-                  <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-400"}`} />
-                  <span>
-                    Navidrome: <span className={isConnected ? "text-green-600" : "text-red-500"}>{isConnected ? "Connected" : "Not connected"}</span>
-                  </span>
-                  </div>
-                  <div className="truncate max-w-[220px] text-center text-muted-foreground">
-                  URL: {typeof window !== "undefined"
-                    ? localStorage.getItem("navidromeUrl") || <span className="italic text-gray-400">Not set</span>
-                    : <span className="italic text-gray-400">Not available</span>}
-                  </div>
-                </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden">
+          <div className=" px-6 pt-8 pb-6 flex flex-col items-center">
+        <Image
+          src="/icon-512.png"
+          alt="music"
+          width={80}
+          height={80}
+          className="rounded-2xl shadow-md mb-4"
+        />
+        <h1 className="text-3xl font-semibold mb-1 tracking-tight">mice</h1>
+        {/* <span className="text-xs text-muted-foreground mb-2">Version 1.0.0</span> */}
+        <p className="text-sm text-muted-foreground mb-4 text-center">
+          A Navidrome client built with Next.js and Shadcn/UI.
+        </p>
+        <Separator className="my-2" />
+        <div className="w-full flex flex-col gap-2 mb-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Server Status</span>
+            <span className="flex items-center gap-1">
+              <span className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-400"} `} style={{ marginTop: "-2px" }} />
+              <p className={isConnected ? "text-green-600" : "text-red-500"}>{isConnected ? "Connected" : "Not connected"}</p>
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Navidrome URL</span>
+            <span className="text-xs truncate max-w-[160px] text-right">
+            {typeof window !== "undefined"
+              ? (() => {
+                  const config = localStorage.getItem("navidrome-config");
+                  if (config) {
+                    try {
+                      const { serverUrl } = JSON.parse(config);
+                      if (serverUrl) {
+                        // Remove protocol (http:// or https://) and trailing slash
+                        const prettyUrl = serverUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
+                        return prettyUrl;
+                      }
+                      return <span className="italic text-gray-400">Not set</span>;
+                    } catch {
+                      return <span className="italic text-gray-400">Invalid config</span>;
+                    }
+                  }
+                  return <span className="italic text-gray-400">Not set</span>;
+                })()
+              : <span className="italic text-gray-400">Not available</span>}
+            </span>
+          </div>
+        </div>
+        <Separator className="my-2" />
+        <div className="flex flex-col items-center gap-1 mt-2">
+          <span className="text-xs text-muted-foreground">Copyright © {new Date().getFullYear()} <a
+            href="https://github.com/sillyangel"
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+          >
+           sillyangel
+          </a></span>
+          
+        </div>
+          </div>
+        </DialogContent>
+      </Dialog>
         </>
     )
   }
