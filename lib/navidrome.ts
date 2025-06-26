@@ -514,7 +514,7 @@ export function getNavidromeAPI(customConfig?: NavidromeConfig): NavidromeAPI | 
   
   if (!config.serverUrl || !config.username || !config.password) {
     // Return null instead of throwing an error when configuration is incomplete
-    console.log('Navidrome configuration is incomplete. Please configure in settings.');
+    // console.log('Navidrome configuration is incomplete. Please configure in settings.');
     return null;
   }
   

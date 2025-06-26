@@ -9,6 +9,7 @@ import { PostHogProvider } from "../components/PostHogProvider";
 import Ihateserverside from "./ihateserverside";
 import DynamicViewportTheme from "./DynamicViewportTheme";
 import { LoginForm } from "./start-screen";
+import Image from "next/image";
 
 function NavidromeErrorBoundary({ children }: { children: React.ReactNode }) {
   const { error } = useNavidrome();
@@ -17,7 +18,7 @@ function NavidromeErrorBoundary({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
         {/* top right add the logo located in /icon-192.png here and the word mice */}
         <div className="absolute top-4 left-4 flex items-center space-x-2">
-          <img src="/icon-192.png" alt="Logo" className="h-8 w-8" />
+          <Image src="/icon-192.png" alt="Logo" className="h-8 w-8" />
           <span className="text-xl font-semibold">mice | navidrome client</span>
         </div>
 
