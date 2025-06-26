@@ -100,14 +100,7 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
             Preferences <MenubarShortcut>⌘,</MenubarShortcut>
           </MenubarItem>
           <MenubarSeparator />
-          <MenubarItem>
-            Hide Music <MenubarShortcut>⌘H</MenubarShortcut>
-          </MenubarItem>
-          <MenubarItem>
-            Hide Others <MenubarShortcut>⇧⌘H</MenubarShortcut>
-          </MenubarItem>
-          <MenubarShortcut />
-          <MenubarItem>
+          <MenubarItem onClick={() => window.close()}>
             Quit Music <MenubarShortcut>⌘Q</MenubarShortcut>
           </MenubarItem>
         </MenubarContent>
@@ -253,17 +246,6 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           </MenubarItem>
           <MenubarItem inset onClick={handleFullScreen}>
             {isFullScreen ? "Exit Full Screen" : "Enter Full Screen"}
-          </MenubarItem>
-        </MenubarContent>
-          </MenubarMenu>
-          <MenubarMenu>
-        <MenubarTrigger className="hidden md:block">Account</MenubarTrigger>
-        <MenubarContent forceMount>
-          <MenubarLabel>Server Status</MenubarLabel>
-          <MenubarItem>{connectionStatus}</MenubarItem>
-          <MenubarSeparator />
-          <MenubarItem onClick={() => router.push('/settings')}>
-            Settings
           </MenubarItem>
         </MenubarContent>
           </MenubarMenu>
