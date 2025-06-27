@@ -77,7 +77,7 @@ export default function MusicPage() {
                 Recently Played
               </p>
               <p className="text-sm text-muted-foreground">
-                Albums you've listened to recently.
+                Albums you&apos;ve listened to recently.
               </p>
             </div>
           </div>

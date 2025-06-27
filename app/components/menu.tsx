@@ -95,9 +95,9 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           style={{
             minWidth: 0,
             WebkitAppRegion: "drag"
-          } as any}
+          } as React.CSSProperties}
         >
-        <div style={{ WebkitAppRegion: "no-drag" } as any} className="flex items-center gap-2">
+        <div style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties} className="flex items-center gap-2">
         <MenubarMenu>
         <MenubarTrigger className="font-bold">mice</MenubarTrigger>
         <MenubarContent>
