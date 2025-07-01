@@ -9,7 +9,7 @@ import { AlbumArtwork } from "@/app/components/album-artwork";
 import { ArtistIcon } from "@/app/components/artist-icon";
 import { Album, Artist, Song } from "@/lib/navidrome";
 import { Heart, Music, Disc, Mic, Play } from "lucide-react";
-import { useAudioPlayer } from "@/app/components/AudioPlayerContext";
+import { useAudioPlayer, Track } from "@/app/components/AudioPlayerContext";
 import Image from "next/image";
 
 const FavoritesPage = () => {
@@ -82,7 +82,7 @@ const FavoritesPage = () => {
         }));
         
         playTrack(tracks[0]);
-        tracks.slice(1).forEach((track: any) => addToQueue(track));
+        tracks.slice(1).forEach((track: Track) => addToQueue(track));
       }
     } catch (error) {
       console.error('Failed to play album:', error);

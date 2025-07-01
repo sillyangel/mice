@@ -18,7 +18,7 @@ import {
 
 import { useNavidrome } from "./NavidromeContext"
 import Link from "next/link";
-import { useAudioPlayer } from "@/app/components/AudioPlayerContext";
+import { useAudioPlayer, Track } from "@/app/components/AudioPlayerContext";
 import { getNavidromeAPI } from "@/lib/navidrome";
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
@@ -82,7 +82,7 @@ export function AlbumArtwork({
           }));
           
           playTrack(tracks[0]);
-          tracks.slice(1).forEach((track: any) => addToQueue(track));
+          tracks.slice(1).forEach((track: Track) => addToQueue(track));
         }
       } catch (error) {
         console.error('Failed to play album:', error);

@@ -73,7 +73,7 @@ export class LastFmAPI {
     }
   }
 
-  private async makeRequest(method: string, params: Record<string, string>): Promise<any> {
+  private async makeRequest(method: string, params: Record<string, string>): Promise<Record<string, unknown>> {
     const credentials = this.getCredentials();
     if (!credentials?.apiKey) {
       throw new Error('No Last.fm API key available');
@@ -108,7 +108,7 @@ export class LastFmAPI {
         autocorrect: '1'
       });
       
-      return data.artist || null;
+      return (data.artist as LastFmArtistInfo) || null;
     } catch (error) {
       console.error('Failed to fetch artist info from Last.fm:', error);
       return null;
@@ -123,7 +123,7 @@ export class LastFmAPI {
         autocorrect: '1'
       });
       
-      return data.toptracks || null;
+      return (data.toptracks as LastFmTopTracks) || null;
     } catch (error) {
       console.error('Failed to fetch artist top tracks from Last.fm:', error);
       return null;
@@ -138,7 +138,7 @@ export class LastFmAPI {
         autocorrect: '1'
       });
       
-      return data.similarartists || null;
+      return (data.similarartists as LastFmArtistInfo['similar']) || null;
     } catch (error) {
       console.error('Failed to fetch similar artists from Last.fm:', error);
       return null;

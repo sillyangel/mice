@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -68,11 +68,7 @@ export function LoginForm({
   }, []);
 
   // Check if Navidrome is already working on component mount
-  useEffect(() => {
-    checkNavidromeConnection();
-  }, []);
-
-  const checkNavidromeConnection = async () => {
+  const checkNavidromeConnection = useCallback(async () => {
     try {
       // First check if there's a working API instance
       const { getNavidromeAPI } = await import('@/lib/navidrome');
@@ -122,7 +118,11 @@ export function LoginForm({
     } catch (error) {
       console.log('Navidrome connection check failed, will show config step');
     }
-  };
+  }, [config, setStep, setFormData, setCanSkipNavidrome, testConnection]);
+
+  useEffect(() => {
+    checkNavidromeConnection();
+  }, [checkNavidromeConnection]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));

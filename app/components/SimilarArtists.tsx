@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { lastFmAPI } from '@/lib/lastfm-api';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -71,9 +72,11 @@ export function SimilarArtists({ artistName }: SimilarArtistsProps) {
             >
               <div className="w-32 space-y-2 group cursor-pointer">
                 <div className="relative w-32 h-32 bg-muted rounded-full overflow-hidden">
-                  <img
+                  <Image
                     src={getArtistImage(artist)}
                     alt={artist.name}
+                    width={128}
+                    height={128}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />
                 </div>

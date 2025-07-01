@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { Song } from '@/lib/navidrome';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Button } from '@/components/ui/button';
@@ -92,9 +93,11 @@ export function PopularSongs({ songs, artistName }: PopularSongsProps) {
             {/* Album Art */}
             <div className="relative w-12 h-12 bg-muted rounded-md overflow-hidden flex-shrink-0">
               {song.coverArt && api && (
-                <img
+                <Image
                   src={api.getCoverArtUrl(song.coverArt, 96)}
                   alt={song.album}
+                  width={48}
+                  height={48}
                   className="w-full h-full object-cover"
                 />
               )}
