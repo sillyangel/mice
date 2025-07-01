@@ -16,18 +16,32 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function Sidebar({ className, playlists, collapsed = false, onToggle }: SidebarProps) {
-  const isRoot = usePathname() === "/";
-  const isBrowse = usePathname() === "/browse";
-  const isSearch = usePathname() === "/search";
-  const isAlbums = usePathname() === "/library/albums";
-  const isArtists = usePathname() === "/library/artists";
-  const isQueue = usePathname() === "/queue";
-  const isRadio = usePathname() === "/radio";
-  const isHistory = usePathname() === "/history";
-  const isSongs = usePathname() === "/library/songs";
-  const isPlaylists = usePathname() === "/library/playlists";
-  const isFavorites = usePathname() === "/favorites";
-  const isNew = usePathname() === "/new";
+  const pathname = usePathname();
+  
+  // Define all routes and their active states
+  const routes = {
+    isRoot: pathname === "/",
+    isBrowse: pathname === "/browse",
+    isSearch: pathname === "/search",
+    isQueue: pathname === "/queue",
+    isRadio: pathname === "/radio",
+    isPlaylists: pathname === "/library/playlists",
+    isSongs: pathname === "/library/songs",
+    isArtists: pathname === "/library/artists",
+    isAlbums: pathname === "/library/albums",
+    isHistory: pathname === "/history",
+    isFavorites: pathname === "/favorites",
+    isSettings: pathname === "/settings",
+    // Handle dynamic routes
+    isAlbumPage: pathname.startsWith("/album/"),
+    isArtistPage: pathname.startsWith("/artist/"),
+    isPlaylistPage: pathname.startsWith("/playlist/"),
+    isNewPage: pathname === "/new",
+  };
+
+  // Helper function to determine if any sidebar route is active
+  // This prevents highlights on pages not defined in sidebar
+  const isAnySidebarRouteActive = Object.values(routes).some(Boolean);
 
   return (
     <div className={cn("pb-6 relative", className)}>
@@ -49,7 +63,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
           <div className="space-y-1">
             <Link href="/">
               <Button 
-                variant={isRoot ? "secondary" : "ghost"} 
+                variant={routes.isRoot ? "secondary" : "ghost"} 
                 className={cn("w-full justify-start mb-2", collapsed && "justify-center px-2")}
                 title={collapsed ? "Listen Now" : undefined}
               >
@@ -71,7 +85,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
             </Link>
             <Link href="/browse">
               <Button 
-                variant={isBrowse ? "secondary" : "ghost"} 
+                variant={routes.isBrowse ? "secondary" : "ghost"} 
                 className={cn("w-full justify-start mb-2", collapsed && "justify-center px-2")}
                 title={collapsed ? "Browse" : undefined}
               >
@@ -95,7 +109,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
             </Link>
             <Link href="/search">
               <Button 
-                variant={isSearch ? "secondary" : "ghost"} 
+                variant={routes.isSearch ? "secondary" : "ghost"} 
                 className={cn("w-full justify-start mb-2", collapsed && "justify-center px-2")}
                 title={collapsed ? "Search" : undefined}
               >
@@ -117,7 +131,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
             </Link>
             <Link href="/queue">
               <Button 
-                variant={isQueue ? "secondary" : "ghost"} 
+                variant={routes.isQueue ? "secondary" : "ghost"} 
                 className={cn("w-full justify-start mb-2", collapsed && "justify-center px-2")}
                 title={collapsed ? "Queue" : undefined}
               >
@@ -138,7 +152,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
             </Link>
             <Link href="/radio">
               <Button 
-                variant={isRadio ? "secondary" : "ghost"} 
+                variant={routes.isRadio ? "secondary" : "ghost"} 
                 className={cn("w-full justify-start mb-2", collapsed && "justify-center px-2")}
                 title={collapsed ? "Radio" : undefined}
               >
@@ -171,7 +185,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
               <div className="space-y-1">
                 <Link href="/library/playlists">
                 <Button 
-                  variant={isPlaylists ? "secondary" : "ghost"} 
+                  variant={routes.isPlaylists ? "secondary" : "ghost"} 
                   className={cn("w-full justify-start mb-1", collapsed && "justify-center px-2")}
                   title={collapsed ? "Playlists" : undefined}
                 >
@@ -196,7 +210,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
                 </Link>
                 <Link href="/library/songs">
                 <Button 
-                  variant={isSongs ? "secondary" : "ghost"} 
+                  variant={routes.isSongs ? "secondary" : "ghost"} 
                   className={cn("w-full justify-start mb-2", collapsed && "justify-center px-2")}
                   title={collapsed ? "Songs" : undefined}
                 >
@@ -218,7 +232,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
                 </Link>
                 <Link href="/library/artists">
                 <Button 
-                  variant={isArtists ? "secondary" : "ghost"} 
+                  variant={routes.isArtists ? "secondary" : "ghost"} 
                   className={cn("w-full justify-start mb-2", collapsed && "justify-center px-2")}
                   title={collapsed ? "Artists" : undefined}
                 >
@@ -240,7 +254,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
                 </Link>
                 <Link href="/library/albums">
                   <Button 
-                    variant={isAlbums ? "secondary" : "ghost"} 
+                    variant={routes.isAlbums ? "secondary" : "ghost"} 
                     className={cn("w-full justify-start mb-2", collapsed && "justify-center px-2")}
                     title={collapsed ? "Albums" : undefined}
                   >
@@ -264,7 +278,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
                 </Link>
                 <Link href="/history">
                   <Button 
-                    variant={isHistory ? "secondary" : "ghost"} 
+                    variant={routes.isHistory ? "secondary" : "ghost"} 
                     className={cn("w-full justify-start mb-2", collapsed && "justify-center px-2")}
                     title={collapsed ? "History" : undefined}
                   >
@@ -286,7 +300,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
                 </Link>
                 <Link href="/favorites">
                   <Button 
-                    variant={isFavorites ? "secondary" : "ghost"} 
+                    variant={routes.isFavorites ? "secondary" : "ghost"} 
                     className={cn("w-full justify-start mb-2", collapsed && "justify-center px-2")}
                     title={collapsed ? "Favorites" : undefined}
                   >
@@ -306,6 +320,32 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
                   </Button>
                 </Link>
               </div>
+            </div>
+          </div>
+          <div className="px-3 py-2 mt-4">
+            <div className="space-y-1">
+              <Link href="/settings">
+                <Button 
+                  variant={routes.isSettings ? "secondary" : "ghost"} 
+                  className={cn("w-full justify-start mb-2", collapsed && "justify-center px-2")}
+                  title={collapsed ? "Settings" : undefined}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={cn("h-4 w-4", !collapsed && "mr-2")}
+                  >
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  {!collapsed && "Settings"}
+                </Button>
+              </Link>
             </div>
           </div>
       </div>

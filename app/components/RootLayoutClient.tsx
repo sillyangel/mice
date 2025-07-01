@@ -6,6 +6,7 @@ import { NavidromeProvider, useNavidrome } from "../components/NavidromeContext"
 import { NavidromeConfigProvider } from "../components/NavidromeConfigContext";
 import { ThemeProvider } from "../components/ThemeProvider";
 import { PostHogProvider } from "../components/PostHogProvider";
+import { WhatsNewPopup } from "../components/WhatsNewPopup";
 import Ihateserverside from "./ihateserverside";
 import DynamicViewportTheme from "./DynamicViewportTheme";
 import { LoginForm } from "./start-screen";
@@ -43,6 +44,7 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
                 <Ihateserverside>
                   {children}
                 </Ihateserverside>
+                <WhatsNewPopup />
               </AudioPlayerProvider>
             </NavidromeErrorBoundary>
           </NavidromeProvider>
