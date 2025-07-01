@@ -4,10 +4,9 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Album, Song } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
-import { Play, Heart, User, Plus } from 'lucide-react';
+import { Play, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { PlusIcon } from "@radix-ui/react-icons";
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext'
 import Loading from "@/app/components/loading";
 import { Separator } from '@/components/ui/separator';
@@ -20,8 +19,9 @@ export default function AlbumPage() {
   const [tracklist, setTracklist] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [isStarred, setIsStarred] = useState(false);
+  const [starredSongs, setStarredSongs] = useState<Set<string>>(new Set());
   const { getAlbum, starItem, unstarItem } = useNavidrome();
-  const { playTrack, addAlbumToQueue, playAlbum, playAlbumFromTrack, addToQueue, currentTrack } = useAudioPlayer();
+  const { playTrack, addAlbumToQueue, playAlbum, playAlbumFromTrack, currentTrack } = useAudioPlayer();
   const api = getNavidromeAPI();
 
   useEffect(() => {
@@ -34,6 +34,13 @@ export default function AlbumPage() {
         setAlbum(albumData.album);
         setTracklist(albumData.songs);
         setIsStarred(!!albumData.album.starred);
+        
+        // Initialize starred songs state
+        const starredSongIds = new Set(
+          albumData.songs.filter(song => song.starred).map(song => song.id)
+        );
+        setStarredSongs(starredSongIds);
+        
         console.log(`Album found: ${albumData.album.name}`);
       } catch (error) {
         console.error('Failed to fetch album:', error);
@@ -63,6 +70,26 @@ export default function AlbumPage() {
     }
   };
 
+  const handleSongStar = async (song: Song) => {
+    try {
+      const isCurrentlyStarred = starredSongs.has(song.id);
+      
+      if (isCurrentlyStarred) {
+        await unstarItem(song.id, 'song');
+        setStarredSongs(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(song.id);
+          return newSet;
+        });
+      } else {
+        await starItem(song.id, 'song');
+        setStarredSongs(prev => new Set(prev).add(song.id));
+      }
+    } catch (error) {
+      console.error('Failed to star/unstar song:', error);
+    }
+  };
+
   if (loading) {
     return <Loading />;
   }
@@ -79,26 +106,6 @@ export default function AlbumPage() {
     } catch (error) {
       console.error('Failed to play album from track:', error);
     }
-  };
-  const handleAddToQueue = (song: Song) => {
-    if (!api) {
-      console.error('Navidrome API not available');
-      return;
-    }
-    
-    const track = {
-      id: song.id,
-      name: song.title,
-      url: api.getStreamUrl(song.id),
-      artist: song.artist,
-      album: song.album,
-      duration: song.duration,
-      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
-      albumId: song.albumId,
-      artistId: song.artistId
-    };
-
-    addToQueue(track);
   };
 
   const isCurrentlyPlaying = (song: Song): boolean => {
@@ -182,7 +189,6 @@ export default function AlbumPage() {
                       </div>
                       <div className="flex items-center text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
                           <span className="truncate">{song.artist}</span>
                         </div>
                       </div>
@@ -194,17 +200,20 @@ export default function AlbumPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center space-x-2 group-hover:opacity-100 transition-opacity">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAddToQueue(song);
+                          handleSongStar(song);
                         }}
                         className="h-8 w-8 p-0"
                       >
-                        <Plus className="w-4 h-4" />
+                        <Heart 
+                          className={`w-4 h-4 ${starredSongs.has(song.id) ? 'text-primary' : 'text-gray-500'}`}
+                          fill={starredSongs.has(song.id) ? 'var(--primary)' : 'none'}
+                        />
                       </Button>
                     </div>
                   </div>
