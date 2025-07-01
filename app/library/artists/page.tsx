@@ -104,7 +104,7 @@ export default function ArtistPage() {
           <Separator className="my-4" />
           <div className="relative">
             <ScrollArea>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 cursor-pointer">
                 {filteredArtists.map((artist) => (
                   <Card key={artist.id} className="overflow-hidden">
                     <div className="aspect-square relative group cursor-pointer" onClick={() => handleViewArtist(artist)}>
@@ -118,9 +118,6 @@ export default function ArtistPage() {
                         />
                         </div>
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <Button size="sm">
-                          View Artist
-                        </Button>
                       </div>
                     </div>
                     <CardContent className="p-4">

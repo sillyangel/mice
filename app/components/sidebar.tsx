@@ -44,7 +44,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
   const isAnySidebarRouteActive = Object.values(routes).some(Boolean);
 
   return (
-    <div className={cn("pb-6 relative", className)}>
+    <div className={cn("pb-23 relative", className)}>
       {/* Collapse/Expand Button */}
       <Button
         variant="ghost"
@@ -55,7 +55,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
         {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
       </Button>
 
-      <div className="space-y-4 py-4">
+      <div className="space-y-4 py-4 pt-6">
         <div className="px-3 py-2">
           <p className={cn("mb-2 px-4 text-lg font-semibold tracking-tight", collapsed && "sr-only")}>
             Discover
@@ -178,7 +178,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
           </div>
         </div>
           <div>
-            <div className="px-3 py-2">
+            <div className="px-3 py-0 pt-0">
               <p className={cn("mb-2 px-4 text-lg font-semibold tracking-tight", collapsed && "sr-only")}>
                 Library
               </p>
@@ -322,8 +322,8 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
               </div>
             </div>
           </div>
-          <div className="px-3 py-2 mt-4">
-            <div className="space-y-1">
+          <div className="px-3">
+            <div className="space-y-0">
               <Link href="/settings">
                 <Button 
                   variant={routes.isSettings ? "secondary" : "ghost"} 

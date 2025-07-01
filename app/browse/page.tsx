@@ -119,7 +119,7 @@ export default function BrowsePage() {
                   <ArtistIcon
                     key={artist.id}
                     artist={artist}
-                    className="flex-shrink-0"
+                    className="flex-shrink-0 overflow-hidden"
                     size={190}
                   />
                 ))}

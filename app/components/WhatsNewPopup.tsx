@@ -17,7 +17,6 @@ const CHANGELOG = [
     date: '2025-07-01',
     title: 'Initial Release',
     changes: [
-      'Added Favorites functionality for albums, songs, and artists',
       'Integrated standalone Last.fm scrobbling support',
       'Added collapsible sidebar with icon-only mode',
       'Improved search and browsing experience',
@@ -27,9 +26,16 @@ const CHANGELOG = [
       'Added settings page for customization options',
       'Introduced Whats New popup for version updates',
       'Improved UI consistency with new Badge component',
+      'New Favorites page with album, song, and artist sections',
     ],
     breaking: [],
-    fixes: []
+    fixes: [
+      'Fixed issue with audio player not resuming playback after pause',
+      'Resolved bug with search results not displaying correctly',
+      'Improved performance for large libraries',
+      'Fixed layout issues on smaller screens',
+      'Resolved scrobbling issues with Last.fm integration'
+    ]
   }
 ];
 

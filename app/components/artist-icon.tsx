@@ -83,11 +83,10 @@ export function ArtistIcon({
     <div className={cn("space-y-3", className)} {...props}>
       <ContextMenu>
         <ContextMenuTrigger>
-          <Card key={artist.id} className="overflow-hidden">
+          <Card key={artist.id} className="overflow-hidden cursor-pointer" onClick={() => handleClick()}>
             <div
-              className="aspect-square relative group cursor-pointer"
+              className="aspect-square relative group"
               style={{ width: size, height: size }}
-              onClick={() => handleClick()}
             >
               <div className="w-full h-full">
                 <Image

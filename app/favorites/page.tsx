@@ -8,7 +8,7 @@ import { useNavidrome } from "@/app/components/NavidromeContext";
 import { AlbumArtwork } from "@/app/components/album-artwork";
 import { ArtistIcon } from "@/app/components/artist-icon";
 import { Album, Artist, Song } from "@/lib/navidrome";
-import { Heart, Music, Disc, Mic } from "lucide-react";
+import { Heart, Music, Disc, Mic, Play } from "lucide-react";
 import { useAudioPlayer } from "@/app/components/AudioPlayerContext";
 import Image from "next/image";
 
@@ -126,10 +126,9 @@ const FavoritesPage = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 pb-24">
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Heart className="w-8 h-8 text-red-500" />
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Favorites</h1>
             <p className="text-muted-foreground">Your starred albums, songs, and artists</p>
@@ -164,7 +163,7 @@ const FavoritesPage = () => {
                 <p className="text-sm text-muted-foreground mt-2">Star albums to see them here</p>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 {favoriteAlbums.map((album) => (
                   <Card key={album.id} className="overflow-hidden">
                     <div className="aspect-square relative group">
@@ -182,16 +181,7 @@ const FavoritesPage = () => {
                             </div>
                         )}
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <Button size="sm" onClick={() => handlePlayAlbum(album)}>
-                                Play
-                            </Button>
-                            <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => toggleFavorite(album.id, 'album', !!album.starred)}
-                            >
-                                <Heart className={`w-4 h-4 ${album.starred ? 'fill-red-500 text-red-500' : ''}`} />
-                            </Button>
+                          <Play className="w-12 h-12 mx-auto hidden group-hover:block" onClick={() => handlePlayAlbum(album)}/>
                         </div>
                     </div>
                     <CardContent className="p-4">
@@ -277,16 +267,16 @@ const FavoritesPage = () => {
                 <p className="text-sm text-muted-foreground mt-2">Star artists to see them here</p>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
                 {favoriteArtists.map((artist) => (
                   <Card key={artist.id} className="overflow-hidden">
-                    <CardContent className="p-6 text-center">
-                      <div className="w-20 h-20 mx-auto mb-4">
+                    <CardContent className="p-3 text-center">
+                      <div className="w-24 h-24 mx-auto mb-4">
                       <Image
                         src={artist.coverArt && api ? api.getCoverArtUrl(artist.coverArt, 200) : '/placeholder-artist.png'}
                         alt={artist.name}
-                        width={200}
-                        height={200}
+                        width={250}
+                        height={250}
                         className="object-cover w-full h-full"
                       />
                       </div>
@@ -294,20 +284,6 @@ const FavoritesPage = () => {
                       <p className="text-sm text-muted-foreground">
                         {artist.albumCount} albums
                       </p>
-                      <div className="flex justify-center gap-2 mt-4">
-                        <Button size="sm" variant="outline" asChild>
-                          <a href={`/artist/${encodeURIComponent(artist.name)}`}>
-                            View
-                          </a>
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => toggleFavorite(artist.id, 'artist', !!artist.starred)}
-                        >
-                          <Heart className={`w-4 h-4 ${artist.starred ? 'fill-red-500 text-red-500' : ''}`} />
-                        </Button>
-                      </div>
                     </CardContent>
                   </Card>
                 ))}
