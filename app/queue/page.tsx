@@ -7,7 +7,7 @@ import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Play, X, User, Disc, Trash2, SkipForward } from 'lucide-react';
+import { Play, X, Disc, Trash2, SkipForward } from 'lucide-react';
 
 const QueuePage: React.FC = () => {
   const { queue, currentTrack, removeTrackFromQueue, clearQueue, skipToTrackInQueue } = useAudioPlayer();
@@ -68,7 +68,6 @@ const QueuePage: React.FC = () => {
                   </div>
                   <div className="flex items-center text-sm text-muted-foreground space-x-4">
                     <div className="flex items-center gap-1">
-                      <User className="w-3 h-3" />
                       <Link href={`/artist/${currentTrack.artistId}`} className="truncate hover:text-primary hover:underline">
                         {currentTrack.artist}
                       </Link>
@@ -136,7 +135,6 @@ const QueuePage: React.FC = () => {
                       </div>
                       <div className="flex items-center text-sm text-muted-foreground space-x-4">
                         <div className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
                           <Link 
                             href={`/artist/${track.artistId}`} 
                             className="truncate hover:text-primary hover:underline"
