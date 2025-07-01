@@ -160,23 +160,15 @@ export default function AlbumPage() {
                 {tracklist.map((song, index) => (
                   <div
                     key={song.id}
-                    className={`group flex items-center p-3 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors ${
-                      isCurrentlyPlaying(song) ? 'bg-accent/50 border-l-4 border-primary' : ''
-                    }`}
+                    className={`group flex items-center p-3 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors`}
                     onClick={() => handlePlayClick(song)}
                   >
                     {/* Track Number / Play Indicator */}
                     <div className="w-8 text-center text-sm text-muted-foreground mr-3">
-                      {isCurrentlyPlaying(song) ? (
-                        <div className="w-4 h-4 mx-auto">
-                          <div className="w-full h-full bg-primary rounded-full animate-pulse" />
-                        </div>
-                      ) : (
                         <>
                           <span className="group-hover:hidden">{song.track || index + 1}</span>
                           <Play className="w-4 h-4 mx-auto hidden group-hover:block" />
                         </>
-                      )}
                     </div>
 
                     {/* Song Info */}

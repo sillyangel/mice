@@ -46,7 +46,7 @@ const QueuePage: React.FC = () => {
         {currentTrack && (
           <div className="space-y-3">
             <h2 className="text-lg font-semibold">Now Playing</h2>
-            <div className="p-4 bg-accent/30 rounded-lg border-l-4 border-primary">
+            <div className="p-4 bg-accent/30 rounded-lg">
               <div className="flex items-center">
                 {/* Album Art */}
                 <div className="w-16 h-16 mr-4 flex-shrink-0">
@@ -65,19 +65,12 @@ const QueuePage: React.FC = () => {
                     <p className="font-semibold text-lg text-primary truncate">
                       {currentTrack.name}
                     </p>
-                    <div className="w-3 h-3 bg-primary rounded-full animate-pulse flex-shrink-0" />
                   </div>
                   <div className="flex items-center text-sm text-muted-foreground space-x-4">
                     <div className="flex items-center gap-1">
                       <User className="w-3 h-3" />
                       <Link href={`/artist/${currentTrack.artistId}`} className="truncate hover:text-primary hover:underline">
                         {currentTrack.artist}
-                      </Link>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Disc className="w-3 h-3" />
-                      <Link href={`/album/${currentTrack.albumId}`} className="truncate hover:text-primary hover:underline">
-                        {currentTrack.album}
                       </Link>
                     </div>
                   </div>
@@ -122,14 +115,8 @@ const QueuePage: React.FC = () => {
                     className="group flex items-center p-3 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
                     onClick={() => skipToTrackInQueue(index)}
                   >
-                    {/* Track Number / Play Indicator */}
-                    <div className="w-8 text-center text-sm text-muted-foreground mr-3">
-                      <span className="group-hover:hidden">{index + 1}</span>
-                      <Play className="w-4 h-4 mx-auto hidden group-hover:block" />
-                    </div>
-
-                    {/* Album Art */}
-                    <div className="w-12 h-12 mr-4 flex-shrink-0">
+                    {/* Album Art with Play Indicator */}
+                    <div className="w-12 h-12 mr-4 flex-shrink-0 relative">
                       <Image
                         src={track.coverArt || '/default-user.jpg'}
                         alt={track.album}
@@ -137,6 +124,9 @@ const QueuePage: React.FC = () => {
                         height={48}
                         className="w-full h-full object-cover rounded-md"
                       />
+                      <div className="absolute inset-0 bg-black/50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Play className="w-5 h-5 text-white" />
+                      </div>
                     </div>
 
                     {/* Song Info */}
@@ -153,16 +143,6 @@ const QueuePage: React.FC = () => {
                             onClick={(e) => e.stopPropagation()}
                           >
                             {track.artist}
-                          </Link>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Disc className="w-3 h-3" />
-                          <Link 
-                            href={`/album/${track.albumId}`} 
-                            className="truncate hover:text-primary hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {track.album}
                           </Link>
                         </div>
                       </div>
