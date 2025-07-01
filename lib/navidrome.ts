@@ -503,6 +503,26 @@ class NavidromeAPI {
       return [];
     }
   }
+
+  async getArtistTopSongs(artistName: string, limit: number = 10): Promise<Song[]> {
+    try {
+      // Search for songs by the artist and return them sorted by play count
+      const searchResult = await this.search2(artistName, 0, 0, limit * 3);
+      
+      // Filter songs that are actually by this artist (exact match)
+      const artistSongs = searchResult.songs.filter(song => 
+        song.artist.toLowerCase() === artistName.toLowerCase()
+      );
+      
+      // Sort by play count (descending) and limit results
+      return artistSongs
+        .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Failed to get artist top songs:', error);
+      return [];
+    }
+  }
 }
 
 // Singleton instance management

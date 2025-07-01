@@ -1,10 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Album, Artist } from '@/lib/navidrome';
+import { Album, Artist, Song } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { AlbumArtwork } from '@/app/components/album-artwork';
+import { PopularSongs } from '@/app/components/PopularSongs';
+import { SimilarArtists } from '@/app/components/SimilarArtists';
+import { ArtistBio } from '@/app/components/ArtistBio';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Heart, Play } from 'lucide-react';
@@ -17,6 +20,7 @@ export default function ArtistPage() {
   const { artist: artistId } = useParams();
   const [isStarred, setIsStarred] = useState(false);
   const [artistAlbums, setArtistAlbums] = useState<Album[]>([]);
+  const [popularSongs, setPopularSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [artist, setArtist] = useState<Artist | null>(null);
   const [isPlayingArtist, setIsPlayingArtist] = useState(false);
@@ -29,11 +33,19 @@ export default function ArtistPage() {
     const fetchArtistData = async () => {
       setLoading(true);
       try {
-        if (artistId) {
+        if (artistId && api) {
           const artistData = await getArtist(artistId as string);
           setArtist(artistData.artist);
           setArtistAlbums(artistData.albums);
           setIsStarred(!!artistData.artist.starred);
+
+          // Fetch popular songs for the artist
+          try {
+            const songs = await api.getArtistTopSongs(artistData.artist.name, 10);
+            setPopularSongs(songs);
+          } catch (error) {
+            console.error('Failed to fetch popular songs:', error);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch artist data:', error);
@@ -42,7 +54,7 @@ export default function ArtistPage() {
     };
 
     fetchArtistData();
-  }, [artistId, getArtist]);
+  }, [artistId, getArtist, api]);
 
   const handleStar = async () => {
     if (!artist) return;
@@ -135,10 +147,18 @@ export default function ArtistPage() {
             </div>
           </div>
         </div>
+        
+        {/* About Section */}
+        <ArtistBio artistName={artist.name} />
+        
+        {/* Popular Songs Section */}
+        {popularSongs.length > 0 && (
+          <PopularSongs songs={popularSongs} artistName={artist.name} />
+        )}
 
         {/* Albums Section */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold tracking-tight">Albums</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Discography</h2>
           <ScrollArea>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 pb-4">
               {artistAlbums.map((album) => (
@@ -155,6 +175,12 @@ export default function ArtistPage() {
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
         </div>
+        
+
+        
+
+        {/* Similar Artists Section */}
+        <SimilarArtists artistName={artist.name} />
       </div>
     </div>
   );

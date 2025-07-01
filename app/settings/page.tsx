@@ -446,37 +446,6 @@ const SettingsPage = () => {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <FaCog className="w-5 h-5" />
-                            Application Settings
-                        </CardTitle>
-                        <CardDescription>
-                            General application preferences and setup
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-3">
-                            <Label>First-Time Setup</Label>
-                            <Button 
-                                variant="outline" 
-                                onClick={() => {
-                                    localStorage.removeItem('onboarding-completed');
-                                    window.location.reload();
-                                }}
-                                className="w-full sm:w-auto"
-                            >
-                                <Settings className="w-4 h-4 mr-2" />
-                                Run Setup Wizard Again
-                            </Button>
-                            <p className="text-sm text-muted-foreground">
-                                Re-run the initial setup wizard to configure your preferences from scratch
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
                             <Settings className="w-5 h-5" />
                             Sidebar Settings
                         </CardTitle>

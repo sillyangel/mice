@@ -23,7 +23,7 @@ const CHANGELOG = [
       'Improved search and browsing experience',
       'Added history tracking for played songs',
       'New Library Artist Page',
-      'Enhanced audio player with better controls',
+      'Artist page with top songs and albums',
       'Added settings page for customization options',
       'Introduced Whats New popup for version updates',
       'Improved UI consistency with new Badge component',
