@@ -98,11 +98,6 @@ export function ArtistIcon({
                   className="object-cover w-full h-full"
                 />
               </div>
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <Button size="sm">
-                  View Artist
-                </Button>
-              </div>
             </div>
             <CardContent className="p-4">
               <h3 className="font-semibold truncate">{artist.name}</h3>

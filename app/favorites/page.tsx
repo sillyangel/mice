@@ -282,7 +282,13 @@ const FavoritesPage = () => {
                   <Card key={artist.id} className="overflow-hidden">
                     <CardContent className="p-6 text-center">
                       <div className="w-20 h-20 mx-auto mb-4">
-                        <ArtistIcon artist={artist} />
+                      <Image
+                        src={artist.coverArt && api ? api.getCoverArtUrl(artist.coverArt, 200) : '/placeholder-artist.png'}
+                        alt={artist.name}
+                        width={200}
+                        height={200}
+                        className="object-cover w-full h-full"
+                      />
                       </div>
                       <h3 className="font-semibold truncate">{artist.name}</h3>
                       <p className="text-sm text-muted-foreground">

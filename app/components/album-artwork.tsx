@@ -16,11 +16,16 @@ import {
   ContextMenuTrigger,
 } from "../../components/ui/context-menu"
 
-import { Album } from "@/lib/navidrome"
 import { useNavidrome } from "./NavidromeContext"
 import Link from "next/link";
 import { useAudioPlayer } from "@/app/components/AudioPlayerContext";
 import { getNavidromeAPI } from "@/lib/navidrome";
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArtistIcon } from "@/app/components/artist-icon";
+import { Heart, Music, Disc, Mic, Play } from "lucide-react";
+import { Album, Artist, Song } from "@/lib/navidrome";
 
 interface AlbumArtworkProps extends React.HTMLAttributes<HTMLDivElement> {
   album: Album
@@ -37,10 +42,10 @@ export function AlbumArtwork({
   className,
   ...props
 }: AlbumArtworkProps) {
+  const { api, isConnected } = useNavidrome();
   const router = useRouter();
-  const { addAlbumToQueue } = useAudioPlayer();
+  const { addAlbumToQueue, playTrack, addToQueue } = useAudioPlayer();
   const { playlists, starItem, unstarItem } = useNavidrome();
-  const api = getNavidromeAPI();
 
   const handleClick = () => {
     router.push(`/album/${album.id}`);
@@ -57,6 +62,46 @@ export function AlbumArtwork({
       starItem(album.id, 'album');
     }
   };
+
+    const handlePlayAlbum = async (album: Album) => {
+      if (!api) return;
+      
+      try {
+        const songs = await api.getAlbumSongs(album.id);
+        if (songs.length > 0) {
+          const tracks = songs.map((song: Song) => ({
+            id: song.id,
+            name: song.title,
+            artist: song.artist,
+            album: song.album,
+            albumId: song.albumId,
+            artistId: song.artistId,
+            url: api.getStreamUrl(song.id),
+            duration: song.duration,
+            coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt) : undefined,
+          }));
+          
+          playTrack(tracks[0]);
+          tracks.slice(1).forEach((track: any) => addToQueue(track));
+        }
+      } catch (error) {
+        console.error('Failed to play album:', error);
+      }
+    };
+  
+    const toggleFavorite = async (id: string, type: 'song' | 'album' | 'artist', isStarred: boolean) => {
+      if (!api) return;
+      
+      try {
+        if (isStarred) {
+          await api.unstar(id, type);
+        } else {
+          await api.star(id, type);
+        }
+      } catch (error) {
+        console.error('Failed to toggle favorite:', error);
+      }
+    };
   // Get cover art URL with proper fallback
   const coverArtUrl = album.coverArt && api
     ? api.getCoverArtUrl(album.coverArt, 300)
@@ -66,7 +111,34 @@ export function AlbumArtwork({
     <div className={cn("space-y-3", className)} {...props}>
       <ContextMenu>
         <ContextMenuTrigger>
-          <div onClick={handleClick} className="overflow-hidden rounded-md">
+          <Card key={album.id} className="overflow-hidden cursor-pointer" onClick={() => handleClick()}>
+                              <div className="aspect-square relative group">
+                                  {album.coverArt && api ? (
+                                      <Image
+                                          src={api.getCoverArtUrl(album.coverArt)}
+                                          alt={album.name}
+                                          fill
+                                          className="w-full h-full object-cover"
+                                          sizes="(max-width: 768px) 100vw, 300px"
+                                      />
+                                  ) : (
+                                      <div className="w-full h-full bg-muted rounded flex items-center justify-center">
+                                          <Disc className="w-12 h-12 text-muted-foreground" />
+                                      </div>
+                                  )}
+                                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                      <Play className="w-6 h-6 mx-auto hidden group-hover:block" onClick={() => handlePlayAlbum(album)}/>
+                                  </div>
+                              </div>
+                              <CardContent className="p-4">
+                                <h3 className="font-semibold truncate">{album.name}</h3>
+                                <p className="text-sm text-muted-foreground truncate " onClick={() => router.push(album.artistId)}>{album.artist}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {album.songCount} songs • {Math.floor(album.duration / 60)} min
+                                </p>
+                              </CardContent>
+                            </Card>
+          {/* <div onClick={handleClick} className="overflow-hidden rounded-md">
             <Image
               src={coverArtUrl}
               alt={album.name}
@@ -78,7 +150,7 @@ export function AlbumArtwork({
                 aspectRatio === "portrait" ? "aspect-[3/4]" : "aspect-square"
               )}
             />
-          </div>
+          </div> */}
         </ContextMenuTrigger>
         <ContextMenuContent className="w-40">
           <ContextMenuItem onClick={handleStar}>
@@ -122,12 +194,6 @@ export function AlbumArtwork({
           <ContextMenuItem>Share</ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
-      <div className="space-y-1 text-sm" >
-        <p className="font-medium leading-none" onClick={handleClick}>{album.name}</p>
-        <p className="text-xs text-muted-foreground underline">
-          <Link href={`/artist/${album.artistId}`}>{album.artist}</Link>
-        </p>
-      </div>
     </div>
   )
 }

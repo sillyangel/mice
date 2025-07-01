@@ -120,7 +120,7 @@ export default function BrowsePage() {
                     key={artist.id}
                     artist={artist}
                     className="flex-shrink-0"
-                    size={150}
+                    size={190}
                   />
                 ))}
               </div>
