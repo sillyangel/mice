@@ -50,6 +50,13 @@ const SettingsPage = () => {
         username: ''
     });
 
+    // Check if Navidrome is configured via environment variables
+    const hasEnvConfig = React.useMemo(() => {
+        return !!(process.env.NEXT_PUBLIC_NAVIDROME_URL && 
+                 process.env.NEXT_PUBLIC_NAVIDROME_USERNAME && 
+                 process.env.NEXT_PUBLIC_NAVIDROME_PASSWORD);
+    }, []);
+
     // Sidebar settings
     const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -272,16 +279,17 @@ const SettingsPage = () => {
                     <p className="text-muted-foreground">Customize your music experience</p>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <FaServer className="w-5 h-5" />
-                            Navidrome Server
-                        </CardTitle>
-                        <CardDescription>
-                            Configure connection to your Navidrome music server
-                        </CardDescription>
-                    </CardHeader>
+                {!hasEnvConfig && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <FaServer className="w-5 h-5" />
+                                Navidrome Server
+                            </CardTitle>
+                            <CardDescription>
+                                Configure connection to your Navidrome music server
+                            </CardDescription>
+                        </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="server-url">Server URL</Label>
@@ -358,6 +366,35 @@ const SettingsPage = () => {
                         </div>
                     </CardContent>
                 </Card>
+                )}
+
+                {hasEnvConfig && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <FaServer className="w-5 h-5" />
+                                Navidrome Server
+                            </CardTitle>
+                            <CardDescription>
+                                Using environment variables configuration
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                                <FaCheck className="w-4 h-4 text-green-600" />
+                                <div className="text-sm">
+                                    <p className="text-green-600 font-medium">Configured via Environment Variables</p>
+                                    <p className="text-green-600">Server: {process.env.NEXT_PUBLIC_NAVIDROME_URL}</p>
+                                    <p className="text-green-600">Username: {process.env.NEXT_PUBLIC_NAVIDROME_USERNAME}</p>
+                                </div>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                Your Navidrome connection is configured through environment variables. 
+                                Contact your administrator to change these settings.
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Card>
                     <CardHeader>
@@ -403,6 +440,37 @@ const SettingsPage = () => {
                                 <span className="text-sm text-yellow-600">Connect to Navidrome first to enable scrobbling</span>
                             </div>
                         )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <FaCog className="w-5 h-5" />
+                            Application Settings
+                        </CardTitle>
+                        <CardDescription>
+                            General application preferences and setup
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-3">
+                            <Label>First-Time Setup</Label>
+                            <Button 
+                                variant="outline" 
+                                onClick={() => {
+                                    localStorage.removeItem('onboarding-completed');
+                                    window.location.reload();
+                                }}
+                                className="w-full sm:w-auto"
+                            >
+                                <Settings className="w-4 h-4 mr-2" />
+                                Run Setup Wizard Again
+                            </Button>
+                            <p className="text-sm text-muted-foreground">
+                                Re-run the initial setup wizard to configure your preferences from scratch
+                            </p>
+                        </div>
                     </CardContent>
                 </Card>
 

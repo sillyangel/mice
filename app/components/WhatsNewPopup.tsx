@@ -14,17 +14,19 @@ const APP_VERSION = '1.0.0';
 const CHANGELOG = [
   {
     version: '1.0.0',
-    date: '2024-01-10',
+    date: '2025-07-01',
     title: 'Initial Release',
     changes: [
-      'Complete redesign with modern UI',
       'Added Favorites functionality for albums, songs, and artists',
       'Integrated standalone Last.fm scrobbling support',
       'Added collapsible sidebar with icon-only mode',
       'Improved search and browsing experience',
       'Added history tracking for played songs',
+      'New Library Artist Page',
       'Enhanced audio player with better controls',
-      'Added settings page for customization options'
+      'Added settings page for customization options',
+      'Introduced Whats New popup for version updates',
+      'Improved UI consistency with new Badge component',
     ],
     breaking: [],
     fixes: []
@@ -35,6 +37,10 @@ export function WhatsNewPopup() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    // Only show for users who have completed onboarding
+    const hasCompletedOnboarding = localStorage.getItem('onboarding-completed');
+    if (!hasCompletedOnboarding) return;
+    
     // Check if we've shown the popup for this version
     const lastShownVersion = localStorage.getItem('whats-new-last-shown');
     
@@ -61,7 +67,7 @@ export function WhatsNewPopup() {
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div>
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-              What's New in mice
+              What&apos;s New in mice
               <Badge variant="outline">{currentVersionChangelog.version}</Badge>
             </DialogTitle>
             <p className="text-sm text-muted-foreground mt-1">
