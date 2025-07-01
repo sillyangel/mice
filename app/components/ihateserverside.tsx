@@ -15,7 +15,21 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [isStatusBarVisible, setIsStatusBarVisible] = useState(true);
   const [isSidebarHidden, setIsSidebarHidden] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('sidebar-collapsed') === 'true';
+    }
+    return false;
+  });
   const { playlists } = useNavidrome();
+
+  const toggleSidebarCollapse = () => {
+    const newCollapsed = !isSidebarCollapsed;
+    setIsSidebarCollapsed(newCollapsed);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebar-collapsed', newCollapsed.toString());
+    }
+  };
 
   const handleTransitionEnd = () => {
     if (!isSidebarVisible) {
@@ -43,10 +57,12 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {isSidebarVisible && (
-          <div className="w-64 flex-shrink-0 border-r">
+          <div className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} flex-shrink-0 border-r transition-all duration-200`}>
             <Sidebar
               playlists={playlists}
               className="h-full overflow-y-auto"
+              collapsed={isSidebarCollapsed}
+              onToggle={toggleSidebarCollapse}
               onTransitionEnd={handleTransitionEnd}
             />
           </div>

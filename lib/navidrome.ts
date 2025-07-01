@@ -482,6 +482,27 @@ class NavidromeAPI {
     });
     return response.albumInfo2 as AlbumInfo;
   }
+
+  async getStarred2(): Promise<{ starred2: { song?: Song[]; album?: Album[]; artist?: Artist[] } }> {
+    try {
+      const response = await this.makeRequest('getStarred2');
+      return response as { starred2: { song?: Song[]; album?: Album[]; artist?: Artist[] } };
+    } catch (error) {
+      console.error('Failed to get starred items:', error);
+      return { starred2: {} };
+    }
+  }
+
+  async getAlbumSongs(albumId: string): Promise<Song[]> {
+    try {
+      const response = await this.makeRequest('getAlbum', { id: albumId });
+      const albumData = response.album as { song?: Song[] };
+      return albumData?.song || [];
+    } catch (error) {
+      console.error('Failed to get album songs:', error);
+      return [];
+    }
+  }
 }
 
 // Singleton instance management

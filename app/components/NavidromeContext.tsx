@@ -4,6 +4,9 @@ import { getNavidromeAPI, Album, Artist, Song, Playlist, AlbumInfo, ArtistInfo }
 import { useCallback } from 'react';
 
 interface NavidromeContextType {
+  // API instance
+  api: ReturnType<typeof getNavidromeAPI>;
+  
   // Data
   albums: Album[];
   artists: Artist[];
@@ -387,6 +390,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
   }, [api, refreshData]);
 
   const value: NavidromeContextType = {
+    // API instance
+    api,
+    
     // Data
     albums,
     artists,

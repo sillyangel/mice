@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,12 +9,15 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/app/components/ThemeProvider';
 import { useNavidromeConfig } from '@/app/components/NavidromeConfigContext';
 import { useToast } from '@/hooks/use-toast';
-import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm } from 'react-icons/fa';
+import { useStandaloneLastFm } from '@/hooks/use-standalone-lastfm';
+import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm, FaCog } from 'react-icons/fa';
+import { Settings, ExternalLink } from 'lucide-react';
 
 const SettingsPage = () => {
     const { theme, setTheme } = useTheme();
     const { config, updateConfig, isConnected, testConnection, clearConfig } = useNavidromeConfig();
     const { toast } = useToast();
+    const { isEnabled: isStandaloneLastFmEnabled, getCredentials, getAuthUrl, getSessionKey } = useStandaloneLastFm();
     
     const [formData, setFormData] = useState({
         serverUrl: config.serverUrl,
@@ -24,13 +27,49 @@ const SettingsPage = () => {
     const [isTesting, setIsTesting] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     
-    // Last.fm scrobbling settings
+    // Last.fm scrobbling settings (Navidrome integration)
     const [scrobblingEnabled, setScrobblingEnabled] = useState(() => {
         if (typeof window !== 'undefined') {
             return localStorage.getItem('lastfm-scrobbling-enabled') === 'true';
         }
         return true;
     });
+
+    // Standalone Last.fm settings
+    const [standaloneLastFmEnabled, setStandaloneLastFmEnabled] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('standalone-lastfm-enabled') === 'true';
+        }
+        return false;
+    });
+    
+    const [lastFmCredentials, setLastFmCredentials] = useState({
+        apiKey: '',
+        apiSecret: '',
+        sessionKey: '',
+        username: ''
+    });
+
+    // Sidebar settings
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('sidebar-collapsed') === 'true';
+        }
+        return false;
+    });
+
+    // Load Last.fm credentials on mount
+    useEffect(() => {
+        const credentials = getCredentials();
+        if (credentials) {
+            setLastFmCredentials({
+                apiKey: credentials.apiKey,
+                apiSecret: credentials.apiSecret,
+                sessionKey: credentials.sessionKey || '',
+                username: credentials.username || ''
+            });
+        }
+    }, [getCredentials]);
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -134,8 +173,99 @@ const SettingsPage = () => {
         });
     };
 
+    const handleStandaloneLastFmToggle = (enabled: boolean) => {
+        setStandaloneLastFmEnabled(enabled);
+        localStorage.setItem('standalone-lastfm-enabled', enabled.toString());
+        toast({
+            title: enabled ? "Standalone Last.fm Enabled" : "Standalone Last.fm Disabled",
+            description: enabled 
+                ? "Direct Last.fm integration enabled" 
+                : "Standalone Last.fm integration disabled",
+        });
+    };
+
+    const handleSidebarToggle = (collapsed: boolean) => {
+        setSidebarCollapsed(collapsed);
+        localStorage.setItem('sidebar-collapsed', collapsed.toString());
+        toast({
+            title: collapsed ? "Sidebar Collapsed" : "Sidebar Expanded",
+            description: collapsed 
+                ? "Sidebar will show only icons" 
+                : "Sidebar will show full labels",
+        });
+        
+        // Trigger a custom event to notify the sidebar component
+        window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { collapsed } }));
+    };
+
+    const handleLastFmAuth = () => {
+        if (!lastFmCredentials.apiKey) {
+            toast({
+                title: "API Key Required",
+                description: "Please enter your Last.fm API key first.",
+                variant: "destructive"
+            });
+            return;
+        }
+        
+        const authUrl = getAuthUrl(lastFmCredentials.apiKey);
+        window.open(authUrl, '_blank');
+        
+        toast({
+            title: "Last.fm Authorization",
+            description: "Please authorize the application in the opened window and return here.",
+        });
+    };
+
+    const handleLastFmCredentialsSave = () => {
+        if (!lastFmCredentials.apiKey || !lastFmCredentials.apiSecret) {
+            toast({
+                title: "Missing Credentials",
+                description: "Please enter both API key and secret.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        localStorage.setItem('lastfm-credentials', JSON.stringify(lastFmCredentials));
+        toast({
+            title: "Credentials Saved",
+            description: "Last.fm credentials have been saved locally.",
+        });
+    };
+
+    const handleLastFmSessionComplete = async (token: string) => {
+        try {
+            const { sessionKey, username } = await getSessionKey(
+                token, 
+                lastFmCredentials.apiKey, 
+                lastFmCredentials.apiSecret
+            );
+            
+            const updatedCredentials = {
+                ...lastFmCredentials,
+                sessionKey,
+                username
+            };
+            
+            setLastFmCredentials(updatedCredentials);
+            localStorage.setItem('lastfm-credentials', JSON.stringify(updatedCredentials));
+            
+            toast({
+                title: "Last.fm Authentication Complete",
+                description: `Successfully authenticated as ${username}`,
+            });
+        } catch (error) {
+            toast({
+                title: "Authentication Failed",
+                description: error instanceof Error ? error.message : "Failed to complete Last.fm authentication",
+                variant: "destructive"
+            });
+        }
+    };
+
     return (
-        <div className="container mx-auto p-6 max-w-2xl">
+        <div className="container mx-auto p-6 pb-24 max-w-2xl">
             <div className="space-y-6">
                 <div>
                     <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
@@ -272,6 +402,136 @@ const SettingsPage = () => {
                                 <FaTimes className="w-4 h-4 text-yellow-600" />
                                 <span className="text-sm text-yellow-600">Connect to Navidrome first to enable scrobbling</span>
                             </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Settings className="w-5 h-5" />
+                            Sidebar Settings
+                        </CardTitle>
+                        <CardDescription>
+                            Customize sidebar appearance and behavior
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="sidebar-mode">Sidebar Mode</Label>
+                            <Select 
+                                value={sidebarCollapsed ? "collapsed" : "expanded"} 
+                                onValueChange={(value) => handleSidebarToggle(value === "collapsed")}
+                            >
+                                <SelectTrigger id="sidebar-mode">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="expanded">Expanded (with labels)</SelectItem>
+                                    <SelectItem value="collapsed">Collapsed (icons only)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="text-sm text-muted-foreground space-y-2">
+                            <p><strong>Expanded:</strong> Shows full navigation labels</p>
+                            <p><strong>Collapsed:</strong> Shows only icons with tooltips</p>
+                            <p className="mt-3"><strong>Note:</strong> You can also toggle the sidebar using the collapse button in the sidebar.</p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <FaLastfm className="w-5 h-5" />
+                            Standalone Last.fm Integration
+                        </CardTitle>
+                        <CardDescription>
+                            Direct Last.fm scrobbling without Navidrome configuration
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="standalone-lastfm-enabled">Enable Standalone Last.fm</Label>
+                            <Select 
+                                value={standaloneLastFmEnabled ? "enabled" : "disabled"} 
+                                onValueChange={(value) => handleStandaloneLastFmToggle(value === "enabled")}
+                            >
+                                <SelectTrigger id="standalone-lastfm-enabled">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="enabled">Enabled</SelectItem>
+                                    <SelectItem value="disabled">Disabled</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {standaloneLastFmEnabled && (
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor="lastfm-api-key">Last.fm API Key</Label>
+                                    <Input
+                                        id="lastfm-api-key"
+                                        type="text"
+                                        placeholder="Your Last.fm API key"
+                                        value={lastFmCredentials.apiKey}
+                                        onChange={(e) => setLastFmCredentials(prev => ({ ...prev, apiKey: e.target.value }))}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="lastfm-api-secret">Last.fm API Secret</Label>
+                                    <Input
+                                        id="lastfm-api-secret"
+                                        type="password"
+                                        placeholder="Your Last.fm API secret"
+                                        value={lastFmCredentials.apiSecret}
+                                        onChange={(e) => setLastFmCredentials(prev => ({ ...prev, apiSecret: e.target.value }))}
+                                    />
+                                </div>
+
+                                {lastFmCredentials.sessionKey ? (
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                                        <FaCheck className="w-4 h-4 text-green-600" />
+                                        <span className="text-sm text-green-600">
+                                            Authenticated as {lastFmCredentials.username}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                                        <FaTimes className="w-4 h-4 text-yellow-600" />
+                                        <span className="text-sm text-yellow-600">Not authenticated</span>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-2">
+                                    <Button onClick={handleLastFmCredentialsSave} variant="outline">
+                                        Save Credentials
+                                    </Button>
+                                    <Button onClick={handleLastFmAuth} disabled={!lastFmCredentials.apiKey || !lastFmCredentials.apiSecret}>
+                                        <ExternalLink className="w-4 h-4 mr-2" />
+                                        Authorize with Last.fm
+                                    </Button>
+                                </div>
+
+                                <div className="text-sm text-muted-foreground space-y-2">
+                                    <p><strong>Setup Instructions:</strong></p>
+                                    <ol className="list-decimal list-inside space-y-1 ml-2">
+                                        <li>Create a Last.fm API account at <a href="https://www.last.fm/api" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">last.fm/api</a></li>
+                                        <li>Enter your API key and secret above</li>
+                                        <li>Save credentials and click &quot;Authorize with Last.fm&quot;</li>
+                                        <li>Complete the authorization process</li>
+                                    </ol>
+                                    <p className="mt-3"><strong>Features:</strong></p>
+                                    <ul className="list-disc list-inside space-y-1 ml-2">
+                                        <li>Direct scrobbling to Last.fm (independent of Navidrome)</li>
+                                        <li>&quot;Now Playing&quot; updates</li>
+                                        <li>Follows Last.fm scrobbling rules (30s minimum or 50% played)</li>
+                                    </ul>
+                                </div>
+                            </>
                         )}
                     </CardContent>
                 </Card>

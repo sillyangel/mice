@@ -8,6 +8,7 @@ import { FaPlay, FaPause, FaVolumeHigh, FaForward, FaBackward, FaCompress, FaVol
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useLastFmScrobbler } from '@/hooks/use-lastfm-scrobbler';
+import { useStandaloneLastFm } from '@/hooks/use-standalone-lastfm';
 
 export const AudioPlayer: React.FC = () => {
   const { currentTrack, playPreviousTrack, addToQueue, playNextTrack, clearQueue, queue, toggleShuffle, shuffle } = useAudioPlayer();
@@ -24,14 +25,49 @@ export const AudioPlayer: React.FC = () => {
   const audioCurrent = audioRef.current;
   const { toast } = useToast();
   
-  // Last.fm scrobbler integration
+  // Last.fm scrobbler integration (Navidrome)
   const {
-    onTrackStart,
-    onTrackPlay,
-    onTrackPause,
-    onTrackProgress,
-    onTrackEnd,
+    onTrackStart: navidromeOnTrackStart,
+    onTrackPlay: navidromeOnTrackPlay,
+    onTrackPause: navidromeOnTrackPause,
+    onTrackProgress: navidromeOnTrackProgress,
+    onTrackEnd: navidromeOnTrackEnd,
   } = useLastFmScrobbler();
+
+  // Standalone Last.fm integration
+  const {
+    onTrackStart: standaloneOnTrackStart,
+    onTrackPlay: standaloneOnTrackPlay,
+    onTrackPause: standaloneOnTrackPause,
+    onTrackProgress: standaloneOnTrackProgress,
+    onTrackEnd: standaloneOnTrackEnd,
+  } = useStandaloneLastFm();
+
+  // Combined Last.fm handlers
+  const onTrackStart = (track: any) => {
+    navidromeOnTrackStart(track);
+    standaloneOnTrackStart(track);
+  };
+
+  const onTrackPlay = (track: any) => {
+    navidromeOnTrackPlay(track);
+    standaloneOnTrackPlay(track);
+  };
+
+  const onTrackPause = (currentTime: number) => {
+    navidromeOnTrackPause(currentTime);
+    standaloneOnTrackPause(currentTime);
+  };
+
+  const onTrackProgress = (track: any, currentTime: number, duration: number) => {
+    navidromeOnTrackProgress(track, currentTime, duration);
+    standaloneOnTrackProgress(track, currentTime, duration);
+  };
+
+  const onTrackEnd = (track: any, currentTime: number, duration: number) => {
+    navidromeOnTrackEnd(track, currentTime, duration);
+    standaloneOnTrackEnd(track, currentTime, duration);
+  };
   
   const handleOpenQueue = () => {
     setIsFullScreen(false);
