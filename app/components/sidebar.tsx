@@ -55,7 +55,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle }: S
         {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
       </Button>
 
-      <div className={`space-y-4 py-4 ${collapsed ? "pt-6" : "" }`}>
+      <div className="space-y-4 py-4">
         <div className="px-3 py-2">
           <p className={cn("mb-2 px-4 text-lg font-semibold tracking-tight", collapsed && "sr-only")}>
             Discover

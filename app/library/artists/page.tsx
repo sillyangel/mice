@@ -7,17 +7,34 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ArtistIcon } from '@/app/components/artist-icon';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { Artist } from '@/lib/navidrome';
 import Loading from '@/app/components/loading';
-import { Search } from 'lucide-react';
+import { Search, Heart } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function ArtistPage() {
-  const { artists, isLoading } = useNavidrome();
+  const { artists, isLoading, api, starItem, unstarItem } = useNavidrome();
   const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'albumCount'>('name');
+  const router = useRouter();
+
+  const toggleFavorite = async (artistId: string, isStarred: boolean) => {
+    if (isStarred) {
+      await unstarItem(artistId, 'artist');
+    } else {
+      await starItem(artistId, 'artist');
+    }
+  };
+
+  const handleViewArtist = (artist: Artist) => {
+    router.push(`/artist/${artist.id}`);
+  };
 
   useEffect(() => {
     if (artists.length > 0) {
@@ -87,14 +104,32 @@ export default function ArtistPage() {
           <Separator className="my-4" />
           <div className="relative">
             <ScrollArea>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 pb-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredArtists.map((artist) => (
-                  <ArtistIcon
-                    key={artist.id}
-                    artist={artist}
-                    className="flex justify-center"
-                    size={150}
-                  />
+                  <Card key={artist.id} className="overflow-hidden">
+                    <div className="aspect-square relative group cursor-pointer" onClick={() => handleViewArtist(artist)}>
+                        <div className="w-full h-full">
+                        <Image
+                          src={artist.coverArt && api ? api.getCoverArtUrl(artist.coverArt, 200) : '/placeholder-artist.png'}
+                          alt={artist.name}
+                          width={290}
+                          height={290}
+                          className="object-cover w-full h-full"
+                        />
+                        </div>
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Button size="sm">
+                          View Artist
+                        </Button>
+                      </div>
+                    </div>
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold truncate">{artist.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {artist.albumCount} albums
+                      </p>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
               <ScrollBar orientation="horizontal" />
