@@ -1,12 +1,15 @@
-name: Lint
+name: Lint and Build
 
 on:
   pull_request:
     branches:
       - '**'
+  push:
+    branches:
+      - main
 
 jobs:
-  lint:
+  lint-and-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -15,9 +18,15 @@ jobs:
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run Next.js lint
         run: npm run lint
+
+      - name: Build application
+        run: npm run build
