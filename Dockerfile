@@ -2,7 +2,7 @@
 FROM node:22-alpine
 
 # Install pnpm globally
-RUN npm install -g pnpm@9.15.3
+RUN npm install -g pnpm@10.12.4
 
 # Set working directory
 WORKDIR /app
@@ -11,7 +11,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 # Copy source code
 COPY . .
