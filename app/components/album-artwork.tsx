@@ -79,6 +79,7 @@ export function AlbumArtwork({
             url: api.getStreamUrl(song.id),
             duration: song.duration,
             coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt) : undefined,
+            starred: !!song.starred
           }));
           
           playTrack(tracks[0]);

@@ -19,6 +19,7 @@ import {
   FaQuoteLeft,
   FaListUl
 } from "react-icons/fa6";
+import { Heart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -34,7 +35,7 @@ interface FullScreenPlayerProps {
 }
 
 export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onClose, onOpenQueue }) => {
-  const { currentTrack, playPreviousTrack, playNextTrack, shuffle, toggleShuffle } = useAudioPlayer();
+  const { currentTrack, playPreviousTrack, playNextTrack, shuffle, toggleShuffle, toggleCurrentTrackStar } = useAudioPlayer();
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -384,17 +385,17 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 <FaForward className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
-              {lyrics.length > 0 && (
-                <button
-                  onClick={() => setShowLyrics(!showLyrics)}
-                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
-                    showLyrics ? 'text-primary bg-primary/20' : 'text-gray-500'
-                  }`}
-                  title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
-                >
-                  <FaQuoteLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-              )}
+              <button
+                onClick={toggleCurrentTrackStar}
+                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors"
+                title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                <Heart 
+                  className={`w-4 h-4 sm:w-5 sm:h-5 ${currentTrack?.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
+                />
+              </button>
+
+              
               
             </div>
 
@@ -410,6 +411,17 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 )}
               </button>
               
+              {lyrics.length > 0 && (
+                <button
+                  onClick={() => setShowLyrics(!showLyrics)}
+                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
+                    showLyrics ? 'text-primary bg-primary/20' : 'text-gray-500'
+                  }`}
+                  title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
+                >
+                  <FaQuoteLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
               
               {showVolumeSlider && (
                 <div 

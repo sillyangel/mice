@@ -38,7 +38,8 @@ export function PopularSongs({ songs, artistName }: PopularSongsProps) {
       duration: song.duration,
       coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
       albumId: song.albumId,
-      artistId: song.artistId
+      artistId: song.artistId,
+      starred: !!song.starred
     };
   };
 

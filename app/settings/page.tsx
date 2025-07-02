@@ -443,7 +443,7 @@ const SettingsPage = () => {
                     </CardContent>
                 </Card>
 
-                <Card>
+                {/* <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <FaCog className="w-5 h-5" />
@@ -472,7 +472,7 @@ const SettingsPage = () => {
                             </p>
                         </div>
                     </CardContent>
-                </Card>
+                </Card> */}
 
                 <Card>
                     <CardHeader>
