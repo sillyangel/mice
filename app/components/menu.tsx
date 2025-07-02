@@ -83,13 +83,6 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
     return (
       <>
       <div className="flex items-center justify-between w-full">
-        <div className="flex items-center gap-2 mx-2">
-          <span
-        className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-400"}`}
-          />
-        </div>
-          <div style={{ marginRight: '0.24rem' }} className="border-r-4 w-0"><p className="invisible">j</p></div>
-
         <Menubar
           className="rounded-none border-b border-none px-0 lg:px-0 flex-1"
           style={{
