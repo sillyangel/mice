@@ -7,10 +7,21 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Current app version from package.json
-const APP_VERSION = '2025.07.01';
+const APP_VERSION = '2025.07.02';
 
 // Changelog data - add new versions at the top
 const CHANGELOG = [
+    {
+    version: '2025.07.02',
+    title: 'July Mini Update',
+    changes: [
+      'New Favorites inside of the Home Page',
+      'Server Status Indicator removed for better performance',
+      'New Album Artwork component for consistency (along with the artists)'
+    ],
+    breaking: [],
+    fixes: []
+  },
   {
     version: '2025.07.01',
     title: 'July New Month Update',
@@ -25,6 +36,8 @@ const CHANGELOG = [
       'Introduced Whats New popup for version updates',
       'Improved UI consistency with new Badge component',
       'New Favorites page with album, song, and artist sections',
+      'New Favortites inside of the Home Page',
+      'Server Status Indicator removed for better performance',
     ],
     breaking: [],
     fixes: [
@@ -154,6 +167,7 @@ export function WhatsNewPopup() {
         </DialogHeader>
 
         {/* Tabs */}
+        <>
         <div className="flex gap-2 mb-4">
           <Button
             variant={tab === 'latest' ? 'default' : 'outline'}
@@ -184,7 +198,6 @@ export function WhatsNewPopup() {
             </select>
           )}
         </div>
-
         <ScrollArea className="max-h-[60vh] pr-4">
           {tab === 'latest'
             ? renderChangelog(currentVersionChangelog)
@@ -196,7 +209,9 @@ export function WhatsNewPopup() {
             Got it!
           </Button>
         </div>
+        </>
       </DialogContent>
     </Dialog>
   );
 }
+
