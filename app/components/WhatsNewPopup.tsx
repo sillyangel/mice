@@ -8,14 +8,18 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { X } from 'lucide-react';
 
 // Current app version from package.json
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '2025.07.01';
 
 // Changelog data - add new versions at the top
+
+// title can be like this
+// "month New Month Update"
+// "month Mid-Month Update"
+// "month Final Update"
 const CHANGELOG = [
   {
-    version: '1.0.0',
-    date: '2025-07-01',
-    title: 'Initial Release',
+    version: '2025.07.01',
+    title: 'July New Month Update',
     changes: [
       'Integrated standalone Last.fm scrobbling support',
       'Added collapsible sidebar with icon-only mode',
@@ -76,9 +80,9 @@ export function WhatsNewPopup() {
               What&apos;s New in mice
               <Badge variant="outline">{currentVersionChangelog.version}</Badge>
             </DialogTitle>
-            <p className="text-sm text-muted-foreground mt-1">
+            {/* <p className="text-sm text-muted-foreground mt-1">
               Released on {currentVersionChangelog.date}
-            </p>
+            </p> */}
           </div>
         </DialogHeader>
 
