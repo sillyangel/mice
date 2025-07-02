@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "predev": "echo NEXT_PUBLIC_COMMIT_SHA=$(git rev-parse --short HEAD) > .env.local",
-    "dev": "next dev -p 40625",
+    "dev": "next dev --turbopack -p 40625",
     "build": "next build",
     "start": "next start -p 40625",
     "lint": "next lint"
@@ -30,11 +30,11 @@
     "clsx": "^2.1.1",
     "colorthief": "^2.6.0",
     "lucide-react": "^0.469.0",
-    "next": "^15.0.3",
+    "next": "15.3.4",
     "posthog-js": "^1.255.0",
     "posthog-node": "^5.1.1",
-    "react": "^19",
-    "react-dom": "^19",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-hook-form": "^7.53.2",
     "react-icons": "^5.3.0",
     "tailwind-merge": "^2.5.4",
@@ -43,14 +43,18 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.4",
-    "@types/react": "^19.0.4",
-    "@types/react-dom": "^19.0.2",
+    "@types/react": "19.1.8",
+    "@types/react-dom": "19.1.6",
     "chalk": "^5.3.0",
     "eslint": "^9.17",
-    "eslint-config-next": "15.1.4",
+    "eslint-config-next": "15.3.4",
     "postcss": "^8",
     "tailwindcss": "^3.4.15",
     "typescript": "^5"
   },
-  "packageManager": "pnpm@9.15.3+sha512.1f79bc245a66eb0b07c5d4d83131240774642caaa86ef7d0434ab47c0d16f66b04e21e0c086eb61e62c77efc4d7f7ec071afad3796af64892fae66509173893a"
+  "packageManager": "pnpm@9.15.3+sha512.1f79bc245a66eb0b07c5d4d83131240774642caaa86ef7d0434ab47c0d16f66b04e21e0c086eb61e62c77efc4d7f7ec071afad3796af64892fae66509173893a",
+  "overrides": {
+    "@types/react": "19.1.8",
+    "@types/react-dom": "19.1.6"
+  }
 }

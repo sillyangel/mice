@@ -284,9 +284,10 @@ body {
 
 
 
-:focus-visible { outline-color: var(rgb(59 130 246)); }
-::selection { background-color: var(rgb(59 130 246)); }
-::marker { color: var(rgb(59 130 246)); }
+:focus-visible { outline-color: rgb(59, 130, 246); }
+::selection { background-color: rgb(59, 130, 246); }
+::marker { color: rgb(59, 130, 246); }
+
 
 
 ::selection {
