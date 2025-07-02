@@ -88,7 +88,7 @@ export default function MusicPage() {
                 {isLoading ? (
                   // Loading skeletons
                   Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="w-[220px] h-[220px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                    <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
                   ))
                 ) : (
                   recentAlbums.map((album) => (
@@ -121,7 +121,7 @@ export default function MusicPage() {
             {isLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="w-[220px] h-[200px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                    <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
                   ))
                 ) : (
                   newestAlbums.map((album) => (
