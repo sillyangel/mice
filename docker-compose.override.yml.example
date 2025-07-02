@@ -1,0 +1,25 @@
+# Docker Compose Override Example for Local Development
+# This file shows how to override the default docker-compose.yml for local development
+
+version: '3.8'
+
+services:
+  mice:
+    # Override to build locally instead of using pre-built image
+    build: .
+    image: mice:local
+    
+    # Enable Navidrome configuration for development
+    environment:
+      - NEXT_PUBLIC_NAVIDROME_URL=http://localhost:4533
+      - NEXT_PUBLIC_NAVIDROME_USERNAME=admin
+      - NEXT_PUBLIC_NAVIDROME_PASSWORD=admin
+      - NEXT_PUBLIC_POSTHOG_KEY=${POSTHOG_KEY:-}
+      - NEXT_PUBLIC_POSTHOG_HOST=${POSTHOG_HOST:-}
+      - PORT=${PORT:-3000}
+    
+    # Mount source code for development (optional)
+    # volumes:
+    #   - .:/app
+    #   - /app/node_modules
+    #   - /app/.next
