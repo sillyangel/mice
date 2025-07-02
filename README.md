@@ -44,12 +44,14 @@ pnpm install
 cp .env.example .env
 ```
 
-Edit `.env.local` with your Navidrome server details:
+Edit `.env` with your Navidrome server details:
 
 ```env
 NEXT_PUBLIC_NAVIDROME_URL=http://localhost:4533
 NEXT_PUBLIC_NAVIDROME_USERNAME=your_username
 NEXT_PUBLIC_NAVIDROME_PASSWORD=your_password
+NEXT_PUBLIC_POSTHOG_KEY=phc_XXXXXXXXXXXXXXXXXX
+NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 ```
 
 3. **Run the development server**
@@ -59,6 +61,42 @@ pnpm dev
 ```
 
 Open [http://localhost:40625](http://localhost:40625) in your browser.
+
+## Docker Deployment
+
+For easy deployment using Docker:
+
+### Quick Docker Setup
+
+```bash
+# Run using pre-built image (app will prompt for Navidrome configuration)
+docker run -p 3000:3000 ghcr.io/sillyangel/mice:latest
+
+# Or build locally
+docker build -t mice .
+docker run -p 3000:3000 mice
+```
+
+### Docker Compose (Recommended)
+
+```bash
+# Copy environment template and configure
+cp .env.docker .env
+# Edit .env with your settings (optional - app can prompt)
+docker-compose up -d
+```
+
+### Pre-configured Docker Run
+
+```bash
+docker run -p 3000:3000 \
+  -e NEXT_PUBLIC_NAVIDROME_URL=http://your-navidrome-server:4533 \
+  -e NEXT_PUBLIC_NAVIDROME_USERNAME=your_username \
+  -e NEXT_PUBLIC_NAVIDROME_PASSWORD=your_password \
+  ghcr.io/sillyangel/mice:latest
+```
+
+📖 **For detailed Docker configuration, environment variables, troubleshooting, and advanced setups, see [DOCKER.md](./DOCKER.md)**
 
 ## Migration from Firebase
 

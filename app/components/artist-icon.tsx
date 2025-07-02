@@ -3,7 +3,6 @@
 import Image from "next/image"
 import { PlusCircledIcon } from "@radix-ui/react-icons"
 import { useRouter } from 'next/navigation';
-
 import { cn } from "@/lib/utils"
 import {
   ContextMenu,
@@ -15,20 +14,23 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "../../components/ui/context-menu"
-
-import { Artist } from "@/lib/navidrome"
-import { useNavidrome } from "./NavidromeContext"
 import { useAudioPlayer } from "@/app/components/AudioPlayerContext";
 import { getNavidromeAPI } from "@/lib/navidrome";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useNavidrome } from '@/app/components/NavidromeContext';
+import { Artist } from '@/lib/navidrome';
 
 interface ArtistIconProps extends React.HTMLAttributes<HTMLDivElement> {
   artist: Artist
   size?: number
+  imageOnly?: boolean
 }
 
 export function ArtistIcon({
   artist,
   size = 150,
+  imageOnly = false,
   className,
   ...props
 }: ArtistIconProps) {
@@ -57,11 +59,53 @@ export function ArtistIcon({
     ? api.getCoverArtUrl(artist.coverArt, 200)
     : '/default-user.jpg';
 
+  // If imageOnly is true, return just the image without context menu or text
+  if (imageOnly) {
+    return (
+      <div 
+        className={cn("overflow-hidden rounded-full cursor-pointer flex-shrink-0", className)} 
+        onClick={handleClick}
+        style={{ width: size, height: size }}
+        {...props}
+      >
+        <Image
+          src={artistImageUrl}
+          alt={artist.name}
+          width={size}
+          height={size}
+          className="w-full h-full object-cover transition-all hover:scale-105"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={cn("space-y-3", className)} {...props}>
       <ContextMenu>
         <ContextMenuTrigger>
-          <div 
+          <Card key={artist.id} className="overflow-hidden cursor-pointer" onClick={() => handleClick()}>
+            <div
+              className="aspect-square relative group"
+              style={{ width: size, height: size }}
+            >
+              <div className="w-full h-full">
+                <Image
+                  src={artist.coverArt && api ? api.getCoverArtUrl(artist.coverArt, 200) : '/placeholder-artist.png'}
+                  alt={artist.name}
+                  width={size}
+                  height={size}
+                  className="object-cover w-full h-full"
+                />
+              </div>
+            </div>
+            <CardContent className="p-4">
+              <h3 className="font-semibold truncate">{artist.name}</h3>
+              <p className="text-sm text-muted-foreground">
+                {artist.albumCount} albums
+              </p>
+            </CardContent>
+          </Card>
+          {/* <div 
             className="overflow-hidden rounded-full cursor-pointer flex-shrink-0" 
             onClick={handleClick}
             style={{ width: size, height: size }}
@@ -73,7 +117,7 @@ export function ArtistIcon({
               height={size}
               className="w-full h-full object-cover transition-all hover:scale-105"
             />
-          </div>
+          </div> */}
         </ContextMenuTrigger>
         <ContextMenuContent className="w-40">
           <ContextMenuItem onClick={handleStar}>
@@ -117,10 +161,6 @@ export function ArtistIcon({
           <ContextMenuItem>Share</ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
-      <div className="space-y-1 text-sm" onClick={handleClick}>
-        <p className="font-medium leading-none text-center">{artist.name}</p>
-        <p className="text-xs text-muted-foreground text-center">{artist.albumCount} albums</p>
-      </div>
     </div>
   );
 }

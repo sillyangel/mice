@@ -7,6 +7,7 @@ const nextConfig = {
         hostname: "**",
       }
     ],
+    qualities: [ 45, 75, 85, 90, 100 ]
   },
   async headers() {
     return [

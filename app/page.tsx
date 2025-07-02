@@ -11,9 +11,11 @@ import { useNavidromeConfig } from './components/NavidromeConfigContext';
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 export default function MusicPage() {
-  const { albums, isLoading } = useNavidrome();
+  const { albums, isLoading, api, isConnected } = useNavidrome();
   const [recentAlbums, setRecentAlbums] = useState<Album[]>([]);
   const [newestAlbums, setNewestAlbums] = useState<Album[]>([]);
+  const [favoriteAlbums, setFavoriteAlbums] = useState<Album[]>([]);
+  const [favoritesLoading, setFavoritesLoading] = useState(true);
 
   useEffect(() => {
     if (albums.length > 0) {
@@ -24,6 +26,24 @@ export default function MusicPage() {
       setNewestAlbums(newest);
     }
   }, [albums]);
+
+  useEffect(() => {
+    const loadFavoriteAlbums = async () => {
+      if (!api || !isConnected) return;
+      
+      setFavoritesLoading(true);
+      try {
+        const starredAlbums = await api.getAlbums('starred', 20); // Limit to 20 for homepage
+        setFavoriteAlbums(starredAlbums);
+      } catch (error) {
+        console.error('Failed to load favorite albums:', error);
+      } finally {
+        setFavoritesLoading(false);
+      }
+    };
+
+    loadFavoriteAlbums();
+  }, [api, isConnected]);
 
   // Get greeting and time of day
   const hour = new Date().getHours();
@@ -88,7 +108,7 @@ export default function MusicPage() {
                 {isLoading ? (
                   // Loading skeletons
                   Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="w-[220px] h-[220px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                    <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
                   ))
                 ) : (
                   recentAlbums.map((album) => (
@@ -106,6 +126,46 @@ export default function MusicPage() {
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </div>
+          
+          {/* Favorite Albums Section */}
+          {favoriteAlbums.length > 0 && (
+            <>
+              <div className="mt-6 space-y-1">
+                <p className="text-2xl font-semibold tracking-tight">
+                  Favorite Albums
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Your starred albums collection.
+                </p>
+              </div>
+              <Separator className="my-4" />
+              <div className="relative">
+                <ScrollArea>
+                  <div className="flex space-x-4 pb-4">
+                    {favoritesLoading ? (
+                      // Loading skeletons
+                      Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                      ))
+                    ) : (
+                      favoriteAlbums.map((album) => (
+                        <AlbumArtwork
+                          key={album.id}
+                          album={album}
+                          className="w-[220px] flex-shrink-0"
+                          aspectRatio="square"
+                          width={220}
+                          height={220}
+                        />
+                      ))
+                    )}
+                  </div>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+              </div>
+            </>
+          )}
+          
           <div className="mt-6 space-y-1">
             <p className="text-2xl font-semibold tracking-tight">
               Your Library
@@ -121,7 +181,7 @@ export default function MusicPage() {
             {isLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="w-[220px] h-[200px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                    <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
                   ))
                 ) : (
                   newestAlbums.map((album) => (

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Progress } from '@/components/ui/progress';
 import { lrcLibClient } from '@/lib/lrclib';
@@ -19,8 +20,15 @@ import {
   FaQuoteLeft,
   FaListUl
 } from "react-icons/fa6";
+import { Heart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 interface LyricLine {
   time: number;
@@ -34,7 +42,8 @@ interface FullScreenPlayerProps {
 }
 
 export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onClose, onOpenQueue }) => {
-  const { currentTrack, playPreviousTrack, playNextTrack, shuffle, toggleShuffle } = useAudioPlayer();
+  const { currentTrack, playPreviousTrack, playNextTrack, shuffle, toggleShuffle, toggleCurrentTrackStar } = useAudioPlayer();
+  const router = useRouter();
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -334,8 +343,11 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               <h1 className="text-lg sm:text-xl lg:text-3xl font-bold text-foreground mb-2 line-clamp-2 leading-tight">
                 {currentTrack.name}
               </h1>
-              <Link href={`/album/${currentTrack.artistId}`} className="text-base sm:text-lg lg:text-xl text-foreground/80 mb-1 line-clamp-1">
-              {currentTrack.artist}
+              <Link href={`/artist/${currentTrack.artistId}`} className="text-base sm:text-lg lg:text-xl text-foreground/80 mb-1 line-clamp-1">
+                {currentTrack.artist}
+              </Link>
+              <Link href={`/album/${currentTrack.albumId}`}  className="text-sm sm:text-base lg:text-lg text-foreground/60 line-clamp-1 cursor-pointer hover:underline">
+                {currentTrack.album}
               </Link>
             </div>
 
@@ -384,17 +396,17 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 <FaForward className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
-              {lyrics.length > 0 && (
-                <button
-                  onClick={() => setShowLyrics(!showLyrics)}
-                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
-                    showLyrics ? 'text-primary bg-primary/20' : 'text-gray-500'
-                  }`}
-                  title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
-                >
-                  <FaQuoteLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-              )}
+              <button
+                onClick={toggleCurrentTrackStar}
+                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors"
+                title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                <Heart 
+                  className={`w-4 h-4 sm:w-5 sm:h-5 ${currentTrack?.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
+                />
+              </button>
+
+              
               
             </div>
 
@@ -410,6 +422,17 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 )}
               </button>
               
+              {lyrics.length > 0 && (
+                <button
+                  onClick={() => setShowLyrics(!showLyrics)}
+                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
+                    showLyrics ? 'text-primary bg-primary/20' : 'text-gray-500'
+                  }`}
+                  title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
+                >
+                  <FaQuoteLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
               
               {showVolumeSlider && (
                 <div 

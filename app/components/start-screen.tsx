@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,16 +13,18 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { useNavidromeConfig } from '@/app/components/NavidromeConfigContext';
 import { useTheme } from '@/app/components/ThemeProvider';
 import { useToast } from '@/hooks/use-toast';
-import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaPalette, FaLastfm } from 'react-icons/fa';
+import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaPalette, FaLastfm, FaBars } from 'react-icons/fa';
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const [step, setStep] = useState<'login' | 'settings'>('login');
+  const [canSkipNavidrome, setCanSkipNavidrome] = useState(false);
   const { config, updateConfig, testConnection } = useNavidromeConfig();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
@@ -42,6 +44,85 @@ export function LoginForm({
     }
     return true;
   });
+
+  // New settings
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('sidebar-collapsed') === 'true';
+    }
+    return false;
+  });
+
+  const [standaloneLastfmEnabled, setStandaloneLastfmEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('standalone-lastfm-enabled') === 'true';
+    }
+    return false;
+  });
+
+  // Check if Navidrome is configured via environment variables
+  const hasEnvConfig = React.useMemo(() => {
+    return !!(process.env.NEXT_PUBLIC_NAVIDROME_URL && 
+              process.env.NEXT_PUBLIC_NAVIDROME_USERNAME && 
+              process.env.NEXT_PUBLIC_NAVIDROME_PASSWORD);
+  }, []);
+
+  // Check if Navidrome is already working on component mount
+  const checkNavidromeConnection = useCallback(async () => {
+    try {
+      // First check if there's a working API instance
+      const { getNavidromeAPI } = await import('@/lib/navidrome');
+      const api = getNavidromeAPI();
+      
+      if (api) {
+        // Test the existing API
+        const success = await api.ping();
+        if (success) {
+          setCanSkipNavidrome(true);
+          
+          // Get the current config to populate form
+          if (config.serverUrl && config.username && config.password) {
+            setFormData({
+              serverUrl: config.serverUrl,
+              username: config.username,
+              password: config.password
+            });
+          }
+          
+          // If this is first-time setup and Navidrome is working, skip to settings
+          const hasCompletedOnboarding = localStorage.getItem('onboarding-completed');
+          if (!hasCompletedOnboarding) {
+            setStep('settings');
+          }
+          return;
+        }
+      }
+      
+      // If no working API, check if we have config that just needs testing
+      if (config.serverUrl && config.username && config.password) {
+        const success = await testConnection(config);
+        if (success) {
+          setCanSkipNavidrome(true);
+          setFormData({
+            serverUrl: config.serverUrl,
+            username: config.username,
+            password: config.password
+          });
+          
+          const hasCompletedOnboarding = localStorage.getItem('onboarding-completed');
+          if (!hasCompletedOnboarding) {
+            setStep('settings');
+          }
+        }
+      }
+    } catch (error) {
+      console.log('Navidrome connection check failed, will show config step');
+    }
+  }, [config, setStep, setFormData, setCanSkipNavidrome, testConnection]);
+
+  useEffect(() => {
+    checkNavidromeConnection();
+  }, [checkNavidromeConnection]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -104,8 +185,13 @@ export function LoginForm({
   };
 
   const handleFinishSetup = () => {
-    // Save scrobbling preference
+    // Save all settings
     localStorage.setItem('lastfm-scrobbling-enabled', scrobblingEnabled.toString());
+    localStorage.setItem('sidebar-collapsed', sidebarCollapsed.toString());
+    localStorage.setItem('standalone-lastfm-enabled', standaloneLastfmEnabled.toString());
+    
+    // Mark onboarding as complete
+    localStorage.setItem('onboarding-completed', '1.1.0');
     
     toast({
       title: "Setup Complete",
@@ -126,7 +212,9 @@ export function LoginForm({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
+              <FaPalette className="w-5 h-5" />
               Customize Your Experience
+              {canSkipNavidrome && <Badge variant="outline">Step 1 of 1</Badge>}
             </CardTitle>
             <CardDescription>
               Configure your preferences to get started
@@ -155,6 +243,29 @@ export function LoginForm({
                 </Select>
               </div>
 
+              {/* Sidebar Settings */}
+              <div className="grid gap-3">
+                <Label className="flex items-center gap-2">
+                  <FaBars className="w-4 h-4" />
+                  Sidebar Layout
+                </Label>
+                <Select 
+                  value={sidebarCollapsed ? "collapsed" : "expanded"} 
+                  onValueChange={(value) => setSidebarCollapsed(value === "collapsed")}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="expanded">Expanded (with labels)</SelectItem>
+                    <SelectItem value="collapsed">Collapsed (icons only)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  You can always toggle this later using the button in the sidebar
+                </p>
+              </div>
+
               {/* Last.fm Scrobbling */}
               <div className="grid gap-3">
                 <Label className="flex items-center gap-2">
@@ -180,18 +291,45 @@ export function LoginForm({
                 </p>
               </div>
 
+              {/* Standalone Last.fm */}
+              <div className="grid gap-3">
+                <Label className="flex items-center gap-2">
+                  <FaLastfm className="w-4 h-4" />
+                  Standalone Last.fm (Advanced)
+                </Label>
+                <Select 
+                  value={standaloneLastfmEnabled ? "enabled" : "disabled"} 
+                  onValueChange={(value) => setStandaloneLastfmEnabled(value === "enabled")}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="enabled">Enabled</SelectItem>
+                    <SelectItem value="disabled">Disabled</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  {standaloneLastfmEnabled 
+                    ? "Direct Last.fm API integration (configure in Settings later)" 
+                    : "Use only Navidrome's Last.fm integration"}
+                </p>
+              </div>
+
               <div className="flex flex-col gap-3">
                 <Button onClick={handleFinishSetup} className="w-full">
                   <FaCheck className="w-4 h-4 mr-2" />
                   Complete Setup
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => setStep('login')}
-                >
-                  Back to Connection Settings
-                </Button>
+                {!hasEnvConfig && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => setStep('login')}
+                  >
+                    {canSkipNavidrome ? "Review Connection Settings" : "Back to Connection Settings"}
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
@@ -205,10 +343,17 @@ export function LoginForm({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
+            <FaServer className="w-5 h-5" />
             Connect to Navidrome
+            {canSkipNavidrome && <Badge variant="outline">{hasEnvConfig ? "Configured via .env" : "Already Connected"}</Badge>}
           </CardTitle>
           <CardDescription>
-            Enter your Navidrome server details to get started
+            {canSkipNavidrome 
+              ? hasEnvConfig 
+                ? "Your Navidrome connection is configured via environment variables."
+                : "Your Navidrome connection is working. You can proceed to customize your settings."
+              : "Enter your Navidrome server details to get started"
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -269,6 +414,17 @@ export function LoginForm({
                     </>
                   )}
                 </Button>
+                
+                {canSkipNavidrome && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => setStep('settings')}
+                  >
+                    Skip to Settings
+                  </Button>
+                )}
               </div>
             </div>
           </form>

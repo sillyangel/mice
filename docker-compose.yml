@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  mice:
+    image: ghcr.io/sillyangel/mice:latest
+    ports:
+      - "${HOST_PORT:-3000}:${PORT:-3000}"
+    environment:
+      # Navidrome Server Configuration (OPTIONAL)
+      # Uncomment and configure these if you want to pre-configure the server connection
+      # If not set, the app will prompt you to configure these settings on first launch
+      # - NEXT_PUBLIC_NAVIDROME_URL=${NAVIDROME_URL:-}
+      # - NEXT_PUBLIC_NAVIDROME_USERNAME=${NAVIDROME_USERNAME:-}
+      # - NEXT_PUBLIC_NAVIDROME_PASSWORD=${NAVIDROME_PASSWORD:-}
+      
+      # PostHog Analytics (optional)
+      - NEXT_PUBLIC_POSTHOG_KEY=${POSTHOG_KEY:-}
+      - NEXT_PUBLIC_POSTHOG_HOST=${POSTHOG_HOST:-}
+      
+      # Application Port
+      - PORT=${PORT:-3000}
+    
+    # Optional: Add a health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT:-3000}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    restart: unless-stopped

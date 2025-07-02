@@ -16,6 +16,7 @@ export interface Track {
   albumId: string;
   artistId: string;
   autoPlay?: boolean; // Flag to control auto-play
+  starred?: boolean; // Flag for starred/favorited tracks
 }
 
 interface AudioPlayerContextProps {
@@ -39,6 +40,8 @@ interface AudioPlayerContextProps {
   playArtist: (artistId: string) => Promise<void>;
   playedTracks: Track[];
   clearHistory: () => void;
+  toggleCurrentTrackStar: () => Promise<void>;
+  updateTrackStarred: (trackId: string, starred: boolean) => void;
 }
 
 const AudioPlayerContext = createContext<AudioPlayerContextProps | undefined>(undefined);
@@ -104,7 +107,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       duration: song.duration,
       coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
       albumId: song.albumId,
-      artistId: song.artistId
+      artistId: song.artistId,
+      starred: !!song.starred
     };
   }, [api]);
 
@@ -577,7 +581,75 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     shuffleAllAlbums,
     playArtist,
     playedTracks,
-    clearHistory
+    clearHistory,
+    toggleCurrentTrackStar: async () => {
+      if (!currentTrack || !api) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No track currently playing or API not configured",
+        });
+        return;
+      }
+      
+      const newStarredStatus = !currentTrack.starred;
+      
+      try {
+        if (newStarredStatus) {
+          await api.star(currentTrack.id, 'song');
+        } else {
+          await api.unstar(currentTrack.id, 'song');
+        }
+        
+        // Update the current track state
+        setCurrentTrack((prev) => prev ? { ...prev, starred: newStarredStatus } : null);
+        
+       
+      } catch (error) {
+        console.error('Failed to update track starred status:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to update track favorite status",
+        });
+      }
+    },
+    updateTrackStarred: async (trackId: string, starred: boolean) => {
+      if (!api) {
+        toast({
+          variant: "destructive",
+          title: "Configuration Required",
+          description: "Please configure Navidrome connection in settings",
+        });
+        return;
+      }
+  
+      try {
+        if (starred) {
+          await api.star(trackId, 'song');
+        } else {
+          await api.unstar(trackId, 'song');
+        }
+        
+        // Update the current track state if it matches the updated track
+        if (currentTrack?.id === trackId) {
+          setCurrentTrack((prev) => prev ? { ...prev, starred } : null);
+        }
+        
+        // Also update queue if the track is in there
+        setQueue((prev) => prev.map(track => 
+          track.id === trackId ? { ...track, starred } : track
+        ));
+        
+      } catch (error) {
+        console.error('Failed to update track starred status:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to update track favorite status",
+        });
+      }
+    }
   }), [
     currentTrack, 
     queue, 
@@ -598,7 +670,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     shuffleAllAlbums,
     playArtist,
     playedTracks,
-    clearHistory
+    clearHistory,
+    api,
+    toast
   ]);
 
   return (

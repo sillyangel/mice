@@ -15,6 +15,10 @@ body {
   .animate-scroll {
     animation: scroll 8s linear infinite;
   }
+  
+  .animate-infinite-scroll {
+    animation: infiniteScroll 10s linear infinite;
+  }
 }
 
 @keyframes scroll {
@@ -23,6 +27,15 @@ body {
   }
   80%, 100% {
     transform: translateX(-100%);
+  }
+}
+
+@keyframes infiniteScroll {
+  0% {
+    transform: translateX(15%);
+  }
+  100% {
+    transform: translateX(-215%);
   }
 }
 
@@ -284,9 +297,10 @@ body {
 
 
 
-:focus-visible { outline-color: var(rgb(59 130 246)); }
-::selection { background-color: var(rgb(59 130 246)); }
-::marker { color: var(rgb(59 130 246)); }
+:focus-visible { outline-color: rgb(59, 130, 246); }
+::selection { background-color: rgb(59, 130, 246); }
+::marker { color: rgb(59, 130, 246); }
+
 
 
 ::selection {

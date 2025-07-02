@@ -482,6 +482,47 @@ class NavidromeAPI {
     });
     return response.albumInfo2 as AlbumInfo;
   }
+
+  async getStarred2(): Promise<{ starred2: { song?: Song[]; album?: Album[]; artist?: Artist[] } }> {
+    try {
+      const response = await this.makeRequest('getStarred2');
+      return response as { starred2: { song?: Song[]; album?: Album[]; artist?: Artist[] } };
+    } catch (error) {
+      console.error('Failed to get starred items:', error);
+      return { starred2: {} };
+    }
+  }
+
+  async getAlbumSongs(albumId: string): Promise<Song[]> {
+    try {
+      const response = await this.makeRequest('getAlbum', { id: albumId });
+      const albumData = response.album as { song?: Song[] };
+      return albumData?.song || [];
+    } catch (error) {
+      console.error('Failed to get album songs:', error);
+      return [];
+    }
+  }
+
+  async getArtistTopSongs(artistName: string, limit: number = 10): Promise<Song[]> {
+    try {
+      // Search for songs by the artist and return them sorted by play count
+      const searchResult = await this.search2(artistName, 0, 0, limit * 3);
+      
+      // Filter songs that are actually by this artist (exact match)
+      const artistSongs = searchResult.songs.filter(song => 
+        song.artist.toLowerCase() === artistName.toLowerCase()
+      );
+      
+      // Sort by play count (descending) and limit results
+      return artistSongs
+        .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Failed to get artist top songs:', error);
+      return [];
+    }
+  }
 }
 
 // Singleton instance management

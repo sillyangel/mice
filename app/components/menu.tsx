@@ -44,6 +44,8 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const { isConnected } = useNavidrome();
+    const [isClient, setIsClient] = useState(false);
+    const [navidromeUrl, setNavidromeUrl] = useState<string | null>(null);
 
     // For this demo, we'll show connection status instead of user auth
     const connectionStatus = isConnected ? "Connected to Navidrome" : "Not connected";
@@ -56,6 +58,29 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
       }
       setIsFullScreen(!isFullScreen)
     }, [isFullScreen])
+
+    useEffect(() => {
+        setIsClient(true);
+        
+        // Get Navidrome URL from localStorage
+        const config = localStorage.getItem("navidrome-config");
+        if (config) {
+            try {
+                const { serverUrl } = JSON.parse(config);
+                if (serverUrl) {
+                    // Remove protocol (http:// or https://) and trailing slash
+                    const prettyUrl = serverUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
+                    setNavidromeUrl(prettyUrl);
+                } else {
+                    setNavidromeUrl(null);
+                }
+            } catch {
+                setNavidromeUrl(null);
+            }
+        } else {
+            setNavidromeUrl(null);
+        }
+    }, []);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -73,23 +98,20 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
             }
         };
       
-        window.addEventListener('keydown', handleKeyDown);
+        if (isClient) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
 
         return () => {
-            window.removeEventListener('keydown', handleKeyDown);
+            if (isClient) {
+                window.removeEventListener('keydown', handleKeyDown);
+            }
         };
-    }, [router, toggleSidebar, handleFullScreen]);
+    }, [router, toggleSidebar, handleFullScreen, isClient]);
 
     return (
       <>
-      <div className="flex items-center justify-between w-full">
-        <div className="flex items-center gap-2 mx-2">
-          <span
-        className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-400"}`}
-          />
-        </div>
-          <div style={{ marginRight: '0.24rem' }} className="border-r-4 w-0"><p className="invisible">j</p></div>
-
+      <div className="flex items-center justify-between w-full ml-2">
         <Menubar
           className="rounded-none border-b border-none px-0 lg:px-0 flex-1"
           style={{
@@ -107,7 +129,7 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
             Preferences <MenubarShortcut>⌘,</MenubarShortcut>
           </MenubarItem>
           <MenubarSeparator />
-          <MenubarItem onClick={() => window.close()}>
+          <MenubarItem onClick={() => isClient && window.close()}>
             Quit Music <MenubarShortcut>⌘Q</MenubarShortcut>
           </MenubarItem>
         </MenubarContent>
@@ -288,30 +310,21 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Navidrome URL</span>
             <span className="text-xs truncate max-w-[160px] text-right">
-            {typeof window !== "undefined"
-              ? (() => {
-                  const config = localStorage.getItem("navidrome-config");
-                  if (config) {
-                    try {
-                      const { serverUrl } = JSON.parse(config);
-                      if (serverUrl) {
-                        // Remove protocol (http:// or https://) and trailing slash
-                        const prettyUrl = serverUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
-                        return prettyUrl;
-                      }
-                      return <span className="italic text-gray-400">Not set</span>;
-                    } catch {
-                      return <span className="italic text-gray-400">Invalid config</span>;
-                    }
-                  }
-                  return <span className="italic text-gray-400">Not set</span>;
-                })()
-              : <span className="italic text-gray-400">Not available</span>}
+              {!isClient ? (
+                <span className="italic text-gray-400">Loading...</span>
+              ) : navidromeUrl ? (
+                navidromeUrl
+              ) : (
+                <span className="italic text-gray-400">Not set</span>
+              )}
             </span>
           </div>
         </div>
         <Separator className="my-2" />
         <div className="flex flex-col items-center gap-1 mt-2">
+          <span className="text-xs text-muted-foreground">
+            Commit: {process.env.NEXT_PUBLIC_COMMIT_SHA || 'unknown'}
+          </span>
           <span className="text-xs text-muted-foreground">Copyright © {new Date().getFullYear()} <a
             href="https://github.com/sillyangel"
             target="_blank"
