@@ -433,7 +433,7 @@ export const AudioPlayer: React.FC = () => {
           {/* Center section with controls and progress */}
           <div className="flex flex-col items-center flex-1 justify-center">
             {/* Control buttons */}  
-            <div className="flex items-center justify-center space-x-3 mb-2">
+            <div className="flex items-center justify-center space-x-3">
               <button
                 onClick={toggleShuffle} 
                 className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${shuffle ? 'text-primary bg-primary/20' : ''}`} 
@@ -465,7 +465,7 @@ export const AudioPlayer: React.FC = () => {
             </div>
             
             {/* Progress bar */}
-            <div className="flex items-center space-x-2 w-80">
+            {/* <div className="flex items-center space-x-2 w-80">
               <span className="text-xs text-muted-foreground w-8 text-right">
                 {formatTime(audioCurrent?.currentTime ?? 0)}
               </span>
@@ -473,7 +473,7 @@ export const AudioPlayer: React.FC = () => {
               <span className="text-xs text-muted-foreground w-8">
                 {formatTime(audioCurrent?.duration ?? 0)}
               </span>
-            </div>
+            </div> */}
           </div>
 
           {/* Right side buttons */}
