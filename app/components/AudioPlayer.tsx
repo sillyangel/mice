@@ -413,39 +413,45 @@ export const AudioPlayer: React.FC = () => {
   // Compact floating player (default state)
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50">
-      <div className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 pb-0 cursor-pointer hover:scale-[1.01] transition-transform">
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 cursor-pointer hover:scale-[1.01] transition-transform">
+        <div className="flex items-center">
+          {/* Track info */}
           <div className="flex items-center flex-1 min-w-0">
             <Image 
               src={currentTrack.coverArt || '/default-user.jpg'} 
               alt={currentTrack.name} 
-              width={40} 
-              height={40} 
-              className="w-10 h-10 rounded-md mr-3 flex-shrink-0" 
+              width={48} 
+              height={48} 
+              className="w-12 h-12 rounded-md mr-4 flex-shrink-0" 
             />
             <div className="flex-1 min-w-0">
-              <p className="font-semibold truncate text-sm">{currentTrack.name}</p>
-              <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
+              <p className="font-semibold truncate text-base">{currentTrack.name}</p>
+              <p className="text-sm text-muted-foreground truncate">{currentTrack.artist}</p>
             </div>
           </div>
 
-          {/* Control buttons */}  
-        <div className="flex items-center justify-center space-x-2 ">
-          <button
-                onClick={toggleShuffle} className={`p-1.5 hover:bg-gray-700/50 rounded-full transition-colors ${   shuffle ? 'text-primary bg-primary/20' : '' }`} title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}>
-                <FaShuffle className="w-3 h-3" />
-            </button>
-          <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
-            <FaBackward className="w-3 h-3" />
-          </button>
-          <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
-            {isPlaying ? <FaPause className="w-4 h-4" /> : <FaPlay className="w-4 h-4" />}
-          </button>
-          <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
-            <FaForward className="w-3 h-3" />
-          </button>
+          {/* Center section with controls and progress */}
+          <div className="flex flex-col items-center flex-1 justify-center">
+            {/* Control buttons */}  
+            <div className="flex items-center justify-center space-x-3 mb-2">
+              <button
+                onClick={toggleShuffle} 
+                className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${shuffle ? 'text-primary bg-primary/20' : ''}`} 
+                title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
+              >
+                <FaShuffle className="w-4 h-4" />
+              </button>
+              <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
+                <FaBackward className="w-4 h-4" />
+              </button>
+              <button className="p-3 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
+                {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
+              </button>
+              <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
+                <FaForward className="w-4 h-4" />
+              </button>
               <button 
-                className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors flex items-center justify-center" 
+                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors flex items-center justify-center" 
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleCurrentTrackStar();
@@ -453,26 +459,38 @@ export const AudioPlayer: React.FC = () => {
                 title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
               >
                 <Heart 
-                  className={`w-4 h-4 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`} 
+                  className={`w-5 h-5 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`} 
                 />
               </button>
+            </div>
+            
+            {/* Progress bar */}
+            <div className="flex items-center space-x-2 w-80">
+              <span className="text-xs text-muted-foreground w-8 text-right">
+                {formatTime(audioCurrent?.currentTime ?? 0)}
+              </span>
+              <Progress value={progress} className="flex-1 cursor-pointer h-1" onClick={handleProgressClick}/>
+              <span className="text-xs text-muted-foreground w-8">
+                {formatTime(audioCurrent?.duration ?? 0)}
+              </span>
+            </div>
+          </div>
 
-              
-        </div>
-          <div className="flex items-center space-x-1 ml-2">
+          {/* Right side buttons */}
+          <div className="flex items-center justify-end space-x-2 flex-1">
             <button 
-              className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" 
+              className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
               onClick={() => setIsFullScreen(true)}
               title="Full Screen"
             >
-              <FaExpand className="w-3 h-3" />
+              <FaExpand className="w-4 h-4" />
             </button>
             <button 
-              className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" 
+              className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
               onClick={() => setIsMinimized(true)}
               title="Minimize"
             >
-              <FaCompress className="w-3 h-3" />
+              <FaCompress className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -489,15 +507,3 @@ export const AudioPlayer: React.FC = () => {
     </div>
   );
 };
-
-
-//  {/* Progress bar */}
-//         <div className="flex items-center space-x-2">
-//           <span className="text-xs text-muted-foreground w-8 text-right">
-//             {formatTime(audioCurrent?.currentTime ?? 0)}
-//           </span>
-//           <Progress value={progress} className="flex-1 cursor-pointer h-1" onClick={handleProgressClick}/>
-//           <span className="text-xs text-muted-foreground w-8">
-//             {formatTime(audioCurrent?.duration ?? 0)}
-//           </span>
-//         </div>
