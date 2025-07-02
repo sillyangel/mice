@@ -111,7 +111,7 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
 
     return (
       <>
-      <div className="flex items-center justify-between w-full">
+      <div className="flex items-center justify-between w-full ml-2">
         <Menubar
           className="rounded-none border-b border-none px-0 lg:px-0 flex-1"
           style={{
@@ -322,6 +322,9 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
         </div>
         <Separator className="my-2" />
         <div className="flex flex-col items-center gap-1 mt-2">
+          <span className="text-xs text-muted-foreground">
+            Commit: {process.env.NEXT_PUBLIC_COMMIT_SHA || 'unknown'}
+          </span>
           <span className="text-xs text-muted-foreground">Copyright © {new Date().getFullYear()} <a
             href="https://github.com/sillyangel"
             target="_blank"
