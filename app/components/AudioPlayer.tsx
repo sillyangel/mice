@@ -428,12 +428,13 @@ export const AudioPlayer: React.FC = () => {
               <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
             </div>
           </div>
-          {/* Control buttons */}
+
+          {/* Control buttons */}  
+        <div className="flex items-center justify-center space-x-2 ">
           <button
                 onClick={toggleShuffle} className={`p-1.5 hover:bg-gray-700/50 rounded-full transition-colors ${   shuffle ? 'text-primary bg-primary/20' : '' }`} title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}>
                 <FaShuffle className="w-3 h-3" />
-              </button>
-        <div className="flex items-center justify-center space-x-2">
+            </button>
           <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
             <FaBackward className="w-3 h-3" />
           </button>
@@ -455,6 +456,8 @@ export const AudioPlayer: React.FC = () => {
                   className={`w-4 h-4 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`} 
                 />
               </button>
+
+              
         </div>
           <div className="flex items-center space-x-1 ml-2">
             <button 
