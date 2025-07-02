@@ -16,13 +16,13 @@ RUN pnpm install
 # Copy source code
 COPY . .
 
-# Set default environment variables (can be overridden at runtime)
-# Navidrome configuration is optional - app will prompt if not provided
-ENV NEXT_PUBLIC_NAVIDROME_URL=""
-ENV NEXT_PUBLIC_NAVIDROME_USERNAME=""
-ENV NEXT_PUBLIC_NAVIDROME_PASSWORD=""
-ENV NEXT_PUBLIC_POSTHOG_KEY=""
-ENV NEXT_PUBLIC_POSTHOG_HOST=""
+# Set environment variable placeholders during build
+# These will be replaced at runtime with actual values
+ENV NEXT_PUBLIC_NAVIDROME_URL=NEXT_PUBLIC_NAVIDROME_URL
+ENV NEXT_PUBLIC_NAVIDROME_USERNAME=NEXT_PUBLIC_NAVIDROME_USERNAME
+ENV NEXT_PUBLIC_NAVIDROME_PASSWORD=NEXT_PUBLIC_NAVIDROME_PASSWORD
+ENV NEXT_PUBLIC_POSTHOG_KEY=NEXT_PUBLIC_POSTHOG_KEY
+ENV NEXT_PUBLIC_POSTHOG_HOST=NEXT_PUBLIC_POSTHOG_HOST
 ENV PORT=3000
 
 # Generate git commit hash for build info (fallback if not available)
@@ -31,8 +31,15 @@ RUN echo "NEXT_PUBLIC_COMMIT_SHA=docker-build" > .env.local
 # Build the application
 RUN pnpm build
 
+# Copy entrypoint script
+COPY entrypoint.sh /usr/bin/
+RUN chmod +x /usr/bin/entrypoint.sh
+
 # Expose the port
 EXPOSE $PORT
+
+# Set entrypoint to replace env vars at runtime
+ENTRYPOINT ["entrypoint.sh"]
 
 # Start the application
 CMD ["sh", "-c", "pnpm start -p $PORT"]

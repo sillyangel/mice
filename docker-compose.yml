@@ -6,12 +6,11 @@ services:
     ports:
       - "${HOST_PORT:-3000}:${PORT:-3000}"
     environment:
-      # Navidrome Server Configuration (OPTIONAL)
-      # Uncomment and configure these if you want to pre-configure the server connection
-      # If not set, the app will prompt you to configure these settings on first launch
-      # - NEXT_PUBLIC_NAVIDROME_URL=${NAVIDROME_URL:-}
-      # - NEXT_PUBLIC_NAVIDROME_USERNAME=${NAVIDROME_USERNAME:-}
-      # - NEXT_PUBLIC_NAVIDROME_PASSWORD=${NAVIDROME_PASSWORD:-}
+      # Navidrome Server Configuration
+      # These will be injected at runtime using the entrypoint script
+      - NEXT_PUBLIC_NAVIDROME_URL=${NAVIDROME_URL:-}
+      - NEXT_PUBLIC_NAVIDROME_USERNAME=${NAVIDROME_USERNAME:-}
+      - NEXT_PUBLIC_NAVIDROME_PASSWORD=${NAVIDROME_PASSWORD:-}
       
       # PostHog Analytics (optional)
       - NEXT_PUBLIC_POSTHOG_KEY=${POSTHOG_KEY:-}
