@@ -321,11 +321,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
         {/* Main Content */}
         <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-8 p-4 lg:p-6 pt-0 overflow-hidden min-h-0">
           {/* Left Side - Album Art and Controls */}
-          <div className={`flex flex-col items-center min-h-0 flex-1 min-w-0 ${
-            showLyrics && lyrics.length > 0 
-              ? 'justify-center lg:justify-start' 
-              : 'justify-center'
-          }`}>
+          <div className="flex flex-col items-center justify-center min-h-0 flex-1 min-w-0">
             {/* Album Art */}
             <div className="relative mb-4 lg:mb-6 flex-shrink-0">
               <Image
@@ -457,15 +453,15 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             <div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}>
               <div className="h-full flex flex-col">
                 <ScrollArea className="flex-1 min-h-0">
-                  <div className="space-y-3 sm:space-y-4 pr-4 px-2 py-4">
+                  <div className="space-y-3 sm:space-y-4 pl-12 pr-4 py-4">
                     {lyrics.map((line, index) => (
                       <div
                         key={index}
                         data-lyric-index={index}
                         onClick={() => handleLyricClick(line.time)}
-                        className={`text-sm sm:text-base lg:text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground hover:scale-102 ${
+                        className={`text-sm sm:text-base lg:text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground ${
                           index === currentLyricIndex
-                            ? 'text-foreground font-semibold text-base sm:text-lg lg:text-xl scale-105'
+                            ? 'text-foreground font-bold text-lg sm:text-xl lg:text-2xl'
                             : index < currentLyricIndex
                             ? 'text-foreground/60'
                             : 'text-foreground/40'
@@ -475,7 +471,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                           overflowWrap: 'break-word',
                           hyphens: 'auto',
                           paddingBottom: '6px',
-                          paddingLeft: '8px'
+                          paddingLeft: '16px'
                         }}
                         title={`Click to jump to ${formatTime(line.time)}`}
                       >
