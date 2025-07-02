@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
  
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'mice',
-    short_name: 'Offbrand',
-    description: 'a very mice clone',
+    name: 'Mice',
+    short_name: 'Mice',
+    description: 'a very awesome navidrome client',
     start_url: '/',
     categories: ["music", "entertainment"],
     display_override: ['window-controls-overlay'],
@@ -15,7 +15,7 @@ export default function manifest(): MetadataRoute.Manifest {
       { 
          src: '/favicon.ico', 
          type: 'image/x-icon', 
-         sizes: '16x16 32x32'
+         sizes: '48x48'
       },
       { 
          src: '/icon-192.png', 
@@ -40,5 +40,35 @@ export default function manifest(): MetadataRoute.Manifest {
          purpose: 'maskable'
       }
    ],
+      screenshots: [
+         {
+         src: '/home-preview.png',
+         sizes: '1920x1020',
+         type: 'image/png',
+         label: 'Home Preview',
+         form_factor: 'wide'
+         },
+         {
+         src: '/browse-preview.png',
+         sizes: '1920x1020',
+         type: 'image/png',
+         label: 'Browse Preview',
+         form_factor: 'wide'
+         },
+         {
+         src: '/album-preview.png',
+         sizes: '1920x1020',
+         type: 'image/png',
+         label: 'Album Preview',
+         form_factor: 'wide'
+         },
+         {
+         src: '/fullscreen-preview.png',
+         sizes: '1920x1020',
+         type: 'image/png',
+         label: 'Fullscreen Preview',
+         form_factor: 'wide'
+         }
+      ],
   }
 }
