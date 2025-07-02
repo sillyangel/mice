@@ -15,6 +15,10 @@ body {
   .animate-scroll {
     animation: scroll 8s linear infinite;
   }
+  
+  .animate-infinite-scroll {
+    animation: infiniteScroll 10s linear infinite;
+  }
 }
 
 @keyframes scroll {
@@ -23,6 +27,15 @@ body {
   }
   80%, 100% {
     transform: translateX(-100%);
+  }
+}
+
+@keyframes infiniteScroll {
+  0% {
+    transform: translateX(15%);
+  }
+  100% {
+    transform: translateX(-215%);
   }
 }
 

@@ -370,9 +370,9 @@ export const AudioPlayer: React.FC = () => {
               height={40} 
               className="w-10 h-10 rounded-md flex-shrink-0" 
             />
-            <div className="flex-1 min-w-0 mx-3 group">
+            <div className="flex-1 min-w-0 mx-3">
               <div className="overflow-hidden">
-                <p className="font-semibold text-sm whitespace-nowrap group-hover:animate-scroll">
+                <p className="font-semibold text-sm whitespace-nowrap animate-infinite-scroll">
                   {currentTrack.name}
                 </p>
               </div>
