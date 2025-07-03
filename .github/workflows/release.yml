@@ -1,9 +1,7 @@
-name: Development Docker Image
+name: Release Docker Image
 
 on:
   push:
-    branches:
-      - main
     tags:
       - '[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9][0-9]'
 
