@@ -1,24 +1,13 @@
 version: 2
 updates:
-  # Update runtime dependencies via PNPM
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
-    package-manager: "pnpm"
-    # Optional: group updates by type to reduce PR noise
     groups:
       runtime:
         patterns:
           - "!@types/*"
-        # include all non-dev runtime packages
-  # Update devDependencies separately
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "monthly"
-    package-manager: "pnpm"
-    groups:
       dev:
         patterns:
           - "@types/*"
