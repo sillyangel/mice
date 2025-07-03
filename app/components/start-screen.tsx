@@ -408,7 +408,7 @@ export function LoginForm({
                   </div>
                   <div className="flex-1 text-sm">
                     <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                      Don't have a Navidrome server?
+                      Don&apos;t have a Navidrome server?
                     </p>
                     <p className="text-blue-700 dark:text-blue-200 mb-2">
                       Try the demo server to explore mice:
