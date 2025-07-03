@@ -118,16 +118,24 @@ const FavoritesPage = () => {
 
   if (!isConnected) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">
-          <p className="text-muted-foreground">Please connect to your Navidrome server to view favorites.</p>
+      <div className="container mx-auto p-6 pb-24 max-w-none">
+        <div className="space-y-6">
+          <div className="text-left">
+            <h1 className="text-3xl font-semibold tracking-tight">Favorites</h1>
+            <p className="text-muted-foreground">Please connect to your Navidrome server to view favorites.</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 pb-24">
+    <div className="container mx-auto p-6 pb-24 max-w-none">
+      <div className="space-y-6">
+        <div className="text-left">
+          <h1 className="text-3xl font-semibold tracking-tight">Favorites</h1>
+          <p className="text-muted-foreground">Your starred albums, songs, and artists</p>
+        </div>
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <div>
@@ -257,6 +265,7 @@ const FavoritesPage = () => {
             )}
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </div>
   );

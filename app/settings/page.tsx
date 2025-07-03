@@ -303,9 +303,9 @@ const SettingsPage = () => {
     };
 
     return (
-        <div className="container mx-auto p-6 pb-24 max-w-2xl">
+        <div className="container mx-auto p-6 pb-24 max-w-none">
             {!isClient ? (
-                <div className="space-y-6">
+                <div className="space-y-6 max-w-2xl mx-auto">
                     <div>
                         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
                         <p className="text-muted-foreground">Loading...</p>
@@ -313,13 +313,15 @@ const SettingsPage = () => {
                 </div>
             ) : (
                 <div className="space-y-6">
-                    <div>
+                    <div className="text-left">
                         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
                         <p className="text-muted-foreground">Customize your music experience</p>
                     </div>
 
+                <div className="columns-1 md:columns-2 xl:columns-3 gap-6 space-y-0">
+
                 {!hasEnvConfig && (
-                    <Card>
+                    <Card className="break-inside-avoid mb-6">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <FaServer className="w-5 h-5" />
@@ -408,7 +410,7 @@ const SettingsPage = () => {
                 )}
 
                 {hasEnvConfig && (
-                    <Card>
+                    <Card className="break-inside-avoid mb-6">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <FaServer className="w-5 h-5" />
@@ -435,7 +437,7 @@ const SettingsPage = () => {
                     </Card>
                 )}
 
-                <Card>
+                <Card className="break-inside-avoid mb-6">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <FaLastfm className="w-5 h-5" />
@@ -513,7 +515,7 @@ const SettingsPage = () => {
                     </CardContent>
                 </Card> */}
 
-                <Card>
+                <Card className="break-inside-avoid mb-6">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Settings className="w-5 h-5" />
@@ -548,7 +550,7 @@ const SettingsPage = () => {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="break-inside-avoid mb-6">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <FaLastfm className="w-5 h-5" />
@@ -643,7 +645,7 @@ const SettingsPage = () => {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="break-inside-avoid mb-6">
                     <CardHeader>
                         <CardTitle>Appearance</CardTitle>
                         <CardDescription>
@@ -692,7 +694,7 @@ const SettingsPage = () => {
                 </Card>
 
                 {/* Theme Preview */}
-                <Card>
+                <Card className="break-inside-avoid mb-6">
                     <CardHeader>
                         <CardTitle>Preview</CardTitle>
                         <CardDescription>
@@ -720,6 +722,7 @@ const SettingsPage = () => {
                         </div>
                     </CardContent>
                 </Card>
+                </div>
                 </div>
             )}
         </div>

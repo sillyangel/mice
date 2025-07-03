@@ -91,13 +91,18 @@ export default function BrowsePage() {
   }
 
   return (
-    <div className="h-full px-4 py-6 lg:px-8">
-    <>
-      <Tabs defaultValue="music" className="h-full flex flex-col space-y-6">
-        <TabsContent value="music" className="border-none p-0 outline-hidden flex flex-col grow">
+    <div className="container mx-auto p-6 pb-24 max-w-none">
+      <div className="space-y-6">
+        <div className="text-left">
+          <h1 className="text-3xl font-semibold tracking-tight">Browse</h1>
+          <p className="text-muted-foreground">Explore your complete music library</p>
+        </div>
         
-        <div className="flex items-center justify-between">
-            <div className="space-y-1">
+        <Tabs defaultValue="music" className="h-full flex flex-col space-y-6">
+          <TabsContent value="music" className="border-none p-0 outline-hidden flex flex-col grow">
+          
+          <div className="flex items-center justify-between">
+              <div className="space-y-1">
               <p className="text-2xl font-semibold tracking-tight">
                 Artists
               </p>
@@ -178,7 +183,7 @@ export default function BrowsePage() {
           </div>
         </TabsContent>
       </Tabs>
-    </>
+      </div>
     </div>
   );
 }
