@@ -1,0 +1,124 @@
+name: Development Docker Image (Nightly)
+
+on:
+  schedule:
+    # Run every night at 5:00 UTC
+    - cron: '0 5 * * *'
+  push:
+    branches:
+      - dev
+  workflow_dispatch: # Allow manual triggering
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: sillyangel/mice
+
+jobs:
+  check_changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Get full history to check for changes
+          ref: dev # Always checkout dev branch
+
+      - name: Check for changes since last nightly build
+        id: check
+        run: |
+          # Get the last commit hash from the previous nightly build
+          LAST_NIGHTLY_COMMIT=$(gh api repos/${{ github.repository }}/actions/runs \
+            --jq '.workflow_runs[] | select(.name == "Development Docker Image (Nightly)" and .conclusion == "success") | .head_sha' \
+            | head -1 || echo "")
+          
+          CURRENT_COMMIT=${{ github.sha }}
+          
+          echo "Last nightly commit: $LAST_NIGHTLY_COMMIT"
+          echo "Current commit: $CURRENT_COMMIT"
+          
+          # If we don't have a previous commit or commits are different, we should build
+          if [ -z "$LAST_NIGHTLY_COMMIT" ] || [ "$LAST_NIGHTLY_COMMIT" != "$CURRENT_COMMIT" ]; then
+            echo "Changes detected or first nightly build"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changes since last nightly build"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  push_to_registry:
+    runs-on: ubuntu-latest
+    needs: check_changes
+    if: needs.check_changes.outputs.should_build == 'true' && github.ref_name == 'dev'
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+        with:
+          ref: dev # Always checkout dev branch
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Get version from package.json
+        id: app_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Docker metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=nightly
+            type=raw,value=dev-latest
+            type=sha,prefix=dev-
+          labels: |
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.description=Nightly development build
+
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: |
+            linux/amd64
+            linux/arm64/v8
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
