@@ -112,7 +112,7 @@ export function AlbumArtwork({
     <div className={cn("space-y-3", className)} {...props}>
       <ContextMenu>
         <ContextMenuTrigger>
-          <Card key={album.id} className="overflow-hidden cursor-pointer" onClick={() => handleClick()}>
+          <Card key={album.id} className="overflow-hidden cursor-pointer px-0 py-0 gap-0" onClick={() => handleClick()}>
                               <div className="aspect-square relative group">
                                   {album.coverArt && api ? (
                                       <Image

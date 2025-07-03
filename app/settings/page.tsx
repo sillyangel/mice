@@ -14,34 +14,24 @@ import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm, FaCog } from 'rea
 import { Settings, ExternalLink } from 'lucide-react';
 
 const SettingsPage = () => {
-    const { theme, setTheme } = useTheme();
+    const { theme, setTheme, mode, setMode } = useTheme();
     const { config, updateConfig, isConnected, testConnection, clearConfig } = useNavidromeConfig();
     const { toast } = useToast();
     const { isEnabled: isStandaloneLastFmEnabled, getCredentials, getAuthUrl, getSessionKey } = useStandaloneLastFm();
     
     const [formData, setFormData] = useState({
-        serverUrl: config.serverUrl,
-        username: config.username,
-        password: config.password
+        serverUrl: '',
+        username: '',
+        password: ''
     });
     const [isTesting, setIsTesting] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     
     // Last.fm scrobbling settings (Navidrome integration)
-    const [scrobblingEnabled, setScrobblingEnabled] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('lastfm-scrobbling-enabled') === 'true';
-        }
-        return true;
-    });
+    const [scrobblingEnabled, setScrobblingEnabled] = useState(true);
 
     // Standalone Last.fm settings
-    const [standaloneLastFmEnabled, setStandaloneLastFmEnabled] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('standalone-lastfm-enabled') === 'true';
-        }
-        return false;
-    });
+    const [standaloneLastFmEnabled, setStandaloneLastFmEnabled] = useState(false);
     
     const [lastFmCredentials, setLastFmCredentials] = useState({
         apiKey: '',
@@ -49,6 +39,9 @@ const SettingsPage = () => {
         sessionKey: '',
         username: ''
     });
+
+    // Client-side hydration state
+    const [isClient, setIsClient] = useState(false);
 
     // Check if Navidrome is configured via environment variables
     const hasEnvConfig = React.useMemo(() => {
@@ -58,25 +51,51 @@ const SettingsPage = () => {
     }, []);
 
     // Sidebar settings
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('sidebar-collapsed') === 'true';
-        }
-        return false;
-    });
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-    // Load Last.fm credentials on mount
+    // Initialize client-side state after hydration
     useEffect(() => {
-        const credentials = getCredentials();
-        if (credentials) {
-            setLastFmCredentials({
-                apiKey: credentials.apiKey,
-                apiSecret: credentials.apiSecret,
-                sessionKey: credentials.sessionKey || '',
-                username: credentials.username || ''
-            });
+        setIsClient(true);
+        
+        // Initialize form data with config values
+        setFormData({
+            serverUrl: config.serverUrl || '',
+            username: config.username || '',
+            password: config.password || ''
+        });
+        
+        // Load saved preferences from localStorage
+        const savedScrobbling = localStorage.getItem('lastfm-scrobbling-enabled');
+        if (savedScrobbling !== null) {
+            setScrobblingEnabled(savedScrobbling === 'true');
         }
-    }, [getCredentials]);
+
+        const savedStandaloneLastFm = localStorage.getItem('standalone-lastfm-enabled');
+        if (savedStandaloneLastFm !== null) {
+            setStandaloneLastFmEnabled(savedStandaloneLastFm === 'true');
+        }
+
+        const savedSidebarCollapsed = localStorage.getItem('sidebar-collapsed');
+        if (savedSidebarCollapsed !== null) {
+            setSidebarCollapsed(savedSidebarCollapsed === 'true');
+        }
+
+        // Load Last.fm credentials
+        const storedCredentials = localStorage.getItem('lastfm-credentials');
+        if (storedCredentials) {
+            try {
+                const credentials = JSON.parse(storedCredentials);
+                setLastFmCredentials({
+                    apiKey: credentials.apiKey || '',
+                    apiSecret: credentials.apiSecret || '',
+                    sessionKey: credentials.sessionKey || '',
+                    username: credentials.username || ''
+                });
+            } catch (error) {
+                console.error('Failed to parse stored Last.fm credentials:', error);
+            }
+        }
+    }, [config.serverUrl, config.username, config.password]);
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -171,7 +190,9 @@ const SettingsPage = () => {
 
     const handleScrobblingToggle = (enabled: boolean) => {
         setScrobblingEnabled(enabled);
-        localStorage.setItem('lastfm-scrobbling-enabled', enabled.toString());
+        if (isClient) {
+            localStorage.setItem('lastfm-scrobbling-enabled', enabled.toString());
+        }
         toast({
             title: enabled ? "Scrobbling Enabled" : "Scrobbling Disabled",
             description: enabled 
@@ -182,7 +203,9 @@ const SettingsPage = () => {
 
     const handleStandaloneLastFmToggle = (enabled: boolean) => {
         setStandaloneLastFmEnabled(enabled);
-        localStorage.setItem('standalone-lastfm-enabled', enabled.toString());
+        if (isClient) {
+            localStorage.setItem('standalone-lastfm-enabled', enabled.toString());
+        }
         toast({
             title: enabled ? "Standalone Last.fm Enabled" : "Standalone Last.fm Disabled",
             description: enabled 
@@ -193,7 +216,9 @@ const SettingsPage = () => {
 
     const handleSidebarToggle = (collapsed: boolean) => {
         setSidebarCollapsed(collapsed);
-        localStorage.setItem('sidebar-collapsed', collapsed.toString());
+        if (isClient) {
+            localStorage.setItem('sidebar-collapsed', collapsed.toString());
+        }
         toast({
             title: collapsed ? "Sidebar Collapsed" : "Sidebar Expanded",
             description: collapsed 
@@ -202,7 +227,9 @@ const SettingsPage = () => {
         });
         
         // Trigger a custom event to notify the sidebar component
-        window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { collapsed } }));
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { collapsed } }));
+        }
     };
 
     const handleLastFmAuth = () => {
@@ -234,7 +261,9 @@ const SettingsPage = () => {
             return;
         }
 
-        localStorage.setItem('lastfm-credentials', JSON.stringify(lastFmCredentials));
+        if (isClient) {
+            localStorage.setItem('lastfm-credentials', JSON.stringify(lastFmCredentials));
+        }
         toast({
             title: "Credentials Saved",
             description: "Last.fm credentials have been saved locally.",
@@ -256,7 +285,9 @@ const SettingsPage = () => {
             };
             
             setLastFmCredentials(updatedCredentials);
-            localStorage.setItem('lastfm-credentials', JSON.stringify(updatedCredentials));
+            if (isClient) {
+                localStorage.setItem('lastfm-credentials', JSON.stringify(updatedCredentials));
+            }
             
             toast({
                 title: "Last.fm Authentication Complete",
@@ -273,11 +304,19 @@ const SettingsPage = () => {
 
     return (
         <div className="container mx-auto p-6 pb-24 max-w-2xl">
-            <div className="space-y-6">
-                <div>
-                    <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-                    <p className="text-muted-foreground">Customize your music experience</p>
+            {!isClient ? (
+                <div className="space-y-6">
+                    <div>
+                        <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
+                        <p className="text-muted-foreground">Loading...</p>
+                    </div>
                 </div>
+            ) : (
+                <div className="space-y-6">
+                    <div>
+                        <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
+                        <p className="text-muted-foreground">Customize your music experience</p>
+                    </div>
 
                 {!hasEnvConfig && (
                     <Card>
@@ -619,6 +658,7 @@ const SettingsPage = () => {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="default">Default</SelectItem>
                                     <SelectItem value="blue">Blue</SelectItem>
                                     <SelectItem value="violet">Violet</SelectItem>
                                     <SelectItem value="red">Red</SelectItem>
@@ -630,9 +670,23 @@ const SettingsPage = () => {
                             </Select>
                         </div>
 
+                        <div className="space-y-2">
+                            <Label htmlFor="mode-select">Display Mode</Label>
+                            <Select value={mode} onValueChange={setMode}>
+                                <SelectTrigger id="mode-select">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="light">Light</SelectItem>
+                                    <SelectItem value="dark">Dark</SelectItem>
+                                    <SelectItem value="system">System</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         <div className="text-sm text-muted-foreground">
-                            <p><strong>Theme:</strong> Choose between blue and violet color schemes</p>
-                            <p><strong>Dark Mode:</strong> Automatically follows your system preferences</p>
+                            <p><strong>Theme:</strong> Choose from multiple color schemes including default (white)</p>
+                            <p><strong>Display Mode:</strong> Choose light, dark, or system (follows your device preferences)</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -666,7 +720,8 @@ const SettingsPage = () => {
                         </div>
                     </CardContent>
                 </Card>
-            </div>
+                </div>
+            )}
         </div>
     );
 };

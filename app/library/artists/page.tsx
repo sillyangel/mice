@@ -7,13 +7,11 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ArtistIcon } from '@/app/components/artist-icon';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { Artist } from '@/lib/navidrome';
 import Loading from '@/app/components/loading';
-import { Search, Heart } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -106,27 +104,7 @@ export default function ArtistPage() {
             <ScrollArea>
               <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 cursor-pointer">
                 {filteredArtists.map((artist) => (
-                  <Card key={artist.id} className="overflow-hidden">
-                    <div className="aspect-square relative group cursor-pointer" onClick={() => handleViewArtist(artist)}>
-                        <div className="w-full h-full">
-                        <Image
-                          src={artist.coverArt && api ? api.getCoverArtUrl(artist.coverArt, 200) : '/placeholder-artist.png'}
-                          alt={artist.name}
-                          width={290}
-                          height={290}
-                          className="object-cover w-full h-full"
-                        />
-                        </div>
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      </div>
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold truncate">{artist.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {artist.albumCount} albums
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <ArtistIcon key={artist.id} artist={artist} responsive />
                 ))}
               </div>
               <ScrollBar orientation="horizontal" />

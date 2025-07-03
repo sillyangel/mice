@@ -101,7 +101,7 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="h-full px-4 py-6 lg:px-8">
+    <div className="h-full px-4 py-6 lg:px-8 pb-32">
       <div className="space-y-6">
         {/* Header */}
         <div className="space-y-1">
@@ -136,19 +136,25 @@ export default function SearchPage() {
             )}
 
             {/* Artists */}
-            {searchResults.artists.length > 0 && (
+            {/* {searchResults.artists.length > 0 && (
               <div>
                 <h2 className="text-2xl font-bold mb-4">Artists</h2>
                 <ScrollArea className="w-full">
                   <div className="flex space-x-4 pb-4">
                     {searchResults.artists.map((artist) => (
-                      <ArtistIcon key={artist.id} artist={artist} className="shrink-0" />
+                        <ArtistIcon
+                          key={artist.id}
+                          artist={artist}
+                          className="shrink-0 overflow-hidden"
+                          size={190}
+                        />
                     ))}
                   </div>
                   <ScrollBar orientation="horizontal" />
                 </ScrollArea>
               </div>
-            )}
+            )} */}
+            {/* broken for now */}
 
             {/* Albums */}
             {searchResults.albums.length > 0 && (

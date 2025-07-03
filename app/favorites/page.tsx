@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavidrome } from "@/app/components/NavidromeContext";
 import { AlbumArtwork } from "@/app/components/album-artwork";
 import { ArtistIcon } from "@/app/components/artist-icon";
@@ -167,33 +166,14 @@ const FavoritesPage = () => {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 {favoriteAlbums.map((album) => (
-                  <Card key={album.id} className="overflow-hidden">
-                    <div className="aspect-square relative group">
-                        {album.coverArt && api ? (
-                            <Image
-                                src={api.getCoverArtUrl(album.coverArt)}
-                                alt={album.name}
-                                fill
-                                className="w-full h-full object-cover rounded"
-                                sizes="(max-width: 768px) 100vw, 300px"
-                            />
-                        ) : (
-                            <div className="w-full h-full bg-muted rounded flex items-center justify-center">
-                                <Disc className="w-12 h-12 text-muted-foreground" />
-                            </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <Play className="w-12 h-12 mx-auto hidden group-hover:block" onClick={() => handlePlayAlbum(album)}/>
-                        </div>
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold truncate">{album.name}</h3>
-                      <p className="text-sm text-muted-foreground truncate">{album.artist}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {album.songCount} songs • {Math.floor(album.duration / 60)} min
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <AlbumArtwork
+                    key={album.id}
+                    album={album}
+                    className="w-full"
+                    aspectRatio="square"
+                    width={200}
+                    height={200}
+                  />
                 ))}
               </div>
             )}
@@ -271,23 +251,7 @@ const FavoritesPage = () => {
             ) : (
               <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
                 {favoriteArtists.map((artist) => (
-                  <Card key={artist.id} className="overflow-hidden">
-                    <CardContent className="p-3 text-center">
-                      <div className="w-24 h-24 mx-auto mb-4">
-                      <Image
-                        src={artist.coverArt && api ? api.getCoverArtUrl(artist.coverArt, 200) : '/placeholder-artist.png'}
-                        alt={artist.name}
-                        width={250}
-                        height={250}
-                        className="object-cover w-full h-full"
-                      />
-                      </div>
-                      <h3 className="font-semibold truncate">{artist.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {artist.albumCount} albums
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <ArtistIcon key={artist.id} artist={artist} responsive />
                 ))}
               </div>
             )}

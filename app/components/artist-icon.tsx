@@ -25,12 +25,14 @@ interface ArtistIconProps extends React.HTMLAttributes<HTMLDivElement> {
   artist: Artist
   size?: number
   imageOnly?: boolean
+  responsive?: boolean
 }
 
 export function ArtistIcon({
   artist,
   size = 150,
   imageOnly = false,
+  responsive = false,
   className,
   ...props
 }: ArtistIconProps) {
@@ -54,9 +56,9 @@ export function ArtistIcon({
       starItem(artist.id, 'artist');
     }
   };
-  // Get cover art URL with proper fallback
+  // Get cover art URL with proper fallback - use higher resolution for better quality
   const artistImageUrl = artist.coverArt && api
-    ? api.getCoverArtUrl(artist.coverArt, 200)
+    ? api.getCoverArtUrl(artist.coverArt, 320)
     : '/default-user.jpg';
 
   // If imageOnly is true, return just the image without context menu or text
@@ -79,22 +81,33 @@ export function ArtistIcon({
     );
   }
 
+  // Determine if we should use responsive layout
+  const isResponsive = responsive;
+
   return (
     <div className={cn("space-y-3", className)} {...props}>
       <ContextMenu>
         <ContextMenuTrigger>
-          <Card key={artist.id} className="overflow-hidden cursor-pointer" onClick={() => handleClick()}>
+          <Card key={artist.id} className="overflow-hidden cursor-pointer px-0 py-0 gap-0" onClick={() => handleClick()}>
             <div
               className="aspect-square relative group"
-              style={{ width: size, height: size }}
+              style={!isResponsive ? { width: size, height: size } : undefined}
             >
               <div className="w-full h-full">
                 <Image
-                  src={artist.coverArt && api ? api.getCoverArtUrl(artist.coverArt, 200) : '/placeholder-artist.png'}
+                  src={artist.coverArt && api ? api.getCoverArtUrl(artist.coverArt, 600) : '/placeholder-artist.png'}
                   alt={artist.name}
-                  width={size}
-                  height={size}
-                  className="object-cover w-full h-full"
+                  {...(isResponsive 
+                    ? { 
+                        fill: true, 
+                        sizes: "(max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw" 
+                      }
+                    : { 
+                        width: size, 
+                        height: size 
+                      }
+                  )}
+                  className={isResponsive ? "object-cover" : "object-cover w-full h-full"}
                 />
               </div>
             </div>
@@ -105,19 +118,6 @@ export function ArtistIcon({
               </p>
             </CardContent>
           </Card>
-          {/* <div 
-            className="overflow-hidden rounded-full cursor-pointer shrink-0" 
-            onClick={handleClick}
-            style={{ width: size, height: size }}
-          >
-            <Image
-              src={artistImageUrl}
-              alt={artist.name}
-              width={size}
-              height={size}
-              className="w-full h-full object-cover transition-all hover:scale-105"
-            />
-          </div> */}
         </ContextMenuTrigger>
         <ContextMenuContent className="w-40">
           <ContextMenuItem onClick={handleStar}>
