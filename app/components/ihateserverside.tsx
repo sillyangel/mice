@@ -43,10 +43,10 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
   if (!isClient) {
     // Return a basic layout during SSR to match initial client render
     return (
-      <div className="hidden md:flex md:flex-col md:h-screen">
+      <div className="hidden md:flex md:flex-col md:h-screen md:w-screen md:overflow-hidden">
         {/* Top Menu */}
         <div
-          className="sticky z-10 bg-background border-b"
+          className="sticky z-10 bg-background border-b w-full"
           style={{
             left: 'env(titlebar-area-x, 0)',
             top: 'env(titlebar-area-y, 0)',
@@ -61,7 +61,7 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden w-full">
           <div className="w-64 shrink-0 border-r transition-all duration-200">
             <Sidebar
               playlists={playlists}
@@ -71,7 +71,7 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
               onTransitionEnd={handleTransitionEnd}
             />
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-w-0">
             <div>{children}</div>
           </div>
         </div>
@@ -83,10 +83,10 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
     );
   }
   return (
-    <div className="hidden md:flex md:flex-col md:h-screen">
+    <div className="hidden md:flex md:flex-col md:h-screen md:w-screen md:overflow-hidden">
       {/* Top Menu */}
       <div
-        className="sticky z-10 bg-background border-b"
+        className="sticky z-10 bg-background border-b w-full"
         style={{
           left: 'env(titlebar-area-x, 0)',
           top: 'env(titlebar-area-y, 0)',
@@ -101,7 +101,7 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden w-full">
         {isSidebarVisible && (
           <div className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} shrink-0 border-r transition-all duration-200`}>
             <Sidebar
@@ -113,7 +113,7 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
             />
           </div>
         )}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-w-0">
           <div>{children}</div>
         </div>
       </div>

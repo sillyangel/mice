@@ -181,7 +181,7 @@ export default function MusicPage() {
 
 
   return (
-    <div className="h-full px-4 py-6 lg:px-8 pb-24">
+    <div className="container mx-auto p-6 pb-24 max-w-none">
       <div className="relative rounded-lg p-8">
           <div className="relative rounded-sm p-10">
             <div

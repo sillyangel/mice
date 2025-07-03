@@ -111,9 +111,9 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
 
     return (
       <>
-      <div className="flex items-center justify-between w-full ml-2">
+      <div className="flex items-center justify-between w-full">
         <Menubar
-          className="rounded-none border-b border-none px-0 lg:px-0 flex-1"
+          className="rounded-none border-b border-none px-2 lg:px-2 flex-1 min-w-0"
           style={{
             minWidth: 0,
             WebkitAppRegion: "drag"

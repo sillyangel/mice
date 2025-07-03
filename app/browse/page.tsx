@@ -92,19 +92,14 @@ export default function BrowsePage() {
 
   return (
     <div className="container mx-auto p-6 pb-24 max-w-none">
-      <div className="space-y-6">
-        <div className="text-left">
-          <h1 className="text-3xl font-semibold tracking-tight">Browse</h1>
-          <p className="text-muted-foreground">Explore your complete music library</p>
-        </div>
-        
-        <Tabs defaultValue="music" className="h-full flex flex-col space-y-6">
-          <TabsContent value="music" className="border-none p-0 outline-hidden flex flex-col grow">
+      <div className="space-y-2">
+        <div className="h-full flex flex-col space-y-6">
+          <div className="border-none p-0 outline-hidden flex flex-col grow">
           
           <div className="flex items-center justify-between">
               <div className="space-y-1">
-              <p className="text-2xl font-semibold tracking-tight">
-                Artists
+              <p className="text-3xl font-semibold tracking-tight">
+                Browse Artists
               </p>
               <p className="text-sm text-muted-foreground">
                 the people who make the music
@@ -135,7 +130,7 @@ export default function BrowsePage() {
           </div>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-2xl font-semibold tracking-tight">
+              <p className="text-3xl font-semibold tracking-tight">
                 Browse Albums
               </p>
               <p className="text-sm text-muted-foreground">
@@ -181,8 +176,8 @@ export default function BrowsePage() {
               <ScrollBar orientation="vertical" />
             </ScrollArea>
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
       </div>
     </div>
   );

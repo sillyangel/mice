@@ -303,7 +303,7 @@ const SettingsPage = () => {
     };
 
     return (
-        <div className="container mx-auto p-6 pb-24 max-w-none">
+        <div className="p-6 pb-24 w-full">
             {!isClient ? (
                 <div className="space-y-6 max-w-2xl mx-auto">
                     <div>
