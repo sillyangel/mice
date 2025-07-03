@@ -8,7 +8,7 @@ This application can be easily deployed using Docker with configurable environme
 
 ```bash
 # Run using pre-built image (app will prompt for Navidrome config)
-docker run -p 3000:3000 ghcr.io/sillyangel/mice:latest
+docker run -p 3000:3000 sillyangel/mice:latest
 
 # Or build locally
 docker build -t mice .
@@ -20,7 +20,7 @@ docker run -p 3000:3000 \
   -e NEXT_PUBLIC_NAVIDROME_USERNAME=your_username \
   -e NEXT_PUBLIC_NAVIDROME_PASSWORD=your_password \
   -e PORT=3000 \
-  ghcr.io/sillyangel/mice:latest
+  sillyangel/mice:latest
 ```
 
 ### Using Docker Compose
@@ -43,7 +43,7 @@ docker run -p 3000:3000 \
    docker-compose up -d
    ```
 
-**Note**: The default docker-compose.yml uses the pre-built image `ghcr.io/sillyangel/mice:latest`.
+**Note**: The default docker-compose.yml uses the pre-built image `sillyangel/mice:latest`.
 
 For local development, you can use the override example:
 
@@ -86,7 +86,7 @@ For local development (non-Docker), use these variable names:
 
 ```bash
 # Using pre-built image - app will ask for Navidrome server details on first launch
-docker run -p 3000:3000 ghcr.io/sillyangel/mice:latest
+docker run -p 3000:3000 sillyangel/mice:latest
 
 # Or build locally
 docker build -t mice .
@@ -100,7 +100,7 @@ docker run -p 3000:3000 \
   -e NEXT_PUBLIC_NAVIDROME_URL=http://localhost:4533 \
   -e NEXT_PUBLIC_NAVIDROME_USERNAME=admin \
   -e NEXT_PUBLIC_NAVIDROME_PASSWORD=admin \
-  ghcr.io/sillyangel/mice:latest
+  sillyangel/mice:latest
 ```
 
 ### Pre-configured Production Setup
@@ -112,7 +112,7 @@ docker run -p 80:3000 \
   -e NEXT_PUBLIC_NAVIDROME_PASSWORD=your_secure_password \
   -e PORT=3000 \
   --restart unless-stopped \
-  ghcr.io/sillyangel/mice:latest
+  sillyangel/mice:latest
 ```
 
 ### Using Environment File

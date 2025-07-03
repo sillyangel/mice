@@ -3,7 +3,7 @@ version: '3.8'
 services:
   mice:
     container_name: mice-public
-    image: ghcr.io/sillyangel/mice:latest
+    image: sillyangel/mice:latest
     ports:
       - "40625:40625"
     environment:

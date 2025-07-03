@@ -399,6 +399,28 @@ export function LoginForm({
                   required 
                 />
               </div>
+
+              {/* Demo Server Tip */}
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="text-blue-600 dark:text-blue-400 mt-0.5">
+                    💡
+                  </div>
+                  <div className="flex-1 text-sm">
+                    <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                      Don't have a Navidrome server?
+                    </p>
+                    <p className="text-blue-700 dark:text-blue-200 mb-2">
+                      Try the demo server to explore mice:
+                    </p>
+                    <div className="bg-blue-100 dark:bg-blue-900/50 rounded p-2 font-mono text-xs">
+                      <div><strong>URL:</strong> https://demo.navidrome.org</div>
+                      <div><strong>Username:</strong> demo</div>
+                      <div><strong>Password:</strong> demo</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               
               <div className="flex flex-col gap-3">
                 <Button type="submit" className="w-full" disabled={isTesting}>

@@ -1,13 +1,13 @@
 # GitHub Actions Docker Publishing Setup
 
-This repository includes a GitHub Actions workflow that automatically builds and publishes Docker images to GitHub Container Registry (GHCR).
+This repository includes a GitHub Actions workflow that automatically builds and publishes Docker images to Docker Hub.
 
 ## Workflow Overview
 
 The workflow (`/.github/workflows/publish-docker.yml`) automatically:
 
 1. **Builds** the Docker image using multi-platform support (AMD64 and ARM64)
-2. **Publishes** to `ghcr.io/sillyangel/mice`
+2. **Publishes** to `sillyangel/mice`
 3. **Tags** images appropriately based on git refs
 4. **Caches** layers for faster subsequent builds
 5. **Generates** build provenance attestations for security
@@ -27,16 +27,16 @@ Based on different triggers, the workflow creates these tags:
 
 ### Main Branch Push
 
-- `ghcr.io/sillyangel/mice:latest`
+- `sillyangel/mice:latest`
 
 ### Tag Push (e.g., `2025.07.02`)
 
-- `ghcr.io/sillyangel/mice:2025.07.02`
-- `ghcr.io/sillyangel/mice:latest`
+- `sillyangel/mice:2025.07.02`
+- `sillyangel/mice:latest`
 
 ### Pull Request
 
-- `ghcr.io/sillyangel/mice:pr-123`
+- `sillyangel/mice:pr-123`
 
 ## Multi-Platform Support
 
@@ -51,7 +51,7 @@ Once the workflow is set up:
 
 1. **Push to main** → New `latest` image published
 2. **Create a release** → Versioned images published
-3. **Users can pull**: `docker pull ghcr.io/sillyangel/mice:latest`
+3. **Users can pull**: `docker pull sillyangel/mice:latest`
 
 ## Manual Image Building
 
@@ -60,9 +60,9 @@ You can also build and push manually:
 ```bash
 # Build for multiple platforms
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -t ghcr.io/sillyangel/mice:latest \
+  -t sillyangel/mice:latest \
   --push .
 
 # Login first (if needed)
-echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+echo $DOCKERHUB_TOKEN | docker login -u USERNAME --password-stdin
 ```

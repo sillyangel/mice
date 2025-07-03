@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   mice:
-    image: ghcr.io/sillyangel/mice:latest
+    image: sillyangel/mice:latest
     ports:
       - "${HOST_PORT:-3000}:${PORT:-3000}"
     environment:

@@ -1,6 +1,6 @@
 <p align="left" style="display: flex; align-items: center; gap: 12px;">
   <img src="https://github.com/sillyangel/mice/blob/main/public/icon-512.png?raw=true" alt="Mice Logo" width="64" style="border-radius: 12px;" />
-  <strong style="font-size: 2em;">Mice | Navidrome Client</strong>
+  <strong style="font-size: 2rem;">Mice | Navidrome Client</strong>
 </p>
 
 #
@@ -91,7 +91,7 @@ For easy deployment using Docker:
 
 ```bash
 # Run using pre-built image (app will prompt for Navidrome configuration)
-docker run -p 3000:3000 ghcr.io/sillyangel/mice:latest
+docker run -p 3000:3000 sillyangel/mice:latest
 
 # Or build locally
 docker build -t mice .
@@ -114,7 +114,7 @@ docker run -p 3000:3000 \
   -e NEXT_PUBLIC_NAVIDROME_URL=http://your-navidrome-server:4533 \
   -e NEXT_PUBLIC_NAVIDROME_USERNAME=your_username \
   -e NEXT_PUBLIC_NAVIDROME_PASSWORD=your_password \
-  ghcr.io/sillyangel/mice:latest
+  sillyangel/mice:latest
 ```
 
 📖 **For detailed Docker configuration, environment variables, troubleshooting, and advanced setups, see [DOCKER.md](./DOCKER.md)**

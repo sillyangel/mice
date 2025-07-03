@@ -1,13 +1,15 @@
 name: Publish Docker Image
 
 on:
-    push:
-        tags:
-            - '[0-9][0-9][0-9][0-9].[0-9]*.[0-9]*'
+  push:
+    tags:
+      - '[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9][0-9]'
+    branches:
+      - main
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: docker.io
+  IMAGE_NAME: sillyangel/mice
 
 jobs:
   push_to_registry:
@@ -21,12 +23,11 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v4
 
-      - name: Login to GitHub Container Registry
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -40,14 +41,19 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Docker metadata (tags, labels)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
-            type=raw,value=${{ steps.app_version.outputs.version }}
-            type=raw,value=${{ github.sha }}
+  id: meta
+  uses: docker/metadata-action@v5
+  with:
+    images: ${{ env.IMAGE_NAME }}
+    tags: |
+      type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
+      type=raw,value=${{ steps.app_version.outputs.version }},enable=${{ startsWith(github.ref, 'refs/tags/') }}
+      type=raw,value=${{ github.ref_name }},enable=${{ startsWith(github.ref, 'refs/tags/') }}
+      type=sha
+    labels: |
+      org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+      org.opencontainers.image.licenses=MIT
+
       
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -72,6 +78,6 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-name: ${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
