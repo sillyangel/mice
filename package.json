@@ -30,7 +30,7 @@
     "clsx": "^2.1.1",
     "colorthief": "^2.6.0",
     "lucide-react": "^0.469.0",
-    "next": "15.3.4",
+    "next": "15.2.4",
     "posthog-js": "^1.255.0",
     "posthog-node": "^5.1.1",
     "react": "19.1.0",
