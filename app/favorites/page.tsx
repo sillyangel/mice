@@ -118,7 +118,7 @@ const FavoritesPage = () => {
 
   if (!isConnected) {
     return (
-      <div className="container mx-auto p-6 pb-24 max-w-none">
+      <div className="p-6 pb-24 w-full">
         <div className="space-y-6">
           <div className="text-left">
             <h1 className="text-3xl font-semibold tracking-tight">Favorites</h1>
@@ -130,7 +130,7 @@ const FavoritesPage = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 pb-24 max-w-none">
+    <div className="p-6 pb-24 w-full">
       <div className="space-y-6">
         <div className="text-left">
           <h1 className="text-3xl font-semibold tracking-tight">Favorites</h1>

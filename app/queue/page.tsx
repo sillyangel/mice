@@ -19,7 +19,7 @@ const QueuePage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 pb-24 max-w-none">
+    <div className="p-6 pb-24 w-full">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

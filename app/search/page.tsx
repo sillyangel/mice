@@ -101,7 +101,7 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 pb-32 max-w-none">
+    <div className="p-6 pb-32 w-full">
       <div className="space-y-6">
         {/* Header */}
         <div className="space-y-1">

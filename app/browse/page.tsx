@@ -91,7 +91,7 @@ export default function BrowsePage() {
   }
 
   return (
-    <div className="container mx-auto p-6 pb-24 max-w-none">
+    <div className="p-6 pb-24 w-full">
       <div className="space-y-2">
         <div className="h-full flex flex-col space-y-6">
           <div className="border-none p-0 outline-hidden flex flex-col grow">

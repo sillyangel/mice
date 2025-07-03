@@ -31,7 +31,7 @@ const PlaylistsPage: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 pb-24 max-w-none">
+    <div className="p-6 pb-24 w-full">
       <Tabs defaultValue="music" className="h-full space-y-6">
         <TabsContent value="music" className="border-none p-0 outline-hidden">
           <div className="flex items-center justify-between">

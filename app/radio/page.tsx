@@ -128,14 +128,14 @@ const RadioStationsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6 max-w-4xl">
+      <div className="p-6 w-full max-w-4xl">
         <div className="text-center">Loading radio stations...</div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 pb-24 max-w-none">
+    <div className="p-6 pb-24 w-full">
       <div className="space-y-2">
         <div className="flex items-center justify-between border-b pb-4 mb-4">
           <div>
