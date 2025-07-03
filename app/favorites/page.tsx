@@ -118,7 +118,7 @@ const FavoritesPage = () => {
 
   if (!isConnected) {
     return (
-      <div className="p-6 pb-24 w-full">
+      <div className="container mx-auto p-6 pb-24 max-w-none">
         <div className="space-y-6">
           <div className="text-left">
             <h1 className="text-3xl font-semibold tracking-tight">Favorites</h1>
@@ -130,20 +130,13 @@ const FavoritesPage = () => {
   }
 
   return (
-    <div className="p-6 pb-24 w-full">
+    <div className="container mx-auto p-6 pb-24 max-w-none">
       <div className="space-y-6">
         <div className="text-left">
           <h1 className="text-3xl font-semibold tracking-tight">Favorites</h1>
           <p className="text-muted-foreground">Your starred albums, songs, and artists</p>
         </div>
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Favorites</h1>
-            <p className="text-muted-foreground">Your starred albums, songs, and artists</p>
-          </div>
-        </div>
-
         <Tabs defaultValue="albums" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="albums" className="flex items-center gap-2">
