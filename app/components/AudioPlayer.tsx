@@ -359,7 +359,7 @@ export const AudioPlayer: React.FC = () => {
     return (
       <div className="fixed bottom-4 left-4 z-50">
         <div 
-          className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg cursor-pointer hover:scale-[1.02] transition-transform w-80"
+          className="bg-background/95 backdrop-blur-xs border rounded-lg shadow-lg cursor-pointer hover:scale-[1.02] transition-transform w-80"
           onClick={() => setIsMinimized(false)}
         >
           <div className="flex items-center p-3">
@@ -368,7 +368,7 @@ export const AudioPlayer: React.FC = () => {
               alt={currentTrack.name} 
               width={40} 
               height={40} 
-              className="w-10 h-10 rounded-md flex-shrink-0" 
+              className="w-10 h-10 rounded-md shrink-0" 
             />
             <div className="flex-1 min-w-0 mx-3">
               <div className="overflow-hidden">
@@ -413,7 +413,7 @@ export const AudioPlayer: React.FC = () => {
   // Compact floating player (default state)
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50">
-      <div className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 cursor-pointer hover:scale-[1.01] transition-transform">
+      <div className="bg-background/95 backdrop-blur-xs border rounded-lg shadow-lg p-3 cursor-pointer hover:scale-[1.01] transition-transform">
         <div className="flex items-center">
           {/* Track info */}
           <div className="flex items-center flex-1 min-w-0">
@@ -422,7 +422,7 @@ export const AudioPlayer: React.FC = () => {
               alt={currentTrack.name} 
               width={48} 
               height={48} 
-              className="w-12 h-12 rounded-md mr-4 flex-shrink-0" 
+              className="w-12 h-12 rounded-md mr-4 shrink-0" 
             />
             <div className="flex-1 min-w-0">
               <p className="font-semibold truncate text-base">{currentTrack.name}</p>

@@ -63,7 +63,7 @@ export function ArtistIcon({
   if (imageOnly) {
     return (
       <div 
-        className={cn("overflow-hidden rounded-full cursor-pointer flex-shrink-0", className)} 
+        className={cn("overflow-hidden rounded-full cursor-pointer shrink-0", className)} 
         onClick={handleClick}
         style={{ width: size, height: size }}
         {...props}
@@ -106,7 +106,7 @@ export function ArtistIcon({
             </CardContent>
           </Card>
           {/* <div 
-            className="overflow-hidden rounded-full cursor-pointer flex-shrink-0" 
+            className="overflow-hidden rounded-full cursor-pointer shrink-0" 
             onClick={handleClick}
             style={{ width: size, height: size }}
           >

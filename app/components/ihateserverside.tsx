@@ -62,7 +62,7 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
 
         {/* Main Content Area */}
         <div className="flex-1 flex overflow-hidden">
-          <div className="w-64 flex-shrink-0 border-r transition-all duration-200">
+          <div className="w-64 shrink-0 border-r transition-all duration-200">
             <Sidebar
               playlists={playlists}
               className="h-full overflow-y-auto"
@@ -103,7 +103,7 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {isSidebarVisible && (
-          <div className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} flex-shrink-0 border-r transition-all duration-200`}>
+          <div className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} shrink-0 border-r transition-all duration-200`}>
             <Sidebar
               playlists={playlists}
               className="h-full overflow-y-auto"

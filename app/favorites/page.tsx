@@ -217,7 +217,7 @@ const FavoritesPage = () => {
                     <div className="w-8 text-sm text-muted-foreground text-center">
                       {index + 1}
                     </div>
-                    <div className="w-12 h-12 relative flex-shrink-0">
+                    <div className="w-12 h-12 relative shrink-0">
                       {song.coverArt && api ? (
                         <Image
                           src={api.getCoverArtUrl(song.coverArt)}

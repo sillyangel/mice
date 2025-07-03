@@ -49,7 +49,7 @@ const QueuePage: React.FC = () => {
             <div className="p-4 bg-accent/30 rounded-lg">
               <div className="flex items-center">
                 {/* Album Art */}
-                <div className="w-16 h-16 mr-4 flex-shrink-0">
+                <div className="w-16 h-16 mr-4 shrink-0">
                   <Image
                     src={currentTrack.coverArt || '/default-user.jpg'}
                     alt={currentTrack.album}
@@ -115,7 +115,7 @@ const QueuePage: React.FC = () => {
                     onClick={() => skipToTrackInQueue(index)}
                   >
                     {/* Album Art with Play Indicator */}
-                    <div className="w-12 h-12 mr-4 flex-shrink-0 relative">
+                    <div className="w-12 h-12 mr-4 shrink-0 relative">
                       <Image
                         src={track.coverArt || '/default-user.jpg'}
                         alt={track.album}

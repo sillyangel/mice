@@ -208,7 +208,7 @@ export default function PlaylistPage() {
                     </div>
 
                     {/* Album Art */}
-                    <div className="w-12 h-12 mr-4 flex-shrink-0">                      <Image
+                    <div className="w-12 h-12 mr-4 shrink-0">                      <Image
                         src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 100) : '/default-user.jpg'}
                         alt={song.album}
                         width={48}

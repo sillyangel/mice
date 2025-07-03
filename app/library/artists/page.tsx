@@ -67,7 +67,7 @@ export default function ArtistPage() {
   return (
     <div className="h-full px-4 py-6 lg:px-8 mb-24">
       <Tabs defaultValue="music" className="h-full space-y-6">
-        <TabsContent value="music" className="border-none p-0 outline-none">
+        <TabsContent value="music" className="border-none p-0 outline-hidden">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-2xl font-semibold tracking-tight">

@@ -68,7 +68,7 @@ export function SimilarArtists({ artistName }: SimilarArtistsProps) {
             <Link
               key={artist.name}
               href={`/artist/${encodeURIComponent(artist.name)}`}
-              className="flex-shrink-0"
+              className="shrink-0"
             >
               <div className="w-32 space-y-2 group cursor-pointer">
                 <div className="relative w-32 h-32 bg-muted rounded-full overflow-hidden">

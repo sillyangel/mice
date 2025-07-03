@@ -94,7 +94,7 @@ export default function BrowsePage() {
     <div className="h-full px-4 py-6 lg:px-8">
     <>
       <Tabs defaultValue="music" className="h-full flex flex-col space-y-6">
-        <TabsContent value="music" className="border-none p-0 outline-none flex flex-col flex-grow">
+        <TabsContent value="music" className="border-none p-0 outline-hidden flex flex-col grow">
         
         <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -111,7 +111,7 @@ export default function BrowsePage() {
             </Button>
           </div>
           <Separator className="my-4" />
-          <div className="relative flex-grow">
+          <div className="relative grow">
             <div className="relative">
             <ScrollArea>
             <div className="flex space-x-4 pb-4">
@@ -119,7 +119,7 @@ export default function BrowsePage() {
                   <ArtistIcon
                     key={artist.id}
                     artist={artist}
-                    className="flex-shrink-0 overflow-hidden"
+                    className="shrink-0 overflow-hidden"
                     size={190}
                   />
                 ))}
@@ -139,7 +139,7 @@ export default function BrowsePage() {
             </div>
           </div>
           <Separator className="my-4" />
-          <div className="relative flex-grow">
+          <div className="relative grow">
             <ScrollArea className="h-full">
               <div className="h-full overflow-y-auto">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4 p-4 pb-8">

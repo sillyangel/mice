@@ -185,7 +185,7 @@ export default function MusicPage() {
       <div className="relative rounded-lg p-8">
           <div className="relative rounded-sm p-10">
             <div
-              className="absolute inset-0 bg-center bg-cover bg-no-repeat blur-xl bg-gradient-to-r from-primary to-secondary"
+              className="absolute inset-0 bg-center bg-cover bg-no-repeat blur-xl bg-linear-to-r from-primary to-secondary"
  style={{
                 backgroundImage:
  timeOfDay === 'morning'
@@ -203,7 +203,7 @@ export default function MusicPage() {
        </div>
       <>
       <Tabs defaultValue="music" className="h-full space-y-6">
-        <TabsContent value="music" className="border-none p-0 outline-none">
+        <TabsContent value="music" className="border-none p-0 outline-hidden">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-2xl font-semibold tracking-tight">
@@ -221,14 +221,14 @@ export default function MusicPage() {
                 {isLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                    <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md shrink-0" />
                   ))
                 ) : (
                   recentAlbums.map((album) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}
-                      className="w-[220px] flex-shrink-0"
+                      className="w-[220px] shrink-0"
                       aspectRatio="square"
                       width={220}
                       height={220}
@@ -258,14 +258,14 @@ export default function MusicPage() {
                     {favoritesLoading ? (
                       // Loading skeletons
                       Array.from({ length: 10 }).map((_, i) => (
-                        <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                        <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md shrink-0" />
                       ))
                     ) : (
                       favoriteAlbums.map((album) => (
                         <AlbumArtwork
                           key={album.id}
                           album={album}
-                          className="w-[220px] flex-shrink-0"
+                          className="w-[220px] shrink-0"
                           aspectRatio="square"
                           width={220}
                           height={220}
@@ -294,14 +294,14 @@ export default function MusicPage() {
             {isLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                    <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md shrink-0" />
                   ))
                 ) : (
                   newestAlbums.map((album) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}
-                      className="w-[220px] flex-shrink-0"
+                      className="w-[220px] shrink-0"
                       aspectRatio="square"
                       width={220}
                       height={220}

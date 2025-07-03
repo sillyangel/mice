@@ -142,7 +142,7 @@ export default function SearchPage() {
                 <ScrollArea className="w-full">
                   <div className="flex space-x-4 pb-4">
                     {searchResults.artists.map((artist) => (
-                      <ArtistIcon key={artist.id} artist={artist} className="flex-shrink-0" />
+                      <ArtistIcon key={artist.id} artist={artist} className="shrink-0" />
                     ))}
                   </div>
                   <ScrollBar orientation="horizontal" />
@@ -160,7 +160,7 @@ export default function SearchPage() {
                       <AlbumArtwork 
                         key={album.id} 
                         album={album} 
-                        className="flex-shrink-0 w-48" 
+                        className="shrink-0 w-48" 
                         aspectRatio="square"
                         width={192}
                         height={192}
@@ -192,7 +192,7 @@ export default function SearchPage() {
                       </div>
                       
                       {/* Song Cover */}
-                      <div className="flex-shrink-0">                        <Image
+                      <div className="shrink-0">                        <Image
                           src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 64) : '/default-user.jpg'}
                           alt={song.album}
                           width={48}

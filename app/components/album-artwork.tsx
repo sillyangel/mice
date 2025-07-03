@@ -148,7 +148,7 @@ export function AlbumArtwork({
               
               className={cn(
                 "w-full h-full object-cover transition-all hover:scale-105",
-                aspectRatio === "portrait" ? "aspect-[3/4]" : "aspect-square"
+                aspectRatio === "portrait" ? "aspect-3/4" : "aspect-square"
               )}
             />
           </div> */}

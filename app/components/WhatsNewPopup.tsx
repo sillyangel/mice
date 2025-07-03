@@ -170,14 +170,14 @@ export function WhatsNewPopup() {
         <>
         <div className="flex gap-2 mb-4">
           <Button
-            variant={tab === 'latest' ? 'default' : 'outline'}
+            variant={tab === 'latest' ? 'default' : 'outline-solid'}
             size="sm"
             onClick={() => setTab('latest')}
           >
             Latest
           </Button>
           <Button
-            variant={tab === 'archive' ? 'default' : 'outline'}
+            variant={tab === 'archive' ? 'default' : 'outline-solid'}
             size="sm"
             onClick={() => setTab('archive')}
             disabled={archiveChangelogs.length === 0}
