@@ -8,14 +8,19 @@ import { useNavidrome } from './components/NavidromeContext';
 import { useEffect, useState } from 'react';
 import { Album } from '@/lib/navidrome';
 import { useNavidromeConfig } from './components/NavidromeConfigContext';
+import { useSearchParams } from 'next/navigation';
+import { useAudioPlayer } from './components/AudioPlayerContext';
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 export default function MusicPage() {
   const { albums, isLoading, api, isConnected } = useNavidrome();
+  const { playAlbum, playTrack, shuffle, toggleShuffle, addToQueue } = useAudioPlayer();
+  const searchParams = useSearchParams();
   const [recentAlbums, setRecentAlbums] = useState<Album[]>([]);
   const [newestAlbums, setNewestAlbums] = useState<Album[]>([]);
   const [favoriteAlbums, setFavoriteAlbums] = useState<Album[]>([]);
   const [favoritesLoading, setFavoritesLoading] = useState(true);
+  const [shortcutProcessed, setShortcutProcessed] = useState(false);
 
   useEffect(() => {
     if (albums.length > 0) {
@@ -44,6 +49,114 @@ export default function MusicPage() {
 
     loadFavoriteAlbums();
   }, [api, isConnected]);
+
+  // Handle PWA shortcuts
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (!action || shortcutProcessed || !api || !isConnected) return;
+
+    const handleShortcuts = async () => {
+      try {
+        switch (action) {
+          case 'resume':
+            // Try to resume from localStorage or play a recent track
+            const lastTrack = localStorage.getItem('lastPlayedTrack');
+            if (lastTrack) {
+              const trackData = JSON.parse(lastTrack);
+              await playTrack(trackData);
+            } else if (recentAlbums.length > 0) {
+              // Fallback: play first track from most recent album
+              await playAlbum(recentAlbums[0].id);
+            }
+            break;
+
+          case 'recent':
+            if (recentAlbums.length > 0) {
+              // Get the 10 most recent albums and shuffle them
+              const tenRecentAlbums = recentAlbums.slice(0, 10);
+              const shuffledAlbums = [...tenRecentAlbums].sort(() => Math.random() - 0.5);
+              
+              // Enable shuffle if not already on
+              if (!shuffle) {
+                toggleShuffle();
+              }
+              
+              // Play first album and add remaining albums to queue
+              await playAlbum(shuffledAlbums[0].id);
+              
+              // Add remaining albums to queue
+              for (let i = 1; i < shuffledAlbums.length; i++) {
+                try {
+                  const albumSongs = await api.getAlbumSongs(shuffledAlbums[i].id);
+                  albumSongs.forEach(song => {
+                    addToQueue({
+                      id: song.id,
+                      name: song.title,
+                      url: api.getStreamUrl(song.id),
+                      artist: song.artist || 'Unknown Artist',
+                      artistId: song.artistId || '',
+                      album: song.album || 'Unknown Album',
+                      albumId: song.parent,
+                      duration: song.duration || 0,
+                      coverArt: song.coverArt,
+                      starred: !!song.starred
+                    });
+                  });
+                } catch (error) {
+                  console.error('Failed to load album tracks:', error);
+                }
+              }
+            }
+            break;
+
+          case 'shuffle-favorites':
+            if (favoriteAlbums.length > 0) {
+              // Shuffle all favorite albums
+              const shuffledFavorites = [...favoriteAlbums].sort(() => Math.random() - 0.5);
+              
+              // Enable shuffle if not already on
+              if (!shuffle) {
+                toggleShuffle();
+              }
+              
+              // Play first album and add remaining albums to queue
+              await playAlbum(shuffledFavorites[0].id);
+              
+              // Add remaining albums to queue
+              for (let i = 1; i < shuffledFavorites.length; i++) {
+                try {
+                  const albumSongs = await api.getAlbumSongs(shuffledFavorites[i].id);
+                  albumSongs.forEach(song => {
+                    addToQueue({
+                      id: song.id,
+                      name: song.title,
+                      url: api.getStreamUrl(song.id),
+                      artist: song.artist || 'Unknown Artist',
+                      artistId: song.artistId || '',
+                      album: song.album || 'Unknown Album',
+                      albumId: song.parent,
+                      duration: song.duration || 0,
+                      coverArt: song.coverArt,
+                      starred: !!song.starred
+                    });
+                  });
+                } catch (error) {
+                  console.error('Failed to load album tracks:', error);
+                }
+              }
+            }
+            break;
+        }
+        setShortcutProcessed(true);
+      } catch (error) {
+        console.error('Failed to handle PWA shortcut:', error);
+      }
+    };
+
+    // Delay to ensure data is loaded
+    const timeout = setTimeout(handleShortcuts, 1000);
+    return () => clearTimeout(timeout);
+  }, [searchParams, api, isConnected, recentAlbums, favoriteAlbums, shortcutProcessed, playAlbum, playTrack, shuffle, toggleShuffle, addToQueue]);
 
   // Get greeting and time of day
   const hour = new Date().getHours();
@@ -107,7 +220,7 @@ export default function MusicPage() {
               <div className="flex space-x-4 pb-4">
                 {isLoading ? (
                   // Loading skeletons
-                  Array.from({ length: 6 }).map((_, i) => (
+                  Array.from({ length: 10 }).map((_, i) => (
                     <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
                   ))
                 ) : (
@@ -144,7 +257,7 @@ export default function MusicPage() {
                   <div className="flex space-x-4 pb-4">
                     {favoritesLoading ? (
                       // Loading skeletons
-                      Array.from({ length: 6 }).map((_, i) => (
+                      Array.from({ length: 10 }).map((_, i) => (
                         <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
                       ))
                     ) : (

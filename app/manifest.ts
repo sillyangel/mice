@@ -70,5 +70,46 @@ export default function manifest(): MetadataRoute.Manifest {
          form_factor: 'wide'
          }
       ],
+      shortcuts: [
+         {
+            name: 'Resume Song',
+            short_name: 'Resume',
+            description: 'Resume the last played song',
+            url: '/?action=resume',
+            icons: [
+               {
+                  src: '/icon-192.png',
+                  sizes: '192x192',
+                  type: 'image/png'
+               }
+            ]
+         },
+         {
+            name: 'Play Recent Albums',
+            short_name: 'Recent',
+            description: 'Play from recently added albums',
+            url: '/?action=recent',
+            icons: [
+               {
+                  src: '/icon-192.png',
+                  sizes: '192x192',
+                  type: 'image/png'
+               }
+            ]
+         },
+         {
+            name: 'Shuffle Favorites',
+            short_name: 'Shuffle',
+            description: 'Shuffle songs from favorite artists',
+            url: '/?action=shuffle-favorites',
+            icons: [
+               {
+                  src: '/icon-192.png',
+                  sizes: '192x192',
+                  type: 'image/png'
+               }
+            ]
+         }
+      ]
   }
 }
