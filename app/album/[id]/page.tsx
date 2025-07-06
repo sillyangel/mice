@@ -145,13 +145,13 @@ export default function AlbumPage() {
               <p className="text-xl text-primary mt-0 mb-4 underline">{album.artist}</p>
             </Link>
             <Button className="px-5" onClick={() => playAlbum(album.id)}>
-              <Play />
-              Play Album
+              Play
             </Button>
             <div className="text-sm text-muted-foreground">
-              <p>{album.songCount} songs • {album.year} • {album.genre}</p>
-              <p>Duration: {formatDuration(album.duration)}</p>
-            </div>
+              <p>{album.genre} • {album.year}</p>
+              <p>{album.songCount} songs, {formatDuration(album.duration)}</p>
+            
+              </div>
           </div>
         </div>
         <div className="space-y-4">

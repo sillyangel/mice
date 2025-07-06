@@ -134,7 +134,6 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           </MenubarItem>
         </MenubarContent>
           </MenubarMenu>
-          <div className="border-r-4 w-0"><p className="invisible">j</p></div>
           <MenubarMenu>
         <MenubarTrigger className="relative">File</MenubarTrigger>
         <MenubarContent>
