@@ -12,6 +12,8 @@ import Loading from "@/app/components/loading";
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getNavidromeAPI } from '@/lib/navidrome';
+import { useFavoriteAlbums } from '@/hooks/use-favorite-albums';
+import { Star } from 'lucide-react';
 
 export default function AlbumPage() {
   const { id } = useParams();
@@ -22,6 +24,7 @@ export default function AlbumPage() {
   const [starredSongs, setStarredSongs] = useState<Set<string>>(new Set());
   const { getAlbum, starItem, unstarItem } = useNavidrome();
   const { playTrack, addAlbumToQueue, playAlbum, playAlbumFromTrack, currentTrack } = useAudioPlayer();
+  const { isFavoriteAlbum, toggleFavoriteAlbum } = useFavoriteAlbums();
   const api = getNavidromeAPI();
 
   useEffect(() => {
@@ -137,8 +140,15 @@ export default function AlbumPage() {
           <div className="space-y-2">
             <div className="flex items-center space-x-4">
               <p className="text-3xl font-semibold tracking-tight">{album.name}</p>
-              <Button onClick={handleStar} variant="ghost">
+              <Button onClick={handleStar} variant="ghost" title={isStarred ? "Unstar album" : "Star album"}>
                 <Heart className={isStarred ? 'text-primary' : 'text-gray-500'} fill={isStarred ? 'var(--primary)' : ""}/>
+              </Button>
+              <Button 
+                onClick={() => toggleFavoriteAlbum(album.id)} 
+                variant="ghost" 
+                title={isFavoriteAlbum(album.id) ? "Remove from sidebar favorites" : "Add to sidebar favorites"}
+              >
+                <Star className={isFavoriteAlbum(album.id) ? 'text-yellow-500' : 'text-gray-500'} fill={isFavoriteAlbum(album.id) ? 'currentColor' : ""}/>
               </Button>
             </div>
             <Link href={`/artist/${album.artistId}`}>

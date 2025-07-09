@@ -16,6 +16,9 @@ RUN pnpm install
 # Copy source code
 COPY . .
 
+# Copy README.md to the app directory for documentation
+COPY README.md /app/
+
 # Set environment variable placeholders during build
 # These will be replaced at runtime with actual values
 ENV NEXT_PUBLIC_NAVIDROME_URL=NEXT_PUBLIC_NAVIDROME_URL

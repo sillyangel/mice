@@ -52,6 +52,7 @@ const SettingsPage = () => {
 
     // Sidebar settings
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [sidebarVisible, setSidebarVisible] = useState(true);
 
     // Initialize client-side state after hydration
     useEffect(() => {
@@ -78,6 +79,13 @@ const SettingsPage = () => {
         const savedSidebarCollapsed = localStorage.getItem('sidebar-collapsed');
         if (savedSidebarCollapsed !== null) {
             setSidebarCollapsed(savedSidebarCollapsed === 'true');
+        }
+
+        const savedSidebarVisible = localStorage.getItem('sidebar-visible');
+        if (savedSidebarVisible !== null) {
+            setSidebarVisible(savedSidebarVisible === 'true');
+        } else {
+            setSidebarVisible(true); // Default to visible
         }
 
         // Load Last.fm credentials
@@ -229,6 +237,24 @@ const SettingsPage = () => {
         // Trigger a custom event to notify the sidebar component
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { collapsed } }));
+        }
+    };
+
+    const handleSidebarVisibilityToggle = (visible: boolean) => {
+        setSidebarVisible(visible);
+        if (isClient) {
+            localStorage.setItem('sidebar-visible', visible.toString());
+        }
+        toast({
+            title: visible ? "Sidebar Shown" : "Sidebar Hidden",
+            description: visible 
+                ? "Sidebar is now visible" 
+                : "Sidebar is now hidden",
+        });
+        
+        // Trigger a custom event to notify the sidebar component
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('sidebar-visibility-toggle', { detail: { visible } }));
         }
     };
 
@@ -527,25 +553,25 @@ const SettingsPage = () => {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="sidebar-mode">Sidebar Mode</Label>
+                            <Label htmlFor="sidebar-visibility">Sidebar Visibility</Label>
                             <Select 
-                                value={sidebarCollapsed ? "collapsed" : "expanded"} 
-                                onValueChange={(value) => handleSidebarToggle(value === "collapsed")}
+                                value={sidebarVisible ? "visible" : "hidden"} 
+                                onValueChange={(value) => handleSidebarVisibilityToggle(value === "visible")}
                             >
-                                <SelectTrigger id="sidebar-mode">
+                                <SelectTrigger id="sidebar-visibility">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="expanded">Expanded (with labels)</SelectItem>
-                                    <SelectItem value="collapsed">Collapsed (icons only)</SelectItem>
+                                    <SelectItem value="visible">Visible</SelectItem>
+                                    <SelectItem value="hidden">Hidden</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
                         <div className="text-sm text-muted-foreground space-y-2">
-                            <p><strong>Expanded:</strong> Shows full navigation labels</p>
-                            <p><strong>Collapsed:</strong> Shows only icons with tooltips</p>
-                            <p className="mt-3"><strong>Note:</strong> You can also toggle the sidebar using the collapse button in the sidebar.</p>
+                            <p><strong>Visible:</strong> Sidebar is always shown with icon navigation</p>
+                            <p><strong>Hidden:</strong> Sidebar is completely hidden for maximum space</p>
+                            <p className="mt-3"><strong>Note:</strong> The sidebar now shows only icons with tooltips on hover for a cleaner interface.</p>
                         </div>
                     </CardContent>
                 </Card>

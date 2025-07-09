@@ -66,7 +66,10 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          labels: |
+            ${{ steps.meta.outputs.labels }}
+            org.opencontainers.image.description=$(cat README.md | head -20 | tr '\n' ' ')
+            org.opencontainers.image.documentation=https://github.com/sillyangel/stillnavidrome/blob/main/README.md
           platforms: |
             linux/amd64
             linux/arm64/v8
