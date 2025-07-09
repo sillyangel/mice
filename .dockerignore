@@ -2,7 +2,6 @@ node_modules
 .next
 .git
 .gitignore
-README.md
 .env.local
 .env.example
 *.log
