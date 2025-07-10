@@ -124,9 +124,9 @@ jobs:
           cache-to: |
             type=gha,mode=max,scope=deps-only
 
-      - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v4
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: sillyangel/mice
+      # - name: Docker Hub Description
+      #   uses: peter-evans/dockerhub-description@v4
+      #   with:
+      #     username: ${{ vars.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+      #     repository: sillyangel/mice
