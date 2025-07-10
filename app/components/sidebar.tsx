@@ -7,9 +7,11 @@ import { Button } from "../../components/ui/button";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import Link from "next/link";
 import Image from "next/image";
-import { Playlist } from "@/lib/navidrome";
+import { Playlist, Album } from "@/lib/navidrome";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavidrome } from "./NavidromeContext";
+import { useRecentlyPlayedAlbums } from "@/hooks/use-recently-played-albums";
+import { useSidebarShortcuts } from "@/hooks/use-sidebar-shortcuts";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -29,6 +31,8 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Sidebar({ className, playlists, collapsed = false, onToggle, visible = true, favoriteAlbums = [], onRemoveFavoriteAlbum }: SidebarProps) {
   const pathname = usePathname();
   const { api } = useNavidrome();
+  const { recentAlbums } = useRecentlyPlayedAlbums();
+  const { showPlaylists, showAlbums } = useSidebarShortcuts();
 
   if (!visible) {
     return null;
@@ -337,7 +341,7 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle, vis
               </Link>
               
               {/* Favorite Albums Section */}
-              {favoriteAlbums.length > 0 && (
+              {showAlbums && favoriteAlbums.length > 0 && (
                 <>
                   <div className="border-t my-2"></div>
                   {favoriteAlbums.slice(0, 5).map((album) => (
@@ -393,9 +397,41 @@ export function Sidebar({ className, playlists, collapsed = false, onToggle, vis
                   ))}
                 </>
               )}
+
+              {/* Recently Played Albums Section */}
+              {showAlbums && recentAlbums.length > 0 && (
+                <>
+                  <div className="border-t my-2"></div>
+                  {recentAlbums.slice(0, 5).map((album) => {
+                    const albumImageUrl = album.coverArt && api
+                      ? api.getCoverArtUrl(album.coverArt, 32)
+                      : '/play.png';
+                    
+                    return (
+                      <Link key={album.id} href={`/album/${album.id}`}>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-center px-2 h-10"
+                          title={`${album.name} - ${album.artist} (Recently Played)`}
+                        >
+                          <div className="w-6 h-6 rounded-sm overflow-hidden">
+                            <Image
+                              src={albumImageUrl}
+                              alt={album.name}
+                              width={24}
+                              height={24}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </Button>
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
               
               {/* Playlists Section */}
-              {playlists.length > 0 && (
+              {showPlaylists && playlists.length > 0 && (
                 <>
                   <div className="border-t my-2"></div>
                   {playlists.slice(0, 5).map((playlist) => {

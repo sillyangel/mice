@@ -10,6 +10,7 @@ import { useTheme } from '@/app/components/ThemeProvider';
 import { useNavidromeConfig } from '@/app/components/NavidromeConfigContext';
 import { useToast } from '@/hooks/use-toast';
 import { useStandaloneLastFm } from '@/hooks/use-standalone-lastfm';
+import { useSidebarShortcuts, SidebarShortcutType } from '@/hooks/use-sidebar-shortcuts';
 import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm, FaCog } from 'react-icons/fa';
 import { Settings, ExternalLink } from 'lucide-react';
 
@@ -18,6 +19,7 @@ const SettingsPage = () => {
     const { config, updateConfig, isConnected, testConnection, clearConfig } = useNavidromeConfig();
     const { toast } = useToast();
     const { isEnabled: isStandaloneLastFmEnabled, getCredentials, getAuthUrl, getSessionKey } = useStandaloneLastFm();
+    const { shortcutType, updateShortcutType } = useSidebarShortcuts();
     
     const [formData, setFormData] = useState({
         serverUrl: '',
@@ -568,9 +570,29 @@ const SettingsPage = () => {
                             </Select>
                         </div>
 
+                        <div className="space-y-2">
+                            <Label htmlFor="sidebar-shortcuts">Sidebar Shortcuts</Label>
+                            <Select 
+                                value={shortcutType} 
+                                onValueChange={(value: SidebarShortcutType) => updateShortcutType(value)}
+                            >
+                                <SelectTrigger id="sidebar-shortcuts">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="both">Albums & Playlists</SelectItem>
+                                    <SelectItem value="albums">Albums Only</SelectItem>
+                                    <SelectItem value="playlists">Playlists Only</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         <div className="text-sm text-muted-foreground space-y-2">
                             <p><strong>Visible:</strong> Sidebar is always shown with icon navigation</p>
                             <p><strong>Hidden:</strong> Sidebar is completely hidden for maximum space</p>
+                            <p><strong>Albums & Playlists:</strong> Show both favorite albums, recently played albums, and playlists as shortcuts</p>
+                            <p><strong>Albums Only:</strong> Show only favorite and recently played albums as shortcuts</p>
+                            <p><strong>Playlists Only:</strong> Show only playlists as shortcuts</p>
                             <p className="mt-3"><strong>Note:</strong> The sidebar now shows only icons with tooltips on hover for a cleaner interface.</p>
                         </div>
                     </CardContent>
