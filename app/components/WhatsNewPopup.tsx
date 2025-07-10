@@ -7,11 +7,38 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Current app version from package.json
-const APP_VERSION = '2025.07.02';
+const APP_VERSION = '2025.07.10';
 
 // Changelog data - add new versions at the top
 const CHANGELOG = [
-    {
+  {
+    version: '2025.07.10',
+    title: 'July Major Update',
+    changes: [
+      'Support for Rich PWA Installs',
+      'Added Shortcuts when you right click the icon',
+      'Fixed the Skeleton loading screen in the Home screen',
+      'Onboarding now suggests Navidrome\'s Demo Server',
+      'Updated Tailwind CSS (was 4.1.11 now 3.4.15)',
+      'Using OKLCH (before hsl)',
+      'Themes are all updated (although all the light ones look the same)',
+      'New Sidebar (wow Compact)',
+      'Added 5 recently played albums, and playlists created',
+      'New options in settings to change how it looks',
+      'Removed the extended version of the sidebar because it looked nicer and cleaner',
+      '"Enhanced" playlist page',
+      'New loading screen',
+      'New masonry style grid in the settings page',
+      'User is able to export settings as a downloadable json',
+      'Skeleton loading everywhere (scary wow)',
+      'Added Caching System (not yet completed)',
+      'Home page Enhancement',
+      'New recommended songs'
+    ],
+    breaking: [],
+    fixes: []
+  },
+  {
     version: '2025.07.02',
     title: 'July Mini Update',
     changes: [

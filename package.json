@@ -1,6 +1,6 @@
 {
   "name": "mice-reworked",
-  "version": "2025.07.02",
+  "version": "2025.07.10",
   "private": true,
   "scripts": {
     "predev": "echo NEXT_PUBLIC_COMMIT_SHA=$(git rev-parse --short HEAD) > .env.local",
