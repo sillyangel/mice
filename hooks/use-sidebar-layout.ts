@@ -21,6 +21,7 @@ export interface SidebarItem {
   label: string;
   visible: boolean;
   icon: string; // We'll use this for icon identification
+  href: string; // Navigation path
 }
 
 export interface SidebarLayoutSettings {
@@ -30,18 +31,18 @@ export interface SidebarLayoutSettings {
 }
 
 const defaultSidebarItems: SidebarItem[] = [
-  { id: 'search', label: 'Search', visible: true, icon: 'search' },
-  { id: 'home', label: 'Home', visible: true, icon: 'home' },
-  { id: 'queue', label: 'Queue', visible: true, icon: 'queue' },
-  { id: 'radio', label: 'Radio', visible: true, icon: 'radio' },
-  { id: 'artists', label: 'Artists', visible: true, icon: 'artists' },
-  { id: 'albums', label: 'Albums', visible: true, icon: 'albums' },
-  { id: 'playlists', label: 'Playlists', visible: true, icon: 'playlists' },
-  { id: 'favorites', label: 'Favorites', visible: true, icon: 'favorites' },
-  { id: 'browse', label: 'Browse', visible: true, icon: 'browse' },
-  { id: 'songs', label: 'Songs', visible: true, icon: 'songs' },
-  { id: 'history', label: 'History', visible: true, icon: 'history' },
-  { id: 'settings', label: 'Settings', visible: true, icon: 'settings' },
+  { id: 'search', label: 'Search', visible: true, icon: 'search', href: '/search' },
+  { id: 'home', label: 'Home', visible: true, icon: 'home', href: '/' },
+  { id: 'queue', label: 'Queue', visible: true, icon: 'queue', href: '/queue' },
+  { id: 'radio', label: 'Radio', visible: true, icon: 'radio', href: '/radio' },
+  { id: 'artists', label: 'Artists', visible: true, icon: 'artists', href: '/library/artists' },
+  { id: 'albums', label: 'Albums', visible: true, icon: 'albums', href: '/library/albums' },
+  { id: 'playlists', label: 'Playlists', visible: true, icon: 'playlists', href: '/library/playlists' },
+  { id: 'favorites', label: 'Favorites', visible: true, icon: 'favorites', href: '/favorites' },
+  { id: 'browse', label: 'Browse', visible: true, icon: 'browse', href: '/browse' },
+  { id: 'songs', label: 'Songs', visible: true, icon: 'songs', href: '/library/songs' },
+  { id: 'history', label: 'History', visible: true, icon: 'history', href: '/history' },
+  { id: 'settings', label: 'Settings', visible: true, icon: 'settings', href: '/settings' },
 ];
 
 const defaultSettings: SidebarLayoutSettings = {
@@ -83,6 +84,18 @@ export function useSidebarLayout() {
 
   const updateItemOrder = (newItems: SidebarItem[]) => {
     setSettings(prev => ({ ...prev, items: newItems }));
+  };
+
+  const reorderItems = (activeId: string, overId: string) => {
+    const activeIndex = settings.items.findIndex(item => item.id === activeId);
+    const overIndex = settings.items.findIndex(item => item.id === overId);
+
+    if (activeIndex !== -1 && overIndex !== -1) {
+      const newItems = [...settings.items];
+      const [removed] = newItems.splice(activeIndex, 1);
+      newItems.splice(overIndex, 0, removed);
+      setSettings(prev => ({ ...prev, items: newItems }));
+    }
   };
 
   const toggleItemVisibility = (itemId: SidebarItemType) => {
@@ -173,6 +186,7 @@ export function useSidebarLayout() {
   return {
     settings,
     updateItemOrder,
+    reorderItems,
     toggleItemVisibility,
     updateShortcuts,
     updateShowIcons,

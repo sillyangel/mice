@@ -79,11 +79,9 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
               <Sidebar
                 playlists={playlists}
                 className="h-full overflow-y-auto"
-                collapsed={true}
                 visible={isSidebarVisible}
                 favoriteAlbums={favoriteAlbums}
-                onToggle={toggleSidebarCollapse}
-                onTransitionEnd={handleTransitionEnd}
+                onRemoveFavoriteAlbum={removeFavoriteAlbum}
               />
             </div>
           )}
@@ -123,11 +121,8 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
               <Sidebar
                 playlists={playlists}
                 className="h-full overflow-y-auto"
-                collapsed={true}
                 visible={isSidebarVisible}
                 favoriteAlbums={favoriteAlbums}
-                onToggle={toggleSidebarCollapse}
-                onTransitionEnd={handleTransitionEnd}
                 onRemoveFavoriteAlbum={removeFavoriteAlbum}
               />
             </div>

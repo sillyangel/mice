@@ -11,6 +11,7 @@ import { useNavidromeConfig } from '@/app/components/NavidromeConfigContext';
 import { useToast } from '@/hooks/use-toast';
 import { useStandaloneLastFm } from '@/hooks/use-standalone-lastfm';
 import { useSidebarShortcuts, SidebarShortcutType } from '@/hooks/use-sidebar-shortcuts';
+import { SidebarCustomization } from '@/app/components/SidebarCustomization';
 import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm, FaCog } from 'react-icons/fa';
 import { Settings, ExternalLink } from 'lucide-react';
 
@@ -692,6 +693,9 @@ const SettingsPage = () => {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Sidebar Customization */}
+                <SidebarCustomization />
 
                 <Card className="break-inside-avoid mb-6">
                     <CardHeader>
