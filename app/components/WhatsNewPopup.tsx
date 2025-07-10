@@ -15,28 +15,37 @@ const CHANGELOG = [
     version: '2025.07.10',
     title: 'July Major Update',
     changes: [
+      // New Features
       'Support for Rich PWA Installs',
-      'Added Shortcuts when you right click the icon',
-      'Fixed the Skeleton loading screen in the Home screen',
+      'Added right-click shortcuts to the PWA icon',
       'Onboarding now suggests Navidrome\'s Demo Server',
-      'Updated Tailwind CSS (was 4.1.11 now 3.4.15)',
-      'Using OKLCH (before hsl)',
-      'Themes are all updated (although all the light ones look the same)',
-      'New Sidebar (wow Compact)',
-      'Added 5 recently played albums, and playlists created',
-      'New options in settings to change how it looks',
-      'Removed the extended version of the sidebar because it looked nicer and cleaner',
-      '"Enhanced" playlist page',
+      'User can export settings as a downloadable JSON',
+      'New sidebar layout (compact design)',
+      'New masonry-style grid in the settings page',
+      'New options in settings to customize appearance',
+      'Added 5 recently played albums and playlists created',
       'New loading screen',
-      'New masonry style grid in the settings page',
-      'User is able to export settings as a downloadable json',
-      'Skeleton loading everywhere (scary wow)',
-      'Added Caching System (not yet completed)',
-      'Home page Enhancement',
-      'New recommended songs'
+      'New recommended songs section',
+      'Enhanced playlist page',
+      'Enhanced Home page layout and content',
+      'Themes updated to use OKLCH (from HSL)',
+      'All themes updated (light themes look similar)',
+      'Caching system added (incomplete)',
+      'Skeleton loading added across all pages'
     ],
-    breaking: [],
-    fixes: []
+    fixes: [
+      'Fixed skeleton loader on the Home screen',
+      'Fixed album page not showing correct album art',
+      'Fixed album page not showing correct artist',
+      'Fixed album page not showing correct song count',
+      'Fixed flash of onboarding when already onboarded',
+      'Fixed issue with audio player not resuming playback after pause',
+      'Resolved bug with search results not displaying correctly'
+    ],
+    breaking: [
+      // Technically not breaking, but notable:
+      'Removed extended sidebar layout for a cleaner look'
+    ]
   },
   {
     version: '2025.07.02',
