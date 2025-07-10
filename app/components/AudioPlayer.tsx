@@ -418,7 +418,12 @@ export const AudioPlayer: React.FC = () => {
           {/* Track info */}
           <div className="flex items-center flex-1 min-w-0">
             <Image 
-              src={currentTrack.coverArt || '/default-user.jpg'} 
+              src={
+                currentTrack.coverArt && 
+                (currentTrack.coverArt.startsWith('http') || currentTrack.coverArt.startsWith('/'))
+                  ? currentTrack.coverArt 
+                  : '/default-user.jpg'
+              } 
               alt={currentTrack.name} 
               width={48} 
               height={48} 

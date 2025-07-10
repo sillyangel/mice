@@ -20,6 +20,7 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
   const [recommendedSongs, setRecommendedSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [songStates, setSongStates] = useState<Record<string, boolean>>({});
+  const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({});
 
   // Get greeting based on time of day
   const hour = new Date().getHours();
@@ -50,12 +51,15 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
         const recommendations = shuffled.slice(0, 6);
         setRecommendedSongs(recommendations);
         
-        // Initialize starred states
+        // Initialize starred states and image loading states
         const states: Record<string, boolean> = {};
+        const imageStates: Record<string, boolean> = {};
         recommendations.forEach((song: Song) => {
           states[song.id] = !!song.starred;
+          imageStates[song.id] = true; // Start with loading state
         });
         setSongStates(states);
+        setImageLoadingStates(imageStates);
       } catch (error) {
         console.error('Failed to load song recommendations:', error);
       } finally {
@@ -79,7 +83,7 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
         album: song.album || 'Unknown Album',
         albumId: song.albumId || '',
         duration: song.duration || 0,
-        coverArt: song.coverArt,
+        coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
         starred: !!song.starred
       };
       await playTrack(track, true);
@@ -154,21 +158,34 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
                 <div className="flex items-center gap-3">
                   <div className="relative w-12 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
                     {song.coverArt && api ? (
-                      <Image
-                        src={api.getCoverArtUrl(song.coverArt, 100)}
-                        alt={song.title}
-                        fill
-                        className="object-cover"
-                        sizes="48px"
-                      />
+                      <>
+                        {imageLoadingStates[song.id] && (
+                          <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                            <Music className="w-6 h-6 text-muted-foreground animate-pulse" />
+                          </div>
+                        )}
+                        <Image
+                          src={api.getCoverArtUrl(song.coverArt, 100)}
+                          alt={song.title}
+                          fill
+                          className={`object-cover transition-opacity duration-300 ${
+                            imageLoadingStates[song.id] ? 'opacity-0' : 'opacity-100'
+                          }`}
+                          sizes="48px"
+                          onLoad={() => setImageLoadingStates(prev => ({ ...prev, [song.id]: false }))}
+                          onError={() => setImageLoadingStates(prev => ({ ...prev, [song.id]: false }))}
+                        />
+                      </>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Music className="w-6 h-6 text-muted-foreground" />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Play className="w-4 h-4 text-white" />
-                    </div>
+                    {!imageLoadingStates[song.id] && (
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Play className="w-4 h-4 text-white" />
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex-1 min-w-0">

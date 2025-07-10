@@ -13,6 +13,7 @@ import { useStandaloneLastFm } from '@/hooks/use-standalone-lastfm';
 import { useSidebarShortcuts, SidebarShortcutType } from '@/hooks/use-sidebar-shortcuts';
 import { SidebarCustomization } from '@/app/components/SidebarCustomization';
 import { SettingsManagement } from '@/app/components/SettingsManagement';
+import { CacheManagement } from '@/app/components/CacheManagement';
 import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm, FaCog } from 'react-icons/fa';
 import { Settings, ExternalLink } from 'lucide-react';
 
@@ -704,6 +705,11 @@ const SettingsPage = () => {
                 {/* Settings Management */}
                 <div className="break-inside-avoid mb-6">
                   <SettingsManagement />
+                </div>
+
+                {/* Cache Management */}
+                <div className="break-inside-avoid mb-6">
+                  <CacheManagement />
                 </div>
 
                 <Card className="mb-6 break-inside-avoid">
