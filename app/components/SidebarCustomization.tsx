@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   DndContext,
   closestCenter,
@@ -25,14 +25,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
 import { 
   GripVertical, 
   Eye, 
   EyeOff, 
-  Download, 
-  Upload, 
-  RotateCcw,
   Search,
   Home,
   List,
@@ -130,18 +126,14 @@ function SortableItem({ item, onToggleVisibility, showIcons }: SortableItemProps
 export function SidebarCustomization() {
   const {
     settings,
+    hasUnsavedChanges,
     reorderItems,
     toggleItemVisibility,
     updateShortcuts,
     updateShowIcons,
-    exportSettings,
-    importSettings,
-    resetToDefaults,
+    applyChanges,
+    discardChanges,
   } = useSidebarLayout();
-
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importing, setImporting] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -158,24 +150,7 @@ export function SidebarCustomization() {
     }
   };
 
-  const handleImportFile = async () => {
-    if (!importFile) return;
-    
-    setImporting(true);
-    setImportError(null);
-    
-    try {
-      await importSettings(importFile);
-      setImportFile(null);
-      // Reset file input
-      const fileInput = document.getElementById('settings-import') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
-    } catch (error) {
-      setImportError(error instanceof Error ? error.message : 'Failed to import settings');
-    } finally {
-      setImporting(false);
-    }
-  };
+
 
   return (
     <Card>
@@ -249,61 +224,20 @@ export function SidebarCustomization() {
           </DndContext>
         </div>
 
-        {/* Settings Import/Export */}
-        <div className="space-y-3 pt-4 border-t">
-          <Label>Settings Management</Label>
-          
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={exportSettings} variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Export Settings
-            </Button>
-            
-            <div className="flex items-center gap-2">
-              <Input
-                id="settings-import"
-                type="file"
-                accept=".json"
-                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                className="hidden"
-              />
-              <Button
-                variant="outline"
-                onClick={() => document.getElementById('settings-import')?.click()}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Select File
+        {/* Apply/Discard Changes */}
+        {hasUnsavedChanges() && (
+          <div className="space-y-3 pt-4 border-t">
+            <Label>Unsaved Changes</Label>
+            <div className="flex gap-2">
+              <Button onClick={applyChanges} variant="default">
+                Apply Changes
               </Button>
-              
-              {importFile && (
-                <Button
-                  onClick={handleImportFile}
-                  disabled={importing}
-                  variant="default"
-                >
-                  {importing ? 'Importing...' : 'Import'}
-                </Button>
-              )}
+              <Button onClick={discardChanges} variant="outline">
+                Discard Changes
+              </Button>
             </div>
-            
-            <Button onClick={resetToDefaults} variant="outline">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset to Default
-            </Button>
           </div>
-          
-          {importFile && (
-            <div className="text-sm text-muted-foreground">
-              Selected: {importFile.name}
-            </div>
-          )}
-          
-          {importError && (
-            <div className="text-sm text-destructive">
-              Error: {importError}
-            </div>
-          )}
-        </div>
+        )}
       </CardContent>
     </Card>
   );

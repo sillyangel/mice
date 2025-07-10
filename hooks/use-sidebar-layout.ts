@@ -53,6 +53,7 @@ const defaultSettings: SidebarLayoutSettings = {
 
 export function useSidebarLayout() {
   const [settings, setSettings] = useState<SidebarLayoutSettings>(defaultSettings);
+  const [pendingSettings, setPendingSettings] = useState<SidebarLayoutSettings | null>(null);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -66,53 +67,86 @@ export function useSidebarLayout() {
           return savedItem ? { ...defaultItem, ...savedItem } : defaultItem;
         });
         
-        setSettings({
+        const loadedSettings = {
           items: mergedItems,
           shortcuts: parsed.shortcuts || defaultSettings.shortcuts,
           showIcons: parsed.showIcons !== undefined ? parsed.showIcons : defaultSettings.showIcons,
-        });
+        };
+        setSettings(loadedSettings);
       } catch (error) {
         console.error('Failed to parse sidebar layout settings:', error);
       }
     }
   }, []);
 
-  // Save settings to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('sidebar-layout-settings', JSON.stringify(settings));
-  }, [settings]);
-
-  const updateItemOrder = (newItems: SidebarItem[]) => {
-    setSettings(prev => ({ ...prev, items: newItems }));
+  const saveSettings = (newSettings: SidebarLayoutSettings) => {
+    setSettings(newSettings);
+    setPendingSettings(null);
+    localStorage.setItem('sidebar-layout-settings', JSON.stringify(newSettings));
   };
 
+  const updatePendingSettings = (newSettings: SidebarLayoutSettings) => {
+    setPendingSettings(newSettings);
+  };
+
+  const getCurrentSettings = () => pendingSettings || settings;
+
+  const hasUnsavedChanges = () => pendingSettings !== null;
+
   const reorderItems = (activeId: string, overId: string) => {
-    const activeIndex = settings.items.findIndex(item => item.id === activeId);
-    const overIndex = settings.items.findIndex(item => item.id === overId);
+    const currentSettings = getCurrentSettings();
+    const activeIndex = currentSettings.items.findIndex(item => item.id === activeId);
+    const overIndex = currentSettings.items.findIndex(item => item.id === overId);
 
     if (activeIndex !== -1 && overIndex !== -1) {
-      const newItems = [...settings.items];
+      const newItems = [...currentSettings.items];
       const [removed] = newItems.splice(activeIndex, 1);
       newItems.splice(overIndex, 0, removed);
-      setSettings(prev => ({ ...prev, items: newItems }));
+
+      const newSettings = { ...currentSettings, items: newItems };
+      updatePendingSettings(newSettings);
     }
   };
 
+  const updateItemOrder = (newItems: SidebarItem[]) => {
+    const currentSettings = getCurrentSettings();
+    const newSettings = { ...currentSettings, items: newItems };
+    updatePendingSettings(newSettings);
+  };
+
   const toggleItemVisibility = (itemId: SidebarItemType) => {
-    setSettings(prev => ({
-      ...prev,
-      items: prev.items.map(item =>
-        item.id === itemId ? { ...item, visible: !item.visible } : item
-      ),
-    }));
+    const currentSettings = getCurrentSettings();
+    const newItems = currentSettings.items.map(item =>
+      item.id === itemId ? { ...item, visible: !item.visible } : item
+    );
+    const newSettings = { ...currentSettings, items: newItems };
+    updatePendingSettings(newSettings);
   };
 
   const updateShortcuts = (shortcuts: 'albums' | 'playlists' | 'both') => {
-    setSettings(prev => ({ ...prev, shortcuts }));
+    const currentSettings = getCurrentSettings();
+    const newSettings = { ...currentSettings, shortcuts };
+    updatePendingSettings(newSettings);
   };
 
   const updateShowIcons = (showIcons: boolean) => {
-    setSettings(prev => ({ ...prev, showIcons }));
+    const currentSettings = getCurrentSettings();
+    const newSettings = { ...currentSettings, showIcons };
+    updatePendingSettings(newSettings);
+  };
+
+  const applyChanges = () => {
+    if (pendingSettings) {
+      saveSettings(pendingSettings);
+    }
+  };
+
+  const discardChanges = () => {
+    setPendingSettings(null);
+  };
+
+  const resetToDefaults = () => {
+    saveSettings(defaultSettings);
   };
 
   const exportSettings = () => {
@@ -179,17 +213,16 @@ export function useSidebarLayout() {
     });
   };
 
-  const resetToDefaults = () => {
-    setSettings(defaultSettings);
-  };
-
   return {
-    settings,
+    settings: getCurrentSettings(),
+    hasUnsavedChanges,
     updateItemOrder,
     reorderItems,
     toggleItemVisibility,
     updateShortcuts,
     updateShowIcons,
+    applyChanges,
+    discardChanges,
     exportSettings,
     importSettings,
     resetToDefaults,
