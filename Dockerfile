@@ -1,5 +1,5 @@
-# Use Node.js 22 Alpine for smaller image size
-FROM node:22-alpine
+# Use Node.js 20 Alpine for smaller image size
+FROM node:20-alpine
 
 # Install pnpm globally
 RUN npm install -g pnpm@10.12.4

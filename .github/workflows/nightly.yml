@@ -101,10 +101,13 @@ jobs:
 
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
       
       - name: Build and push
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -116,5 +119,14 @@ jobs:
           platforms: |
             linux/amd64
             linux/arm64/v8
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha,scope=deps-only
+          cache-to: |
+            type=gha,mode=max,scope=deps-only
+
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          repository: sillyangel/mice
