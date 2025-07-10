@@ -116,7 +116,7 @@ export const AudioPlayer: React.FC = () => {
   useEffect(() => {
     const audioCurrent = audioRef.current;
     return () => {
-      if (audioCurrent && currentTrack && audioCurrent.currentTime > 10) {
+      if (audioCurrent && currentTrack && audioCurrent.currentTime > 5) {
         localStorage.setItem('navidrome-current-track-time', audioCurrent.currentTime.toString());
       }
     };
@@ -134,12 +134,12 @@ export const AudioPlayer: React.FC = () => {
       // Notify scrobbler about new track
       onTrackStart(currentTrack);
       
-      // Check for saved timestamp (only restore if more than 10 seconds in)
+      // Check for saved timestamp (only restore if more than 5 seconds in)
       const savedTime = localStorage.getItem('navidrome-current-track-time');
       if (savedTime) {
         const time = parseFloat(savedTime);
-        // Only restore if we were at least 10 seconds in and not near the end
-        if (time > 10 && time < (currentTrack.duration - 30)) {
+        // Only restore if we were at least 5 seconds in and not near the end
+        if (time > 5 && time < (currentTrack.duration - 15)) {
           const restorePosition = () => {
             if (audioCurrent.readyState >= 2) { // HAVE_CURRENT_DATA
               audioCurrent.currentTime = time;
@@ -181,9 +181,9 @@ export const AudioPlayer: React.FC = () => {
       if (audioCurrent && currentTrack) {
         setProgress((audioCurrent.currentTime / audioCurrent.duration) * 100);
         
-        // Save current time every 30 seconds, but only if we've moved forward significantly
+        // Save current time every 10 seconds, but only if we've moved forward significantly
         const currentTime = audioCurrent.currentTime;
-        if (Math.abs(currentTime - lastSavedTime) >= 30 && currentTime > 10) {
+        if (Math.abs(currentTime - lastSavedTime) >= 10 && currentTime > 5) {
           localStorage.setItem('navidrome-current-track-time', currentTime.toString());
           lastSavedTime = currentTime;
         }
@@ -359,7 +359,7 @@ export const AudioPlayer: React.FC = () => {
     return (
       <div className="fixed bottom-4 left-4 z-50">
         <div 
-          className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg cursor-pointer hover:scale-[1.02] transition-transform w-80"
+          className="bg-background/95 backdrop-blur-xs border rounded-lg shadow-lg cursor-pointer hover:scale-[1.02] transition-transform w-80"
           onClick={() => setIsMinimized(false)}
         >
           <div className="flex items-center p-3">
@@ -368,7 +368,7 @@ export const AudioPlayer: React.FC = () => {
               alt={currentTrack.name} 
               width={40} 
               height={40} 
-              className="w-10 h-10 rounded-md flex-shrink-0" 
+              className="w-10 h-10 rounded-md shrink-0" 
             />
             <div className="flex-1 min-w-0 mx-3">
               <div className="overflow-hidden">
@@ -413,16 +413,21 @@ export const AudioPlayer: React.FC = () => {
   // Compact floating player (default state)
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50">
-      <div className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 cursor-pointer hover:scale-[1.01] transition-transform">
+      <div className="bg-background/95 backdrop-blur-xs border rounded-lg shadow-lg p-3 cursor-pointer hover:scale-[1.01] transition-transform">
         <div className="flex items-center">
           {/* Track info */}
           <div className="flex items-center flex-1 min-w-0">
             <Image 
-              src={currentTrack.coverArt || '/default-user.jpg'} 
+              src={
+                currentTrack.coverArt && 
+                (currentTrack.coverArt.startsWith('http') || currentTrack.coverArt.startsWith('/'))
+                  ? currentTrack.coverArt 
+                  : '/default-user.jpg'
+              } 
               alt={currentTrack.name} 
               width={48} 
               height={48} 
-              className="w-12 h-12 rounded-md mr-4 flex-shrink-0" 
+              className="w-12 h-12 rounded-md mr-4 shrink-0" 
             />
             <div className="flex-1 min-w-0">
               <p className="font-semibold truncate text-base">{currentTrack.name}</p>

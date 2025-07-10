@@ -5,14 +5,17 @@ import { Separator } from '../components/ui/separator';
 import { Tabs, TabsContent } from '../components/ui/tabs';
 import { AlbumArtwork } from './components/album-artwork';
 import { useNavidrome } from './components/NavidromeContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { Album } from '@/lib/navidrome';
 import { useNavidromeConfig } from './components/NavidromeConfigContext';
 import { useSearchParams } from 'next/navigation';
 import { useAudioPlayer } from './components/AudioPlayerContext';
+import { SongRecommendations } from './components/SongRecommendations';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening';
-export default function MusicPage() {
+
+function MusicPageContent() {
   const { albums, isLoading, api, isConnected } = useNavidrome();
   const { playAlbum, playTrack, shuffle, toggleShuffle, addToQueue } = useAudioPlayer();
   const searchParams = useSearchParams();
@@ -158,19 +161,6 @@ export default function MusicPage() {
     return () => clearTimeout(timeout);
   }, [searchParams, api, isConnected, recentAlbums, favoriteAlbums, shortcutProcessed, playAlbum, playTrack, shuffle, toggleShuffle, addToQueue]);
 
-  // Get greeting and time of day
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : 'Good afternoon';
-  let timeOfDay: TimeOfDay;
-  if (hour >= 5 && hour < 12) {
-    timeOfDay = 'morning';
-  } else if (hour >= 12 && hour < 18) {
-    timeOfDay = 'afternoon';
-  } else {
-    timeOfDay = 'evening';
-  }
-
-
   // Try to get user name from navidrome context, fallback to 'user'
   let userName = '';
   // If you add user info to NavidromeContext, update this logic
@@ -181,29 +171,15 @@ export default function MusicPage() {
 
 
   return (
-    <div className="h-full px-4 py-6 lg:px-8 pb-24">
-      <div className="relative rounded-lg p-8">
-          <div className="relative rounded-sm p-10">
-            <div
-              className="absolute inset-0 bg-center bg-cover bg-no-repeat blur-xl bg-gradient-to-r from-primary to-secondary"
- style={{
-                backgroundImage:
- timeOfDay === 'morning'
- ? 'linear-gradient(to right, #ff9a9e, #fad0c4, #fad0c4)' // Warm tones for morning
- : timeOfDay === 'evening'
- ? 'linear-gradient(to right, #a18cd1, #fbc2eb)' // Cool tones for evening
- : 'linear-gradient(to right, #a8edea, #fed6e3)', // Default/afternoon colors
- }} />
-            <div className="relative z-10 flex items-center space-x-6">
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold mb-4">{greeting}{userName ? `, ${userName}` : ''}!</h1>
-              </div>
-          </div>
-        </div>
-       </div>
+    <div className="p-6 pb-24 w-full">
+      {/* Song Recommendations Section */}
+      <div className="mb-8">
+        <SongRecommendations userName={userName} />
+      </div>
+      
       <>
       <Tabs defaultValue="music" className="h-full space-y-6">
-        <TabsContent value="music" className="border-none p-0 outline-none">
+        <TabsContent value="music" className="border-none p-0 outline-hidden">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-2xl font-semibold tracking-tight">
@@ -221,14 +197,21 @@ export default function MusicPage() {
                 {isLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                    <div key={i} className="w-[220px] shrink-0 space-y-3">
+                      <Skeleton className="aspect-square w-full" />
+                      <div className="space-y-2 p-1">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                        <Skeleton className="h-3 w-2/3" />
+                      </div>
+                    </div>
                   ))
                 ) : (
                   recentAlbums.map((album) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}
-                      className="w-[220px] flex-shrink-0"
+                      className="w-[220px] shrink-0"
                       aspectRatio="square"
                       width={220}
                       height={220}
@@ -258,14 +241,21 @@ export default function MusicPage() {
                     {favoritesLoading ? (
                       // Loading skeletons
                       Array.from({ length: 10 }).map((_, i) => (
-                        <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                        <div key={i} className="w-[220px] shrink-0 space-y-3">
+                          <Skeleton className="aspect-square w-full" />
+                          <div className="space-y-2 p-1">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                            <Skeleton className="h-3 w-2/3" />
+                          </div>
+                        </div>
                       ))
                     ) : (
                       favoriteAlbums.map((album) => (
                         <AlbumArtwork
                           key={album.id}
                           album={album}
-                          className="w-[220px] flex-shrink-0"
+                          className="w-[220px] shrink-0"
                           aspectRatio="square"
                           width={220}
                           height={220}
@@ -294,14 +284,21 @@ export default function MusicPage() {
             {isLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="w-[220px] h-[320px] bg-muted animate-pulse rounded-md flex-shrink-0" />
+                    <div key={i} className="w-[220px] shrink-0 space-y-3">
+                      <Skeleton className="aspect-square w-full" />
+                      <div className="space-y-2 p-1">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                        <Skeleton className="h-3 w-2/3" />
+                      </div>
+                    </div>
                   ))
                 ) : (
                   newestAlbums.map((album) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}
-                      className="w-[220px] flex-shrink-0"
+                      className="w-[220px] shrink-0"
                       aspectRatio="square"
                       width={220}
                       height={220}
@@ -316,5 +313,13 @@ export default function MusicPage() {
       </Tabs>
       </>
     </div>
+  );
+}
+
+export default function MusicPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <MusicPageContent />
+    </Suspense>
   );
 }

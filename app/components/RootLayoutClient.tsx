@@ -14,15 +14,19 @@ import Image from "next/image";
 
 function NavidromeErrorBoundary({ children }: { children: React.ReactNode }) {
   const { error } = useNavidrome();
+  const [isClient, setIsClient] = React.useState(false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = React.useState(true); // Default to true to prevent flash
   
-  // Check if this is a first-time user
-  const hasCompletedOnboarding = typeof window !== 'undefined' 
-    ? localStorage.getItem('onboarding-completed') 
-    : false;
+  // Client-side hydration
+  React.useEffect(() => {
+    setIsClient(true);
+    const onboardingStatus = localStorage.getItem('onboarding-completed');
+    setHasCompletedOnboarding(!!onboardingStatus);
+  }, []);
 
   // Simple check: has config in localStorage or environment
   const hasAnyConfig = React.useMemo(() => {
-    if (typeof window === 'undefined') return false;
+    if (!isClient) return true; // Assume config exists during SSR to prevent flash
     
     // Check localStorage config
     const savedConfig = localStorage.getItem('navidrome-config');
@@ -45,7 +49,12 @@ function NavidromeErrorBoundary({ children }: { children: React.ReactNode }) {
     }
     
     return false;
-  }, []);
+  }, [isClient]);
+  
+  // Don't show anything until client-side hydration is complete
+  if (!isClient) {
+    return <>{children}</>;
+  }
   
   // Show start screen ONLY if:
   // 1. First-time user (no onboarding completed), OR

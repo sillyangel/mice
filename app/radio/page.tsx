@@ -128,24 +128,22 @@ const RadioStationsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6 max-w-4xl">
+      <div className="p-6 w-full max-w-4xl">
         <div className="text-center">Loading radio stations...</div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+    <div className="p-6 pb-24 w-full">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between border-b pb-4 mb-4">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight flex items-center gap-2">
-              <FaWifi className="w-8 h-8" />
-              Radio Stations
-            </h1>
-            <p className="text-muted-foreground">Listen to internet radio streams</p>
+            <h1 className="text-3xl font-bold">Radio Stations</h1>
+            <p className="text-muted-foreground text-sm">
+              Listen to internet radio stations.
+            </p>
           </div>
-          
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>

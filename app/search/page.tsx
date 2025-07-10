@@ -101,7 +101,7 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="h-full px-4 py-6 lg:px-8">
+    <div className="p-6 pb-32 w-full">
       <div className="space-y-6">
         {/* Header */}
         <div className="space-y-1">
@@ -136,19 +136,25 @@ export default function SearchPage() {
             )}
 
             {/* Artists */}
-            {searchResults.artists.length > 0 && (
+            {/* {searchResults.artists.length > 0 && (
               <div>
                 <h2 className="text-2xl font-bold mb-4">Artists</h2>
                 <ScrollArea className="w-full">
                   <div className="flex space-x-4 pb-4">
                     {searchResults.artists.map((artist) => (
-                      <ArtistIcon key={artist.id} artist={artist} className="flex-shrink-0" />
+                        <ArtistIcon
+                          key={artist.id}
+                          artist={artist}
+                          className="shrink-0 overflow-hidden"
+                          size={190}
+                        />
                     ))}
                   </div>
                   <ScrollBar orientation="horizontal" />
                 </ScrollArea>
               </div>
-            )}
+            )} */}
+            {/* broken for now */}
 
             {/* Albums */}
             {searchResults.albums.length > 0 && (
@@ -160,7 +166,7 @@ export default function SearchPage() {
                       <AlbumArtwork 
                         key={album.id} 
                         album={album} 
-                        className="flex-shrink-0 w-48" 
+                        className="shrink-0 w-48" 
                         aspectRatio="square"
                         width={192}
                         height={192}
@@ -192,7 +198,7 @@ export default function SearchPage() {
                       </div>
                       
                       {/* Song Cover */}
-                      <div className="flex-shrink-0">                        <Image
+                      <div className="shrink-0">                        <Image
                           src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 64) : '/default-user.jpg'}
                           alt={song.album}
                           width={48}

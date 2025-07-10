@@ -79,7 +79,7 @@ export default function HistoryPage() {
   return (
     <div className="h-full px-4 py-6 lg:px-8">
       <Tabs defaultValue="music" className="h-full space-y-6">
-        <TabsContent value="music" className="border-none p-0 outline-none">
+        <TabsContent value="music" className="border-none p-0 outline-hidden">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -155,7 +155,7 @@ export default function HistoryPage() {
                             </div>
 
                             {/* Album Art */}
-                            <div className="w-12 h-12 mr-4 flex-shrink-0">
+                            <div className="w-12 h-12 mr-4 shrink-0">
                               <Image
                                 src={track.coverArt || '/default-user.jpg'}
                                 alt={track.album}

@@ -7,11 +7,47 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Current app version from package.json
-const APP_VERSION = '2025.07.02';
+const APP_VERSION = '2025.07.10';
 
 // Changelog data - add new versions at the top
 const CHANGELOG = [
-    {
+  {
+    version: '2025.07.10',
+    title: 'July Major Update',
+    changes: [
+      // New Features
+      'Support for Rich PWA Installs',
+      'Added right-click shortcuts to the PWA icon',
+      'Onboarding now suggests Navidrome\'s Demo Server',
+      'User can export settings as a downloadable JSON',
+      'New sidebar layout (compact design)',
+      'New masonry-style grid in the settings page',
+      'New options in settings to customize appearance',
+      'Added 5 recently played albums and playlists created',
+      'New loading screen',
+      'New recommended songs section',
+      'Enhanced playlist page',
+      'Enhanced Home page layout and content',
+      'Themes updated to use OKLCH (from HSL)',
+      'All themes updated (light themes look similar)',
+      'Caching system added (incomplete)',
+      'Skeleton loading added across all pages'
+    ],
+    fixes: [
+      'Fixed skeleton loader on the Home screen',
+      'Fixed album page not showing correct album art',
+      'Fixed album page not showing correct artist',
+      'Fixed album page not showing correct song count',
+      'Fixed flash of onboarding when already onboarded',
+      'Fixed issue with audio player not resuming playback after pause',
+      'Resolved bug with search results not displaying correctly'
+    ],
+    breaking: [
+      // Technically not breaking, but notable:
+      'Removed extended sidebar layout for a cleaner look'
+    ]
+  },
+  {
     version: '2025.07.02',
     title: 'July Mini Update',
     changes: [

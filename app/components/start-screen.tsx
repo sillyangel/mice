@@ -206,6 +206,49 @@ export function LoginForm({
     setScrobblingEnabled(enabled);
   };
 
+  const handleDemoSetup = async () => {
+    const demoCredentials = {
+      serverUrl: 'https://demo.navidrome.org',
+      username: 'demo',
+      password: 'demo'
+    };
+
+    // Set form data
+    setFormData(demoCredentials);
+
+    setIsTesting(true);
+    try {
+      const success = await testConnection(demoCredentials);
+
+      if (success) {
+        // Save the config
+        updateConfig(demoCredentials);
+        
+        toast({
+          title: "Demo Server Connected",
+          description: "Successfully connected to the Navidrome demo server! Let's configure your preferences.",
+        });
+        
+        // Move to settings step
+        setStep('settings');
+      } else {
+        toast({
+          title: "Demo Server Unavailable",
+          description: "The demo server is currently unavailable. Please try again later or enter your own server details.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Connection Error",
+        description: "Could not connect to the demo server. Please check your internet connection.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   if (step === 'settings') {
     return (
       <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -400,7 +443,7 @@ export function LoginForm({
                 />
               </div>
 
-              {/* Demo Server Tip */}
+              {/* Demo Server Setup */}
               <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <div className="text-blue-600 dark:text-blue-400 mt-0.5">
@@ -410,14 +453,42 @@ export function LoginForm({
                     <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
                       Don&apos;t have a Navidrome server?
                     </p>
-                    <p className="text-blue-700 dark:text-blue-200 mb-2">
-                      Try the demo server to explore mice:
+                    <p className="text-blue-700 dark:text-blue-200 mb-3">
+                      Try the demo server to explore mice with one click:
                     </p>
-                    <div className="bg-blue-100 dark:bg-blue-900/50 rounded p-2 font-mono text-xs">
-                      <div><strong>URL:</strong> https://demo.navidrome.org</div>
-                      <div><strong>Username:</strong> demo</div>
-                      <div><strong>Password:</strong> demo</div>
+                    <Button 
+                      type="button"
+                      variant="secondary" 
+                      size="sm"
+                      className="w-full bg-blue-100 hover:bg-blue-200 text-blue-900 dark:bg-blue-900/50 dark:hover:bg-blue-800/50 dark:text-blue-100"
+                      onClick={handleDemoSetup}
+                      disabled={isTesting}
+                    >
+                      {isTesting ? (
+                        <>
+                          <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-transparent border-t-current" />
+                          Connecting to Demo...
+                        </>
+                      ) : (
+                        <>
+                          <FaServer className="w-4 h-4 mr-2" />
+                          Connect to Demo Server
+                        </>
+                      )}
+                    </Button>
+                    <div className="mt-2 text-xs text-blue-600 dark:text-blue-300">
+                      This will automatically connect to: demo.navidrome.org
                     </div>
+                    <details className="mt-3">
+                      <summary className="text-xs text-blue-600 dark:text-blue-300 cursor-pointer hover:text-blue-800 dark:hover:text-blue-100">
+                        Or enter demo credentials manually
+                      </summary>
+                      <div className="mt-2 bg-blue-100 dark:bg-blue-900/50 rounded p-2 font-mono text-xs">
+                        <div><strong>URL:</strong> https://demo.navidrome.org</div>
+                        <div><strong>Username:</strong> demo</div>
+                        <div><strong>Password:</strong> demo</div>
+                      </div>
+                    </details>
                   </div>
                 </div>
               </div>

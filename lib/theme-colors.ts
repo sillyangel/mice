@@ -1,6 +1,10 @@
 // Theme color utilities for dynamic viewport theme color
 
 export const themeColors = {
+  default: {
+    background: 'hsl(0, 0%, 100%)', // White background for light mode
+    hex: '#ffffff' // Hex equivalent for theme-color
+  },
   blue: {
     background: 'hsl(240, 10%, 3.9%)', // Dark blue background
     hex: '#09090b' // Hex equivalent for theme-color
@@ -34,7 +38,7 @@ export const themeColors = {
 export type Theme = keyof typeof themeColors;
 
 export function getThemeBackgroundColor(theme: Theme): string {
-  return themeColors[theme].hex;
+  return themeColors[theme]?.hex || themeColors.default.hex;
 }
 
 export function hslToHex(h: number, s: number, l: number): string {

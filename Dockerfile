@@ -1,5 +1,5 @@
-# Use Node.js 22 Alpine for smaller image size
-FROM node:22-alpine
+# Use Node.js 20 Alpine for smaller image size
+FROM node:20-alpine
 
 # Install pnpm globally
 RUN npm install -g pnpm@10.12.4
@@ -15,6 +15,9 @@ RUN pnpm install
 
 # Copy source code
 COPY . .
+
+# Copy README.md to the app directory for documentation
+COPY README.md /app/
 
 # Set environment variable placeholders during build
 # These will be replaced at runtime with actual values

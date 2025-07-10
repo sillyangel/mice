@@ -31,9 +31,9 @@ const PlaylistsPage: React.FC = () => {
   }
 
   return (
-    <div className="h-full px-4 py-6 lg:px-8">
+    <div className="p-6 pb-24 w-full">
       <Tabs defaultValue="music" className="h-full space-y-6">
-        <TabsContent value="music" className="border-none p-0 outline-none">
+        <TabsContent value="music" className="border-none p-0 outline-hidden">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-2xl font-semibold tracking-tight">
@@ -60,7 +60,7 @@ const PlaylistsPage: React.FC = () => {
                     <Link key={playlist.id} href={`/playlist/${playlist.id}`}>
                       <div className="p-4 rounded-lg border border-border hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer h-32">
                         <div className="flex items-center space-x-4 h-full">
-                          <div className="w-12 h-12 bg-muted rounded-md overflow-hidden flex-shrink-0">
+                          <div className="w-12 h-12 bg-muted rounded-md overflow-hidden shrink-0">
                             <Image
                               src={playlistCoverUrl}
                               alt={playlist.name}

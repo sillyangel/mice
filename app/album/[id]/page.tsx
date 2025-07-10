@@ -12,6 +12,7 @@ import Loading from "@/app/components/loading";
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getNavidromeAPI } from '@/lib/navidrome';
+import { useFavoriteAlbums } from '@/hooks/use-favorite-albums';
 
 export default function AlbumPage() {
   const { id } = useParams();
@@ -22,6 +23,7 @@ export default function AlbumPage() {
   const [starredSongs, setStarredSongs] = useState<Set<string>>(new Set());
   const { getAlbum, starItem, unstarItem } = useNavidrome();
   const { playTrack, addAlbumToQueue, playAlbum, playAlbumFromTrack, currentTrack } = useAudioPlayer();
+  const { isFavoriteAlbum, toggleFavoriteAlbum } = useFavoriteAlbums();
   const api = getNavidromeAPI();
 
   useEffect(() => {
@@ -137,7 +139,7 @@ export default function AlbumPage() {
           <div className="space-y-2">
             <div className="flex items-center space-x-4">
               <p className="text-3xl font-semibold tracking-tight">{album.name}</p>
-              <Button onClick={handleStar} variant="ghost">
+              <Button onClick={handleStar} variant="ghost" title={isStarred ? "Unstar album" : "Star album"}>
                 <Heart className={isStarred ? 'text-primary' : 'text-gray-500'} fill={isStarred ? 'var(--primary)' : ""}/>
               </Button>
             </div>
@@ -145,13 +147,13 @@ export default function AlbumPage() {
               <p className="text-xl text-primary mt-0 mb-4 underline">{album.artist}</p>
             </Link>
             <Button className="px-5" onClick={() => playAlbum(album.id)}>
-              <Play />
-              Play Album
+              Play
             </Button>
             <div className="text-sm text-muted-foreground">
-              <p>{album.songCount} songs • {album.year} • {album.genre}</p>
-              <p>Duration: {formatDuration(album.duration)}</p>
-            </div>
+              <p>{album.genre} • {album.year}</p>
+              <p>{album.songCount} songs, {formatDuration(album.duration)}</p>
+            
+              </div>
           </div>
         </div>
         <div className="space-y-4">

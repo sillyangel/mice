@@ -21,14 +21,7 @@ import {
   FaListUl
 } from "react-icons/fa6";
 import { Heart } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
 
 interface LyricLine {
   time: number;
@@ -294,10 +287,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       
       {/* Overlay for better contrast */}
       <div className="absolute inset-0 bg-black/50" />
-        <div className="relative h-full w-full flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 lg:p-6 flex-shrink-0">
-          <h2 className="text-lg lg:text-xl font-semibold text-white"></h2>
+        <div className="relative h-full w-full">
+        {/* Floating Header */}
+        <div className="absolute top-0 right-0 z-50 p-4 lg:p-6">
           <div className="flex items-center gap-2">
             {onOpenQueue && (
               <button 
@@ -319,11 +311,11 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-8 p-4 lg:p-6 pt-0 overflow-hidden min-h-0">
+        <div className="h-full flex flex-col lg:flex-row gap-4 lg:gap-8 p-4 lg:p-6 overflow-hidden">
           {/* Left Side - Album Art and Controls */}
           <div className="flex flex-col items-center justify-center min-h-0 flex-1 min-w-0">
             {/* Album Art */}
-            <div className="relative mb-4 lg:mb-6 flex-shrink-0">
+            <div className="relative mb-4 lg:mb-6 shrink-0">
               <Image
                 src={currentTrack.coverArt || '/default-album.png'}
                 alt={currentTrack.album}
@@ -335,7 +327,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             </div>
 
             {/* Track Info */}
-            <div className="text-center mb-4 lg:mb-6 px-4 flex-shrink-0 max-w-full">
+            <div className="text-center mb-4 lg:mb-6 px-4 shrink-0 max-w-full">
               <h1 className="text-lg sm:text-xl lg:text-3xl font-bold text-foreground mb-2 line-clamp-2 leading-tight">
                 {currentTrack.name}
               </h1>
@@ -348,7 +340,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             </div>
 
             {/* Progress */}
-            <div className="w-full max-w-sm lg:max-w-md mb-4 lg:mb-6 px-4 flex-shrink-0">
+            <div className="w-full max-w-sm lg:max-w-md mb-4 lg:mb-6 px-4 shrink-0">
               <div className="w-full" onClick={handleSeek}>
                 <Progress value={progress} className="h-2 cursor-pointer" />
               </div>
@@ -359,7 +351,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             </div>
 
             {/* Controls */}
-            <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mb-4 lg:mb-6 flex-shrink-0">
+            <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mb-4 lg:mb-6 shrink-0">
               <button
                 onClick={toggleShuffle}
                 className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
@@ -407,7 +399,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             </div>
 
             {/* Volume and Lyrics Toggle */}
-            <div className="flex items-center gap-3 flex-shrink-0 justify-center">
+            <div className="flex items-center gap-3 shrink-0 justify-center">
               <button
                 onMouseEnter={() => setShowVolumeSlider(true)}
                 className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
@@ -453,7 +445,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             <div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}>
               <div className="h-full flex flex-col">
                 <ScrollArea className="flex-1 min-h-0">
-                  <div className="space-y-3 sm:space-y-4 pl-12 pr-4 py-4">
+                  <div className="space-y-2 sm:space-y-3 pl-4 pr-4 py-4">
                     {lyrics.map((line, index) => (
                       <div
                         key={index}
@@ -461,7 +453,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                         onClick={() => handleLyricClick(line.time)}
                         className={`text-sm sm:text-base lg:text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground ${
                           index === currentLyricIndex
-                            ? 'text-foreground font-bold text-lg sm:text-xl lg:text-2xl'
+                            ? 'text-foreground font-bold text-2xl'
                             : index < currentLyricIndex
                             ? 'text-foreground/60'
                             : 'text-foreground/40'
@@ -470,8 +462,8 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                           wordWrap: 'break-word',
                           overflowWrap: 'break-word',
                           hyphens: 'auto',
-                          paddingBottom: '6px',
-                          paddingLeft: '16px'
+                          paddingBottom: '4px',
+                          paddingLeft: '8px'
                         }}
                         title={`Click to jump to ${formatTime(line.time)}`}
                       >
