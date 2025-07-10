@@ -601,7 +601,7 @@ const SettingsPage = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="mb-6">
+                <Card className="mb-6 break-inside-avoid">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <FaLastfm className="w-5 h-5" />
