@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavidrome } from "./NavidromeContext";
 import { useRecentlyPlayedAlbums } from "@/hooks/use-recently-played-albums";
 import { useSidebarShortcuts } from "@/hooks/use-sidebar-shortcuts";
+import { useSidebarLayout, SidebarItemType } from "@/hooks/use-sidebar-layout";
 import {
   ContextMenu,
   ContextMenuContent,
