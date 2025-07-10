@@ -13,7 +13,6 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getNavidromeAPI } from '@/lib/navidrome';
 import { useFavoriteAlbums } from '@/hooks/use-favorite-albums';
-import { Star } from 'lucide-react';
 
 export default function AlbumPage() {
   const { id } = useParams();
@@ -142,13 +141,6 @@ export default function AlbumPage() {
               <p className="text-3xl font-semibold tracking-tight">{album.name}</p>
               <Button onClick={handleStar} variant="ghost" title={isStarred ? "Unstar album" : "Star album"}>
                 <Heart className={isStarred ? 'text-primary' : 'text-gray-500'} fill={isStarred ? 'var(--primary)' : ""}/>
-              </Button>
-              <Button 
-                onClick={() => toggleFavoriteAlbum(album.id)} 
-                variant="ghost" 
-                title={isFavoriteAlbum(album.id) ? "Remove from sidebar favorites" : "Add to sidebar favorites"}
-              >
-                <Star className={isFavoriteAlbum(album.id) ? 'text-yellow-500' : 'text-gray-500'} fill={isFavoriteAlbum(album.id) ? 'currentColor' : ""}/>
               </Button>
             </div>
             <Link href={`/artist/${album.artistId}`}>
