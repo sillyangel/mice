@@ -9,8 +9,8 @@ services:
     environment:
       # Navidrome Server Configuration
       # - NAVIDROME_URL=http://navidrome:4533
-      # - NAVIDROME_USERNAME=kryptonite
-      # - NAVIDROME_PASSWORD=kryptonite
+      # - NAVIDROME_USERNAME=user
+      # - NAVIDROME_PASSWORD=password
 
       # # PostHog Analytics
       # - POSTHOG_KEY=phc_Sa39J7754MwaHrPxYiWnWETVSD3g1cU4nOplMGczRE9
