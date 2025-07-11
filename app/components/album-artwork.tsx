@@ -20,7 +20,7 @@ import { useNavidrome } from "./NavidromeContext"
 import Link from "next/link";
 import { useAudioPlayer, Track } from "@/app/components/AudioPlayerContext";
 import { getNavidromeAPI } from "@/lib/navidrome";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArtistIcon } from "@/app/components/artist-icon";
@@ -46,8 +46,21 @@ export function AlbumArtwork({
   const router = useRouter();
   const { addAlbumToQueue, playTrack, addToQueue } = useAudioPlayer();
   const { playlists, starItem, unstarItem } = useNavidrome();
-  const [imageLoading, setImageLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
+  
+  // Memoize cover art URL to prevent recalculation on every render
+  const coverArtUrl = useMemo(() => {
+    if (!api || !album.coverArt) return '/default-user.jpg';
+    return api.getCoverArtUrl(album.coverArt);
+  }, [api, album.coverArt]);
+
+  // Use callback to prevent function recreation on every render
+  const handleImageLoad = useCallback(() => {
+    // Image loaded successfully - no state update needed
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    // Image failed to load - could set error state if needed
+  }, []);
 
   const handleClick = () => {
     router.push(`/album/${album.id}`);
@@ -105,68 +118,42 @@ export function AlbumArtwork({
         console.error('Failed to toggle favorite:', error);
       }
     };
-  // Get cover art URL with proper fallback
-  const coverArtUrl = album.coverArt && api
-    ? api.getCoverArtUrl(album.coverArt, 300)
-    : '/default-user.jpg';
-
+    
   return (
     <div className={cn("space-y-3", className)} {...props}>
       <ContextMenu>
         <ContextMenuTrigger>
           <Card key={album.id} className="overflow-hidden cursor-pointer px-0 py-0 gap-0" onClick={() => handleClick()}>
-                              <div className="aspect-square relative group">
-                                  {album.coverArt && api ? (
-                                      <>
-                                        {imageLoading && (
-                                          <div className="absolute inset-0 bg-muted animate-pulse rounded flex items-center justify-center">
-                                            <Disc className="w-12 h-12 text-muted-foreground animate-spin" />
-                                          </div>
-                                        )}
-                                        <Image
-                                            src={api.getCoverArtUrl(album.coverArt)}
-                                            alt={album.name}
-                                            fill
-                                            className={`w-full h-full object-cover transition-opacity duration-300 ${
-                                              imageLoading ? 'opacity-0' : 'opacity-100'
-                                            }`}
-                                            sizes="(max-width: 768px) 100vw, 300px"
-                                            onLoad={() => setImageLoading(false)}
-                                            onError={() => {
-                                              setImageLoading(false);
-                                              setImageError(true);
-                                            }}
-                                        />
-                                      </>
-                                  ) : (
-                                      <div className="w-full h-full bg-muted rounded flex items-center justify-center">
-                                          <Disc className="w-12 h-12 text-muted-foreground" />
-                                      </div>
-                                  )}
-                                  {!imageLoading && (
-                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                        <Play className="w-6 h-6 mx-auto hidden group-hover:block" onClick={() => handlePlayAlbum(album)}/>
-                                    </div>
-                                  )}
-                              </div>
-                              <CardContent className="p-4">
-                                {imageLoading ? (
-                                  <>
-                                    <div className="h-5 w-3/4 bg-muted animate-pulse rounded mb-2" />
-                                    <div className="h-4 w-1/2 bg-muted animate-pulse rounded mb-1" />
-                                    <div className="h-3 w-2/3 bg-muted animate-pulse rounded" />
-                                  </>
-                                ) : (
-                                  <>
-                                    <h3 className="font-semibold truncate">{album.name}</h3>
-                                    <p className="text-sm text-muted-foreground truncate " onClick={() => router.push(album.artistId)}>{album.artist}</p>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {album.songCount} songs • {Math.floor(album.duration / 60)} min
-                                    </p>
-                                  </>
-                                )}
-                              </CardContent>
-                            </Card>
+            <div className="aspect-square relative group">
+              {album.coverArt && api ? (
+                <Image
+                  src={coverArtUrl}
+                  alt={album.name}
+                  fill
+                  className="w-full h-full object-cover transition-all"
+                  sizes="(max-width: 768px) 100vw, 300px"
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
+                  priority={false}
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full bg-muted rounded flex items-center justify-center">
+                  <Disc className="w-12 h-12 text-muted-foreground" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <Play className="w-6 h-6 mx-auto hidden group-hover:block" onClick={() => handlePlayAlbum(album)}/>
+              </div>
+            </div>
+            <CardContent className="p-4">
+              <h3 className="font-semibold truncate">{album.name}</h3>
+              <p className="text-sm text-muted-foreground truncate " onClick={() => router.push(album.artistId)}>{album.artist}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {album.songCount} songs • {Math.floor(album.duration / 60)} min
+              </p>
+            </CardContent>
+          </Card>
           {/* <div onClick={handleClick} className="overflow-hidden rounded-md">
             <Image
               src={coverArtUrl}

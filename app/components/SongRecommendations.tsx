@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Song } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
@@ -20,11 +20,21 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
   const [recommendedSongs, setRecommendedSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [songStates, setSongStates] = useState<Record<string, boolean>>({});
-  const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({});
 
-  // Get greeting based on time of day
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  // Memoize the greeting to prevent recalculation
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  }, []);
+
+  // Memoized callbacks to prevent re-renders
+  const handleImageLoad = useCallback(() => {
+    // Image loaded - no state update needed to prevent re-renders
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    // Image error - no state update needed to prevent re-renders
+  }, []);
 
   useEffect(() => {
     const loadRecommendations = async () => {
@@ -51,15 +61,12 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
         const recommendations = shuffled.slice(0, 6);
         setRecommendedSongs(recommendations);
         
-        // Initialize starred states and image loading states
+        // Initialize starred states only (removed image loading states)
         const states: Record<string, boolean> = {};
-        const imageStates: Record<string, boolean> = {};
         recommendations.forEach((song: Song) => {
           states[song.id] = !!song.starred;
-          imageStates[song.id] = true; // Start with loading state
         });
         setSongStates(states);
-        setImageLoadingStates(imageStates);
       } catch (error) {
         console.error('Failed to load song recommendations:', error);
       } finally {
@@ -159,31 +166,23 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
                   <div className="relative w-12 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
                     {song.coverArt && api ? (
                       <>
-                        {imageLoadingStates[song.id] && (
-                          <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                            <Music className="w-6 h-6 text-muted-foreground animate-pulse" />
-                          </div>
-                        )}
                         <Image
                           src={api.getCoverArtUrl(song.coverArt, 100)}
                           alt={song.title}
                           fill
-                          className={`object-cover transition-opacity duration-300 ${
-                            imageLoadingStates[song.id] ? 'opacity-0' : 'opacity-100'
-                          }`}
+                          className="object-cover"
                           sizes="48px"
-                          onLoad={() => setImageLoadingStates(prev => ({ ...prev, [song.id]: false }))}
-                          onError={() => setImageLoadingStates(prev => ({ ...prev, [song.id]: false }))}
+                          onLoad={handleImageLoad}
+                          onError={handleImageError}
+                          loading="lazy"
                         />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Play className="w-4 h-4 text-white" />
+                        </div>
                       </>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Music className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                    )}
-                    {!imageLoadingStates[song.id] && (
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Play className="w-4 h-4 text-white" />
                       </div>
                     )}
                   </div>

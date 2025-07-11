@@ -5,6 +5,7 @@ import { Menu } from "@/app/components/menu";
 import { Sidebar } from "@/app/components/sidebar";
 import { useNavidrome } from "@/app/components/NavidromeContext";
 import { AudioPlayer } from "./AudioPlayer";
+import { BottomNavigation } from './BottomNavigation';
 import { Toaster } from "@/components/ui/toaster";
 import { useFavoriteAlbums } from "@/hooks/use-favorite-albums";
 
@@ -111,12 +112,14 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
           />
         </div>
 
-        {/* Main Content Area with bottom padding for audio player */}
-        <div className="flex-1 overflow-y-auto pb-24">
+        {/* Main Content Area with bottom padding for audio player and bottom nav */}
+        <div className="flex-1 overflow-y-auto pb-40">
           <div>{children}</div>
         </div>
 
-        {/* Mobile Audio Player - always visible on mobile */}
+        {/* Bottom Navigation for Mobile */}
+        <BottomNavigation />
+
         <Toaster />
       </div>
 

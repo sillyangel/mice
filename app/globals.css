@@ -853,6 +853,34 @@
   }
 }
 
+
+  /* Safe area support for mobile devices */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+  }
+
+  .mobile-safe-bottom {
+    margin-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* Touch-optimized navigation */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Bottom navigation z-index fix */
+  .bottom-nav {
+    z-index: 45;
+  }
+
+  /* Audio player above bottom nav */
+  .mobile-audio-above-nav {
+    z-index: 50;
+    bottom: calc(4rem + env(safe-area-inset-bottom, 0));
+  }
+
+
 /* Better focus states for accessibility */
 button:focus-visible {
   outline: 2px solid hsl(var(--primary));
@@ -909,3 +937,21 @@ button:focus-visible {
 /*
   ---break---
 */
+
+/* Mobile Bottom Navigation Styles */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+}
+
+.mobile-safe-bottom {
+  margin-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-audio-above-nav {
+  bottom: calc(4rem + env(safe-area-inset-bottom, 0));
+}

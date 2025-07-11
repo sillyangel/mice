@@ -156,66 +156,10 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
     return (
       <>
       <div className="flex items-center justify-between w-full">
-        {/* Mobile Navigation */}
+        {/* Mobile Top Bar - Simplified since navigation is now at bottom */}
         {isMobile ? (
-          <div className="flex items-center justify-between w-full p-2">
-            <div className="flex items-center gap-2">
-              <Drawer open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <DrawerTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-2">
-                    <MenuIcon className="h-5 w-5" />
-                  </Button>
-                </DrawerTrigger>
-                <DrawerContent>
-                  <DrawerHeader>
-                    <DrawerTitle className="flex items-center gap-2">
-                      <Image src="/icon-192.png" alt="mice" width={24} height={24} className="rounded" />
-                      mice
-                    </DrawerTitle>
-                    <DrawerDescription>
-                      Navigate through your music library
-                    </DrawerDescription>
-                  </DrawerHeader>
-                  <div className="px-4 pb-6">
-                    <div className="grid gap-2">
-                      {navigationItems.map((item) => (
-                        <Link key={item.href} href={item.href}>
-                          <DrawerClose asChild>
-                            <Button 
-                              variant="ghost" 
-                              className="w-full justify-start gap-3 h-12"
-                              onClick={() => setMobileMenuOpen(false)}
-                            >
-                              <item.icon className="h-5 w-5" />
-                              {item.label}
-                            </Button>
-                          </DrawerClose>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </DrawerContent>
-              </Drawer>
-              <h1 className="font-bold text-lg">mice</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => router.push('/search')}
-                className="p-2"
-              >
-                <Search className="h-5 w-5" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setOpen(true)}
-                className="p-2"
-              >
-                <Settings className="h-5 w-5" />
-              </Button>
-            </div>
+          <div className="flex items-center justify-center w-full p-2">
+            <h1 className="font-bold text-lg">mice</h1>
           </div>
         ) : (
           /* Desktop Navigation */

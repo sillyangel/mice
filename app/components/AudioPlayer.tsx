@@ -25,6 +25,7 @@ export const AudioPlayer: React.FC = () => {
   const [isClient, setIsClient] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [audioInitialized, setAudioInitialized] = useState(false);
   const audioCurrent = audioRef.current;
   const { toast } = useToast();
   
@@ -247,66 +248,105 @@ export const AudioPlayer: React.FC = () => {
     };
   }, [playNextTrack, currentTrack, onTrackProgress, onTrackEnd, onTrackPlay, onTrackPause]);
 
-  // Media Session API integration
+  // Media Session API integration - Enhanced for mobile
   useEffect(() => {
-    if (!isClient || !currentTrack || !('mediaSession' in navigator)) return;
+    if (!isClient || !currentTrack) return;
+    
+    // Check if MediaSession is supported
+    if (!('mediaSession' in navigator)) {
+      console.log('MediaSession API not supported');
+      return;
+    }
 
-    // Set metadata
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentTrack.name,
-      artist: currentTrack.artist,
-      album: currentTrack.album,
-      artwork: currentTrack.coverArt ? [
-        { src: currentTrack.coverArt, sizes: '512x512', type: 'image/jpeg' }
-      ] : undefined,
-    });
+    try {
+      // Set metadata
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentTrack.name,
+        artist: currentTrack.artist,
+        album: currentTrack.album,
+        artwork: currentTrack.coverArt ? [
+          { src: currentTrack.coverArt, sizes: '96x96', type: 'image/jpeg' },
+          { src: currentTrack.coverArt, sizes: '128x128', type: 'image/jpeg' },
+          { src: currentTrack.coverArt, sizes: '192x192', type: 'image/jpeg' },
+          { src: currentTrack.coverArt, sizes: '256x256', type: 'image/jpeg' },
+          { src: currentTrack.coverArt, sizes: '384x384', type: 'image/jpeg' },
+          { src: currentTrack.coverArt, sizes: '512x512', type: 'image/jpeg' }
+        ] : [
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
+        ],
+      });
 
-    // Set playback state
-    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+      // Set playback state
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
 
-    // Set action handlers
-    navigator.mediaSession.setActionHandler('play', () => {
-      const audioCurrent = audioRef.current;
-      if (audioCurrent && currentTrack) {
-        audioCurrent.play();
-        setIsPlaying(true);
-        onTrackPlay(currentTrack);
-      }
-    });
+      // Set action handlers with error handling
+      navigator.mediaSession.setActionHandler('play', () => {
+        const audioCurrent = audioRef.current;
+        if (audioCurrent && currentTrack) {
+          audioCurrent.play().then(() => {
+            setIsPlaying(true);
+            onTrackPlay(currentTrack);
+          }).catch(console.error);
+        }
+      });
 
-    navigator.mediaSession.setActionHandler('pause', () => {
-      const audioCurrent = audioRef.current;
-      if (audioCurrent && currentTrack) {
-        audioCurrent.pause();
-        setIsPlaying(false);
-        onTrackPause(audioCurrent.currentTime);
-      }
-    });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        const audioCurrent = audioRef.current;
+        if (audioCurrent && currentTrack) {
+          audioCurrent.pause();
+          setIsPlaying(false);
+          onTrackPause(audioCurrent.currentTime);
+        }
+      });
 
-    navigator.mediaSession.setActionHandler('previoustrack', () => {
-      playPreviousTrack();
-    });
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        playPreviousTrack();
+      });
 
-    navigator.mediaSession.setActionHandler('nexttrack', () => {
-      playNextTrack();
-    });
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        playNextTrack();
+      });
 
-    navigator.mediaSession.setActionHandler('seekto', (details) => {
-      const audioCurrent = audioRef.current;
-      if (audioCurrent && details.seekTime !== undefined) {
-        audioCurrent.currentTime = details.seekTime;
-      }
-    });
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        const audioCurrent = audioRef.current;
+        if (audioCurrent && details.seekTime !== undefined) {
+          audioCurrent.currentTime = details.seekTime;
+        }
+      });
 
-    return () => {
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.setActionHandler('play', null);
-        navigator.mediaSession.setActionHandler('pause', null);
-        navigator.mediaSession.setActionHandler('previoustrack', null);
-        navigator.mediaSession.setActionHandler('nexttrack', null);
-        navigator.mediaSession.setActionHandler('seekto', null);
-      }
-    };
+      // Update position state for better scrubbing support
+      const updatePositionState = () => {
+        const audioCurrent = audioRef.current;
+        if (audioCurrent && currentTrack && 'setPositionState' in navigator.mediaSession) {
+          try {
+            navigator.mediaSession.setPositionState({
+              duration: audioCurrent.duration || 0,
+              playbackRate: audioCurrent.playbackRate || 1.0,
+              position: audioCurrent.currentTime || 0,
+            });
+          } catch (error) {
+            console.log('Position state update failed:', error);
+          }
+        }
+      };
+
+      // Update position state periodically
+      const positionInterval = setInterval(updatePositionState, 1000);
+
+      return () => {
+        clearInterval(positionInterval);
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.setActionHandler('play', null);
+          navigator.mediaSession.setActionHandler('pause', null);
+          navigator.mediaSession.setActionHandler('previoustrack', null);
+          navigator.mediaSession.setActionHandler('nexttrack', null);
+          navigator.mediaSession.setActionHandler('seekto', null);
+        }
+      };
+    } catch (error) {
+      console.error('MediaSession setup failed:', error);
+    }
   }, [currentTrack, isPlaying, isClient, playPreviousTrack, playNextTrack, onTrackPlay, onTrackPause]);
   
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
@@ -321,20 +361,54 @@ export const AudioPlayer: React.FC = () => {
     }
   };
 
-  const togglePlayPause = () => {
+  const togglePlayPause = async () => {
     if (audioCurrent && currentTrack) {
+      // On mobile, ensure audio is initialized on first user interaction
+      if (isMobile && !audioInitialized) {
+        try {
+          // Create a dummy audio context to initialize audio on mobile
+          const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+          if (AudioContextClass) {
+            const audioContext = new AudioContextClass();
+            await audioContext.resume();
+            setAudioInitialized(true);
+          }
+        } catch (error) {
+          console.log('Audio context initialization failed:', error);
+        }
+      }
+
       if (isPlaying) {
         audioCurrent.pause();
         setIsPlaying(false);
         onTrackPause(audioCurrent.currentTime);
       } else {
-        audioCurrent.play().then(() => {
+        try {
+          await audioCurrent.play();
           setIsPlaying(true);
           onTrackPlay(currentTrack);
-        }).catch((error) => {
+        } catch (error) {
           console.error('Failed to play audio:', error);
-          setIsPlaying(false);
-        });
+          // Try to initialize audio context and retry
+          if (isMobile) {
+            try {
+              const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+              if (AudioContextClass) {
+                const audioContext = new AudioContextClass();
+                await audioContext.resume();
+                setAudioInitialized(true);
+                await audioCurrent.play();
+                setIsPlaying(true);
+                onTrackPlay(currentTrack);
+              }
+            } catch (retryError) {
+              console.error('Audio play retry failed:', retryError);
+              setIsPlaying(false);
+            }
+          } else {
+            setIsPlaying(false);
+          }
+        }
       }
     }
   };
@@ -360,7 +434,7 @@ export const AudioPlayer: React.FC = () => {
   if (isMobile) {
     return (
       <>
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t shadow-lg mobile-audio-player mobile-safe-bottom">
+        <div className="fixed bottom-16 left-0 right-0 z-[60] bg-background/95 backdrop-blur-sm border-t shadow-lg mobile-audio-player mobile-safe-bottom">
           <div className="px-4 py-3">
             {/* Progress bar at top for mobile */}
             <div className="mb-3">
@@ -495,7 +569,14 @@ export const AudioPlayer: React.FC = () => {
         </div>
         
         {/* Single audio element - shared across all UI states */}
-        <audio ref={audioRef} hidden />
+        <audio 
+          ref={audioRef} 
+          hidden 
+          playsInline
+          preload="auto"
+          controls={false}
+          crossOrigin="anonymous"
+        />
         <audio ref={preloadAudioRef} hidden preload="metadata" />
       </>
     );
@@ -601,8 +682,15 @@ export const AudioPlayer: React.FC = () => {
         />
       </div>
       
-      {/* Single audio element - shared across all UI states */}
-      <audio ref={audioRef} hidden />
+      {/* Single audio element - shared across all UI states with mobile support */}
+      <audio 
+        ref={audioRef} 
+        hidden 
+        playsInline
+        preload="auto"
+        controls={false}
+        crossOrigin="anonymous"
+      />
       <audio ref={preloadAudioRef} hidden preload="metadata" />
     </>
   );
