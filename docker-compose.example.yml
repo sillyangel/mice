@@ -3,18 +3,18 @@ version: '3.8'
 services:
   mice:
     container_name: mice-public
-    image: sillyangel/mice:latest
+    image: sillyangel/mice:2025.07.10
     ports:
       - "40625:40625"
     environment:
       # Navidrome Server Configuration
-      - NAVIDROME_URL=https://navi.sillyangel.dev
-      - NAVIDROME_USERNAME=kryptonite
-      - NAVIDROME_PASSWORD=kryptonite
+      # - NAVIDROME_URL=http://navidrome:4533
+      # - NAVIDROME_USERNAME=kryptonite
+      # - NAVIDROME_PASSWORD=kryptonite
 
-      # PostHog Analytics
-      - POSTHOG_KEY=phc_Sa39J7754MwaHrPxYiWnWETVSD3g1cU4nOplMGczRE9
-      - POSTHOG_HOST=https://us.i.posthog.com
+      # # PostHog Analytics
+      # - POSTHOG_KEY=phc_Sa39J7754MwaHrPxYiWnWETVSD3g1cU4nOplMGczRE9
+      # - POSTHOG_HOST=https://us.i.posthog.com
 
       # Application Port
       - PORT=40625
@@ -27,3 +27,24 @@ services:
       start_period: 40s
     
     restart: unless-stopped
+
+  navidrome:
+    container_name: navidrome
+    image: deluan/navidrome:latest
+    ports:
+      - "4533:4533"
+    environment:
+      - ND_SCANINTERVAL=1m
+      - ND_LOGLEVEL=info
+      - ND_SESSIONTIMEOUT=24h
+      - ND_PORT=4533
+      # - ND_BASEURL=/navidrome
+      # - ND_MUSICFOLDER=/music
+    volumes:
+      - navidrome_data:/data
+      - navidrome_music:/music
+    restart: unless-stopped
+
+volumes:
+  navidrome_data:
+  navidrome_music:
