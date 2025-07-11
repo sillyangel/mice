@@ -10,10 +10,12 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useLastFmScrobbler } from '@/hooks/use-lastfm-scrobbler';
 import { useStandaloneLastFm } from '@/hooks/use-standalone-lastfm';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export const AudioPlayer: React.FC = () => {
   const { currentTrack, playPreviousTrack, addToQueue, playNextTrack, clearQueue, queue, toggleShuffle, shuffle, toggleCurrentTrackStar } = useAudioPlayer();
   const router = useRouter();
+  const isMobile = useIsMobile();
   const audioRef = useRef<HTMLAudioElement>(null);
   const preloadAudioRef = useRef<HTMLAudioElement>(null);
   const [progress, setProgress] = useState(0);
@@ -354,109 +356,119 @@ export const AudioPlayer: React.FC = () => {
     return null;
   }
 
-  // Mini player (collapsed state)
-  if (isMinimized) {
+  // Mobile compact mini player :3
+  if (isMobile) {
     return (
-      <div className="fixed bottom-4 left-4 z-50">
-        <div 
-          className="bg-background/95 backdrop-blur-xs border rounded-lg shadow-lg cursor-pointer hover:scale-[1.02] transition-transform w-80"
-          onClick={() => setIsMinimized(false)}
-        >
-          <div className="flex items-center p-3">
-            <Image 
-              src={currentTrack.coverArt || '/default-user.jpg'} 
-              alt={currentTrack.name} 
-              width={40} 
-              height={40} 
-              className="w-10 h-10 rounded-md shrink-0" 
-            />
-            <div className="flex-1 min-w-0 mx-3">
-              <div className="overflow-hidden">
-                <p className="font-semibold text-sm whitespace-nowrap animate-infinite-scroll">
-                  {currentTrack.name}
-                </p>
-              </div>
-              <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
-            </div>
-            {/* Heart icon for favoriting */}
-            <button 
-              className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors mr-2" 
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleCurrentTrackStar();
-              }}
-              title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              <Heart 
-                className={`w-4 h-4 ${currentTrack.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
+      <>
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t shadow-lg mobile-audio-player mobile-safe-bottom">
+          <div className="px-4 py-3">
+            {/* Progress bar at top for mobile */}
+            <div className="mb-3">
+              <Progress 
+                value={progress} 
+                className="h-1 cursor-pointer progress-mobile" 
+                onClick={handleProgressClick}
               />
-            </button>
-            <div className="flex items-center justify-center space-x-2">
-          <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
-            <FaBackward className="w-3 h-3" />
-          </button>
-          <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
-            {isPlaying ? <FaPause className="w-4 h-4" /> : <FaPlay className="w-4 h-4" />}
-          </button>
-          <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
-            <FaForward className="w-3 h-3" />
-          </button>
-        </div>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              {/* Track info */}
+              <div 
+                className="flex items-center flex-1 min-w-0 cursor-pointer"
+                onClick={() => setIsFullScreen(true)}
+              >
+                <Image 
+                  src={currentTrack.coverArt || '/default-user.jpg'} 
+                  alt={currentTrack.name} 
+                  width={48} 
+                  height={48} 
+                  className="w-12 h-12 rounded-lg mr-3 shrink-0 shadow-sm" 
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{currentTrack.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
+                </div>
+              </div>
+
+              {/* Mobile controls */}
+              <div className="flex items-center space-x-2">
+                <button 
+                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleCurrentTrackStar();
+                  }}
+                  title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <Heart 
+                    className={`w-4 h-4 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`} 
+                  />
+                </button>
+                <button 
+                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95" 
+                  onClick={playPreviousTrack}
+                >
+                  <FaBackward className="w-4 h-4" />
+                </button>
+                <button 
+                  className="p-4 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 bg-primary/10" 
+                  onClick={togglePlayPause}
+                >
+                  {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
+                </button>
+                <button 
+                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95" 
+                  onClick={playNextTrack}
+                >
+                  <FaForward className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
+          
+          {/* Full Screen Player for mobile */}
+          <FullScreenPlayer 
+            isOpen={isFullScreen} 
+            onClose={() => setIsFullScreen(false)} 
+            onOpenQueue={handleOpenQueue}
+          />
         </div>
+        
+        {/* Single audio element - shared across all UI states */}
         <audio ref={audioRef} hidden />
         <audio ref={preloadAudioRef} hidden preload="metadata" />
-      </div>
+      </>
     );
   }
 
-  // Compact floating player (default state)
-  return (
-    <div className="fixed bottom-4 left-4 right-4 z-50">
-      <div className="bg-background/95 backdrop-blur-xs border rounded-lg shadow-lg p-3 cursor-pointer hover:scale-[1.01] transition-transform">
-        <div className="flex items-center">
-          {/* Track info */}
-          <div className="flex items-center flex-1 min-w-0">
-            <Image 
-              src={
-                currentTrack.coverArt && 
-                (currentTrack.coverArt.startsWith('http') || currentTrack.coverArt.startsWith('/'))
-                  ? currentTrack.coverArt 
-                  : '/default-user.jpg'
-              } 
-              alt={currentTrack.name} 
-              width={48} 
-              height={48} 
-              className="w-12 h-12 rounded-md mr-4 shrink-0" 
-            />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold truncate text-base">{currentTrack.name}</p>
-              <p className="text-sm text-muted-foreground truncate">{currentTrack.artist}</p>
-            </div>
-          </div>
-
-          {/* Center section with controls and progress */}
-          <div className="flex flex-col items-center flex-1 justify-center">
-            {/* Control buttons */}  
-            <div className="flex items-center justify-center space-x-3">
-              <button
-                onClick={toggleShuffle} 
-                className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${shuffle ? 'text-primary bg-primary/20' : ''}`} 
-                title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
-              >
-                <FaShuffle className="w-4 h-4" />
-              </button>
-              <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
-                <FaBackward className="w-4 h-4" />
-              </button>
-              <button className="p-3 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
-                {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
-              </button>
-              <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
-                <FaForward className="w-4 h-4" />
-              </button>
+  // Desktop mini player (collapsed state)
+  if (isMinimized) {
+    return (
+      <>
+        <div className="fixed bottom-4 left-4 z-50">
+          <div 
+            className="bg-background/95 backdrop-blur-xs border rounded-lg shadow-lg cursor-pointer hover:scale-[1.02] transition-transform w-80"
+            onClick={() => setIsMinimized(false)}
+          >
+            <div className="flex items-center p-3">
+              <Image 
+                src={currentTrack.coverArt || '/default-user.jpg'} 
+                alt={currentTrack.name} 
+                width={40} 
+                height={40} 
+                className="w-10 h-10 rounded-md shrink-0" 
+              />
+              <div className="flex-1 min-w-0 mx-3">
+                <div className="overflow-hidden">
+                  <p className="font-semibold text-sm whitespace-nowrap animate-infinite-scroll">
+                    {currentTrack.name}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
+              </div>
+              {/* Heart icon for favoriting */}
               <button 
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors flex items-center justify-center" 
+                className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors mr-2" 
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleCurrentTrackStar();
@@ -464,51 +476,134 @@ export const AudioPlayer: React.FC = () => {
                 title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
               >
                 <Heart 
-                  className={`w-5 h-5 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`} 
+                  className={`w-4 h-4 ${currentTrack.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
                 />
               </button>
-            </div>
-            
-            {/* Progress bar */}
-            {/* <div className="flex items-center space-x-2 w-80">
-              <span className="text-xs text-muted-foreground w-8 text-right">
-                {formatTime(audioCurrent?.currentTime ?? 0)}
-              </span>
-              <Progress value={progress} className="flex-1 cursor-pointer h-1" onClick={handleProgressClick}/>
-              <span className="text-xs text-muted-foreground w-8">
-                {formatTime(audioCurrent?.duration ?? 0)}
-              </span>
-            </div> */}
+              <div className="flex items-center justify-center space-x-2">
+            <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
+              <FaBackward className="w-3 h-3" />
+            </button>
+            <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
+              {isPlaying ? <FaPause className="w-4 h-4" /> : <FaPlay className="w-4 h-4" />}
+            </button>
+            <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
+              <FaForward className="w-3 h-3" />
+            </button>
           </div>
-
-          {/* Right side buttons */}
-          <div className="flex items-center justify-end space-x-2 flex-1">
-            <button 
-              className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
-              onClick={() => setIsFullScreen(true)}
-              title="Full Screen"
-            >
-              <FaExpand className="w-4 h-4" />
-            </button>
-            <button 
-              className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
-              onClick={() => setIsMinimized(true)}
-              title="Minimize"
-            >
-              <FaCompress className="w-4 h-4" />
-            </button>
+            </div>
           </div>
         </div>
+        
+        {/* Single audio element - shared across all UI states */}
+        <audio ref={audioRef} hidden />
+        <audio ref={preloadAudioRef} hidden preload="metadata" />
+      </>
+    );
+  }
+
+  // Desktop compact floating player (default state)
+  return (
+    <>
+      <div className="fixed bottom-4 left-4 right-4 z-50">
+        <div className="bg-background/95 backdrop-blur-xs border rounded-lg shadow-lg p-3 cursor-pointer hover:scale-[1.01] transition-transform">
+          <div className="flex items-center">
+            {/* Track info */}
+            <div className="flex items-center flex-1 min-w-0">
+              <Image 
+                src={
+                  currentTrack.coverArt && 
+                  (currentTrack.coverArt.startsWith('http') || currentTrack.coverArt.startsWith('/'))
+                    ? currentTrack.coverArt 
+                    : '/default-user.jpg'
+                } 
+                alt={currentTrack.name} 
+                width={48} 
+                height={48} 
+                className="w-12 h-12 rounded-md mr-4 shrink-0" 
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold truncate text-base">{currentTrack.name}</p>
+                <p className="text-sm text-muted-foreground truncate">{currentTrack.artist}</p>
+              </div>
+            </div>
+
+            {/* Center section with controls and progress */}
+            <div className="flex flex-col items-center flex-1 justify-center">
+              {/* Control buttons */}  
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={toggleShuffle} 
+                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${shuffle ? 'text-primary bg-primary/20' : ''}`} 
+                  title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
+                >
+                  <FaShuffle className="w-4 h-4" />
+                </button>
+                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
+                  <FaBackward className="w-4 h-4" />
+                </button>
+                <button className="p-3 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
+                  {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
+                </button>
+                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
+                  <FaForward className="w-4 h-4" />
+                </button>
+                <button 
+                  className="p-2 hover:bg-gray-700/50 rounded-full transition-colors flex items-center justify-center" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleCurrentTrackStar();
+                  }}
+                  title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <Heart 
+                    className={`w-5 h-5 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`} 
+                  />
+                </button>
+              </div>
+              
+              {/* Progress bar */}
+              {/* <div className="flex items-center space-x-2 w-80">
+                <span className="text-xs text-muted-foreground w-8 text-right">
+                  {formatTime(audioCurrent?.currentTime ?? 0)}
+                </span>
+                <Progress value={progress} className="flex-1 cursor-pointer h-1" onClick={handleProgressClick}/>
+                <span className="text-xs text-muted-foreground w-8">
+                  {formatTime(audioCurrent?.duration ?? 0)}
+                </span>
+              </div> */}
+            </div>
+
+            {/* Right side buttons */}
+            <div className="flex items-center justify-end space-x-2 flex-1">
+              <button 
+                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
+                onClick={() => setIsFullScreen(true)}
+                title="Full Screen"
+              >
+                <FaExpand className="w-4 h-4" />
+              </button>
+              <button 
+                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
+                onClick={() => setIsMinimized(true)}
+                title="Minimize"
+              >
+                <FaCompress className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Full Screen Player */}
+        <FullScreenPlayer 
+          isOpen={isFullScreen} 
+          onClose={() => setIsFullScreen(false)} 
+          onOpenQueue={handleOpenQueue}
+        />
       </div>
+      
+      {/* Single audio element - shared across all UI states */}
       <audio ref={audioRef} hidden />
       <audio ref={preloadAudioRef} hidden preload="metadata" />
-      
-      {/* Full Screen Player */}
-      <FullScreenPlayer 
-        isOpen={isFullScreen} 
-        onClose={() => setIsFullScreen(false)} 
-        onOpenQueue={handleOpenQueue}
-      />
-    </div>
+    </>
   );
 };

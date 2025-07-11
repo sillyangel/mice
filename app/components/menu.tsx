@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
-import { Github, Mail } from "lucide-react"
+import { Github, Mail, Menu as MenuIcon, X } from "lucide-react"
 import {
     Menubar,
     MenubarCheckboxItem,
@@ -28,9 +28,35 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-  } from "@/components/ui/dialog"
+} from "@/components/ui/dialog"
+import {
+    Drawer,
+    DrawerClose,
+    DrawerContent,
+    DrawerDescription,
+    DrawerFooter,
+    DrawerHeader,
+    DrawerTitle,
+    DrawerTrigger,
+} from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useIsMobile } from "@/hooks/use-mobile"
+import Link from "next/link"
+import { 
+  Search,
+  Home,
+  List,
+  Radio,
+  Users,
+  Disc,
+  Music,
+  Heart,
+  Grid3X3,
+  Clock,
+  Settings,
+  Circle
+} from "lucide-react";
 
 interface MenuProps {
   toggleSidebar: () => void;
@@ -43,9 +69,27 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
     const [isFullScreen, setIsFullScreen] = useState(false)
     const router = useRouter();
     const [open, setOpen] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const { isConnected } = useNavidrome();
     const [isClient, setIsClient] = useState(false);
     const [navidromeUrl, setNavidromeUrl] = useState<string | null>(null);
+    const isMobile = useIsMobile();
+
+    // Navigation items for mobile menu
+    const navigationItems = [
+      { href: '/', label: 'Home', icon: Home },
+      { href: '/search', label: 'Search', icon: Search },
+      { href: '/library/albums', label: 'Albums', icon: Disc },
+      { href: '/library/artists', label: 'Artists', icon: Users },
+      { href: '/library/songs', label: 'Songs', icon: Circle },
+      { href: '/library/playlists', label: 'Playlists', icon: Music },
+      { href: '/favorites', label: 'Favorites', icon: Heart },
+      { href: '/queue', label: 'Queue', icon: List },
+      { href: '/radio', label: 'Radio', icon: Radio },
+      { href: '/browse', label: 'Browse', icon: Grid3X3 },
+      { href: '/history', label: 'History', icon: Clock },
+      { href: '/settings', label: 'Settings', icon: Settings },
+    ];
 
     // For this demo, we'll show connection status instead of user auth
     const connectionStatus = isConnected ? "Connected to Navidrome" : "Not connected";
@@ -112,28 +156,91 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
     return (
       <>
       <div className="flex items-center justify-between w-full">
-        <Menubar
-          className="rounded-none border-b border-none px-2 lg:px-2 flex-1 min-w-0"
-          style={{
-            minWidth: 0,
-            WebkitAppRegion: "drag"
-          } as React.CSSProperties}
-        >
-        <div style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties} className="flex items-center gap-2">
-        <MenubarMenu>
-        <MenubarTrigger className="font-bold">mice</MenubarTrigger>
-        <MenubarContent>
-          <MenubarItem onClick={() => setOpen(true)}>About Music</MenubarItem>
-          <MenubarSeparator />
-          <MenubarItem onClick={() => router.push('/settings')}>
-            Preferences <MenubarShortcut>⌘,</MenubarShortcut>
-          </MenubarItem>
-          <MenubarSeparator />
-          <MenubarItem onClick={() => isClient && window.close()}>
-            Quit Music <MenubarShortcut>⌘Q</MenubarShortcut>
-          </MenubarItem>
-        </MenubarContent>
-          </MenubarMenu>
+        {/* Mobile Navigation */}
+        {isMobile ? (
+          <div className="flex items-center justify-between w-full p-2">
+            <div className="flex items-center gap-2">
+              <Drawer open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <DrawerTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-2">
+                    <MenuIcon className="h-5 w-5" />
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent>
+                  <DrawerHeader>
+                    <DrawerTitle className="flex items-center gap-2">
+                      <Image src="/icon-192.png" alt="mice" width={24} height={24} className="rounded" />
+                      mice
+                    </DrawerTitle>
+                    <DrawerDescription>
+                      Navigate through your music library
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <div className="px-4 pb-6">
+                    <div className="grid gap-2">
+                      {navigationItems.map((item) => (
+                        <Link key={item.href} href={item.href}>
+                          <DrawerClose asChild>
+                            <Button 
+                              variant="ghost" 
+                              className="w-full justify-start gap-3 h-12"
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              <item.icon className="h-5 w-5" />
+                              {item.label}
+                            </Button>
+                          </DrawerClose>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </DrawerContent>
+              </Drawer>
+              <h1 className="font-bold text-lg">mice</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => router.push('/search')}
+                className="p-2"
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setOpen(true)}
+                className="p-2"
+              >
+                <Settings className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          /* Desktop Navigation */
+          <Menubar
+            className="rounded-none border-b border-none px-2 lg:px-2 flex-1 min-w-0"
+            style={{
+              minWidth: 0,
+              WebkitAppRegion: "drag"
+            } as React.CSSProperties}
+          >
+          <div style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties} className="flex items-center gap-2">
+          <MenubarMenu>
+          <MenubarTrigger className="font-bold">mice</MenubarTrigger>
+          <MenubarContent>
+            <MenubarItem onClick={() => setOpen(true)}>About Music</MenubarItem>
+            <MenubarSeparator />
+            <MenubarItem onClick={() => router.push('/settings')}>
+              Preferences <MenubarShortcut>⌘,</MenubarShortcut>
+            </MenubarItem>
+            <MenubarSeparator />
+            <MenubarItem onClick={() => isClient && window.close()}>
+              Quit Music <MenubarShortcut>⌘Q</MenubarShortcut>
+            </MenubarItem>
+          </MenubarContent>
+            </MenubarMenu>
           <MenubarMenu>
         <MenubarTrigger className="relative">File</MenubarTrigger>
         <MenubarContent>
@@ -279,6 +386,7 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           </MenubarMenu>
           </div>
         </Menubar>
+        )}
         
       </div>
 
