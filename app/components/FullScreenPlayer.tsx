@@ -269,7 +269,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
   if (!isOpen || !currentTrack) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black overflow-hidden">
+    <div className="fixed inset-0 z-[70] bg-black overflow-hidden">
       {/* Blurred background image */}
       {currentTrack.coverArt && (
         <div 
@@ -289,7 +289,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       <div className="absolute inset-0 bg-black/50" />
         <div className="relative h-full w-full">
         {/* Floating Header */}
-        <div className="absolute top-0 right-0 z-50 p-4 lg:p-6">
+        <div className="absolute top-0 right-0 z-10 p-4 lg:p-6">
           <div className="flex items-center gap-2">
             {onOpenQueue && (
               <button 
