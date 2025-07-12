@@ -350,6 +350,7 @@ export const AudioPlayer: React.FC = () => {
   }, [currentTrack, isPlaying, isClient, playPreviousTrack, playNextTrack, onTrackPlay, onTrackPause]);
   
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    e.stopPropagation(); // Prevent triggering fullscreen
     if (audioCurrent && currentTrack) {
       const rect = e.currentTarget.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
@@ -499,14 +500,14 @@ export const AudioPlayer: React.FC = () => {
               </div>
             </div>
           </div>
-          
-          {/* Full Screen Player for mobile */}
-          <FullScreenPlayer 
-            isOpen={isFullScreen} 
-            onClose={() => setIsFullScreen(false)} 
-            onOpenQueue={handleOpenQueue}
-          />
         </div>
+        
+        {/* Full Screen Player for mobile - rendered outside mini player */}
+        <FullScreenPlayer 
+          isOpen={isFullScreen} 
+          onClose={() => setIsFullScreen(false)} 
+          onOpenQueue={handleOpenQueue}
+        />
         
         {/* Single audio element - shared across all UI states */}
         <audio ref={audioRef} hidden />
