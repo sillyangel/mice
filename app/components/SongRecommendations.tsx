@@ -90,7 +90,7 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
         album: song.album || 'Unknown Album',
         albumId: song.albumId || '',
         duration: song.duration || 0,
-        coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
+        coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 1200) : undefined,
         starred: !!song.starred
       };
       await playTrack(track, true);
@@ -167,7 +167,7 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
                     {song.coverArt && api ? (
                       <>
                         <Image
-                          src={api.getCoverArtUrl(song.coverArt, 100)}
+                          src={api.getCoverArtUrl(song.coverArt, 300)}
                           alt={song.title}
                           fill
                           className="object-cover"

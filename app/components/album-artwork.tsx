@@ -50,7 +50,7 @@ export function AlbumArtwork({
   // Memoize cover art URL to prevent recalculation on every render
   const coverArtUrl = useMemo(() => {
     if (!api || !album.coverArt) return '/default-user.jpg';
-    return api.getCoverArtUrl(album.coverArt);
+    return api.getCoverArtUrl(album.coverArt, 1200);
   }, [api, album.coverArt]);
 
   // Use callback to prevent function recreation on every render
@@ -93,7 +93,7 @@ export function AlbumArtwork({
             artistId: song.artistId,
             url: api.getStreamUrl(song.id),
             duration: song.duration,
-            coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt) : undefined,
+            coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 1200) : undefined,
             starred: !!song.starred
           }));
           

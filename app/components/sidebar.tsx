@@ -109,7 +109,7 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
                         >
                           {album.coverArt && api ? (
                             <Image
-                              src={api.getCoverArtUrl(album.coverArt, 32)}
+                              src={api.getCoverArtUrl(album.coverArt, 150)}
                               alt={album.name}
                               width={16}
                               height={16}
@@ -165,7 +165,7 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
                     >
                       {album.coverArt && api ? (
                         <Image
-                          src={api.getCoverArtUrl(album.coverArt, 32)}
+                          src={api.getCoverArtUrl(album.coverArt, 150)}
                           alt={album.name}
                           width={16}
                           height={16}

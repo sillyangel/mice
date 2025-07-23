@@ -114,7 +114,7 @@ export default function SongsPage() {
       artist: song.artist,
       album: song.album,
       duration: song.duration,
-      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
+      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 1200) : undefined,
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred
@@ -135,7 +135,7 @@ export default function SongsPage() {
       artist: song.artist,
       album: song.album,
       duration: song.duration,
-      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
+      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 1200) : undefined,
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred
@@ -240,7 +240,7 @@ export default function SongsPage() {
 
                   {/* Album Art */}
                   <div className="w-12 h-12 mr-4 shrink-0">                    <Image
-                      src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 100) : '/default-user.jpg'}
+                      src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 300) : '/default-user.jpg'}
                       alt={song.album}
                       width={48}
                       height={48}

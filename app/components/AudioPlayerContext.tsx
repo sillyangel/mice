@@ -105,7 +105,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       artist: song.artist,
       album: song.album,
       duration: song.duration,
-      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
+      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 1200) : undefined,
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred

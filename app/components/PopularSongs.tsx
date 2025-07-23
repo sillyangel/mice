@@ -36,7 +36,7 @@ export function PopularSongs({ songs, artistName }: PopularSongsProps) {
       artist: song.artist,
       album: song.album,
       duration: song.duration,
-      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
+      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 1200) : undefined,
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred
@@ -95,7 +95,7 @@ export function PopularSongs({ songs, artistName }: PopularSongsProps) {
             <div className="relative w-12 h-12 bg-muted rounded-md overflow-hidden shrink-0">
               {song.coverArt && api && (
                 <Image
-                  src={api.getCoverArtUrl(song.coverArt, 96)}
+                  src={api.getCoverArtUrl(song.coverArt, 300)}
                   alt={song.album}
                   width={48}
                   height={48}

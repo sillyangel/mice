@@ -103,7 +103,7 @@ export default function ArtistPage() {
   }
   // Get artist image URL with proper fallback
   const artistImageUrl = artist.coverArt && api
-    ? api.getCoverArtUrl(artist.coverArt, 300)
+    ? api.getCoverArtUrl(artist.coverArt, 1200)
     : '/default-user.jpg';
 
   return (

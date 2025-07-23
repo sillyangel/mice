@@ -121,7 +121,7 @@ export default function AlbumPage() {
   };
   // Get cover art URL with proper fallback
   const coverArtUrl = album.coverArt && api
-    ? api.getCoverArtUrl(album.coverArt, 300)
+    ? api.getCoverArtUrl(album.coverArt, 1200)
     : '/default-user.jpg';
 
   return (
