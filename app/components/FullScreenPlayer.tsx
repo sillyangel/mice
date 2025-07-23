@@ -103,7 +103,10 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
   // Auto-scroll lyrics using lyricsRef
   useEffect(() => {
-    if (currentLyricIndex >= 0 && lyrics.length > 0 && showLyrics && lyricsRef.current) {
+    // Only auto-scroll if lyrics are visible
+    const shouldScroll = isMobile ? (activeTab === 'lyrics' && lyrics.length > 0) : (showLyrics && lyrics.length > 0);
+    
+    if (currentLyricIndex >= 0 && shouldScroll && lyricsRef.current) {
       const scrollTimeout = setTimeout(() => {
         // Find the ScrollArea viewport
         const scrollViewport = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
@@ -126,11 +129,13 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       
       return () => clearTimeout(scrollTimeout);
     }
-  }, [currentLyricIndex, showLyrics, lyrics.length]);
+  }, [currentLyricIndex, showLyrics, lyrics.length, isMobile, activeTab]);
 
   // Reset lyrics to top when song changes
   useEffect(() => {
-    if (currentTrack && showLyrics && lyricsRef.current) {
+    const shouldReset = isMobile ? (activeTab === 'lyrics' && lyrics.length > 0) : (showLyrics && lyrics.length > 0);
+    
+    if (currentTrack && shouldReset && lyricsRef.current) {
       // Reset scroll position using lyricsRef
       const resetScroll = () => {
         const scrollViewport = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
@@ -151,7 +156,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       
       return () => clearTimeout(resetTimeout);
     }
-  }, [currentTrack?.id, showLyrics, currentTrack]); // Only reset when track ID changes
+  }, [currentTrack?.id, showLyrics, currentTrack, isMobile, activeTab, lyrics.length]); // Only reset when track ID changes
 
   // Sync with main audio player (improved responsiveness)
   useEffect(() => {
@@ -283,24 +288,50 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
   return (
     <div className="fixed inset-0 z-[70] bg-black overflow-hidden">
-      {/* Blurred background image */}
+      {/* Enhanced Blurred background image */}
       {currentTrack.coverArt && (
-        <div 
-          className="absolute inset-0 w-full h-full"
-          style={{
-            backgroundImage: `url(${currentTrack.coverArt})`,
-            backgroundSize: '120%',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            filter: 'blur(20px) brightness(0.3)',
-            transform: 'scale(1.1)',
-          }}
-        />
+        <div className="absolute inset-0 w-full h-full">
+          {/* Main background */}
+          <div 
+            className="absolute inset-0 w-full h-full"
+            style={{
+              backgroundImage: `url(${currentTrack.coverArt})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              filter: 'blur(20px) brightness(0.3)',
+              transform: 'scale(1.1)',
+            }}
+          />
+          {/* Top gradient blur for mobile */}
+          <div 
+            className="absolute top-0 left-0 right-0 h-32"
+            style={{
+              background: `linear-gradient(to bottom, 
+                rgba(0,0,0,0.8) 0%, 
+                rgba(0,0,0,0.4) 50%, 
+                transparent 100%)`,
+              backdropFilter: 'blur(10px)',
+            }}
+          />
+          {/* Bottom gradient blur for mobile */}
+          <div 
+            className="absolute bottom-0 left-0 right-0 h-32"
+            style={{
+              background: `linear-gradient(to top, 
+                rgba(0,0,0,0.8) 0%, 
+                rgba(0,0,0,0.4) 50%, 
+                transparent 100%)`,
+              backdropFilter: 'blur(10px)',
+            }}
+          />
+        </div>
       )}
       
       {/* Overlay for better contrast */}
-      <div className="absolute inset-0 bg-black/50" />
-        <div className="relative h-full w-full flex flex-col">
+      <div className="absolute inset-0 bg-black/30" />
+      
+      <div className="relative h-full w-full flex flex-col">
         
         {/* Mobile Close Handle */}
         {isMobile && (
@@ -347,15 +378,15 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               <div className="flex-1 overflow-hidden">
                 {activeTab === 'player' && (
                   <div className="h-full flex flex-col justify-center items-center px-8 py-4">
-                    {/* Smaller Album Art */}
+                    {/* Mobile Album Art */}
                     <div className="relative mb-6 shrink-0">
                       <Image
                         src={currentTrack.coverArt || '/default-album.png'}
                         alt={currentTrack.album}
-                        width={240}
-                        height={240}
+                        width={260}
+                        height={260}
                         className={`rounded-lg shadow-2xl object-cover transition-all duration-300 ${
-                          !isPlaying ? 'w-48 h-48 opacity-70 scale-95' : 'w-60 h-60'
+                          !isPlaying ? 'w-52 h-52 opacity-70 scale-95' : 'w-64 h-64'
                         }`}
                         priority
                       />
@@ -535,38 +566,35 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               </div>
 
               {/* Mobile Tab Bar */}
-              <div className="flex-shrink-0 border-t border-gray-700/50 bg-black/80 backdrop-blur-sm">
-                <div className="flex justify-around py-2">
+              <div className="flex-shrink-0 pb-safe">
+                <div className="flex justify-around py-4 mb-2">
                   <button
                     onClick={() => setActiveTab('player')}
-                    className={`flex flex-col items-center p-3 rounded-lg transition-colors ${
+                    className={`flex items-center justify-center p-4 rounded-full transition-colors ${
                       activeTab === 'player' ? 'text-primary bg-primary/20' : 'text-gray-400'
                     }`}
                   >
-                    <FaPlay className="w-5 h-5 mb-1" />
-                    <span className="text-xs">Player</span>
+                    <FaPlay className="w-6 h-6" />
                   </button>
 
                   {lyrics.length > 0 && (
                     <button
                       onClick={() => setActiveTab('lyrics')}
-                      className={`flex flex-col items-center p-3 rounded-lg transition-colors ${
+                      className={`flex items-center justify-center p-4 rounded-full transition-colors ${
                         activeTab === 'lyrics' ? 'text-primary bg-primary/20' : 'text-gray-400'
                       }`}
                     >
-                      <FaQuoteLeft className="w-5 h-5 mb-1" />
-                      <span className="text-xs">Lyrics</span>
+                      <FaQuoteLeft className="w-6 h-6" />
                     </button>
                   )}
 
                   <button
                     onClick={() => setActiveTab('queue')}
-                    className={`flex flex-col items-center p-3 rounded-lg transition-colors ${
+                    className={`flex items-center justify-center p-4 rounded-full transition-colors ${
                       activeTab === 'queue' ? 'text-primary bg-primary/20' : 'text-gray-400'
                     }`}
                   >
-                    <FaListUl className="w-5 h-5 mb-1" />
-                    <span className="text-xs">Queue</span>
+                    <FaListUl className="w-6 h-6" />
                   </button>
                 </div>
               </div>
