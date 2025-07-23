@@ -351,6 +351,20 @@ export const AudioPlayer: React.FC = () => {
         }
       });
 
+      // Add togglefavorite action for iOS
+      try {
+        // togglefavorite is an iOS-specific action that may not be in TypeScript definitions
+        const mediaSession = navigator.mediaSession as MediaSession & {
+          setActionHandler(action: 'togglefavorite', handler: MediaSessionActionHandler | null): void;
+        };
+        mediaSession.setActionHandler('togglefavorite', () => {
+          toggleCurrentTrackStar();
+        });
+      } catch (error) {
+        // togglefavorite might not be supported on all platforms
+        console.log('togglefavorite action not supported:', error);
+      }
+
       // Update position state for better scrubbing support
       const updatePositionState = () => {
         const audioCurrent = audioRef.current;
@@ -378,12 +392,20 @@ export const AudioPlayer: React.FC = () => {
           navigator.mediaSession.setActionHandler('previoustrack', null);
           navigator.mediaSession.setActionHandler('nexttrack', null);
           navigator.mediaSession.setActionHandler('seekto', null);
+          try {
+            const mediaSession = navigator.mediaSession as MediaSession & {
+              setActionHandler(action: 'togglefavorite', handler: MediaSessionActionHandler | null): void;
+            };
+            mediaSession.setActionHandler('togglefavorite', null);
+          } catch (error) {
+            // togglefavorite might not be supported
+          }
         }
       };
     } catch (error) {
       console.error('MediaSession setup failed:', error);
     }
-  }, [currentTrack, isPlaying, isClient, playPreviousTrack, playNextTrack, onTrackPlay, onTrackPause]);
+  }, [currentTrack, isPlaying, isClient, playPreviousTrack, playNextTrack, onTrackPlay, onTrackPause, toggleCurrentTrackStar]);
   
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     e.stopPropagation(); // Prevent triggering fullscreen

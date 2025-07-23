@@ -7,6 +7,7 @@ import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Progress } from '@/components/ui/progress';
 import { lrcLibClient } from '@/lib/lrclib';
 import Link from 'next/link';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { 
   FaPlay, 
   FaPause, 
@@ -34,8 +35,19 @@ interface FullScreenPlayerProps {
   onOpenQueue?: () => void;
 }
 
+type MobileTab = 'player' | 'lyrics' | 'queue';
+
 export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onClose, onOpenQueue }) => {
-  const { currentTrack, playPreviousTrack, playNextTrack, shuffle, toggleShuffle, toggleCurrentTrackStar } = useAudioPlayer();
+  const { 
+    currentTrack, 
+    playPreviousTrack, 
+    playNextTrack, 
+    shuffle, 
+    toggleShuffle, 
+    toggleCurrentTrackStar,
+    queue 
+  } = useAudioPlayer();
+  const isMobile = useIsMobile();
   const router = useRouter();
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -47,6 +59,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
   const [showLyrics, setShowLyrics] = useState(true);
+  const [activeTab, setActiveTab] = useState<MobileTab>('player');
   const lyricsRef = useRef<HTMLDivElement>(null);
 
   // Load lyrics when track changes
@@ -287,194 +300,442 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       
       {/* Overlay for better contrast */}
       <div className="absolute inset-0 bg-black/50" />
-        <div className="relative h-full w-full">
-        {/* Floating Header */}
-        <div className="absolute top-0 right-0 z-10 p-4 lg:p-6">
-          <div className="flex items-center gap-2">
-            {onOpenQueue && (
-              <button 
-                onClick={onOpenQueue}
-                className="text-white hover:bg-white/20 p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10"
-                title="Open Queue"
-              >
-                <FaListUl className="w-5 h-5" />
-              </button>
-            )}
-            <button 
+        <div className="relative h-full w-full flex flex-col">
+        
+        {/* Mobile Close Handle */}
+        {isMobile && (
+          <div className="flex justify-center py-4 px-4">
+            <div 
               onClick={onClose}
-              className="text-white hover:bg-white/20 p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10"
-              title="Close Player"
+              className="cursor-pointer px-8 py-3 -mx-8 -my-3"
+              style={{ touchAction: 'manipulation' }}
             >
-              <FaXmark className="w-5 h-5" />
-            </button>
+              <div className="w-8 h-1 bg-gray-300 rounded-full opacity-60" />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Main Content */}
-        <div className="h-full flex flex-col lg:flex-row gap-4 lg:gap-8 p-4 lg:p-6 overflow-hidden">
-          {/* Left Side - Album Art and Controls */}
-          <div className="flex flex-col items-center justify-center min-h-0 flex-1 min-w-0">
-            {/* Album Art */}
-            <div className="relative mb-4 lg:mb-6 shrink-0">
-              <Image
-                src={currentTrack.coverArt || '/default-album.png'}
-                alt={currentTrack.album}
-                width={320}
-                height={320}
-                className="w-56 h-56 sm:w-64 sm:h-64 lg:w-80 lg:h-80 rounded-lg shadow-2xl object-cover"
-                priority
-              />
-            </div>
-
-            {/* Track Info */}
-            <div className="text-center mb-4 lg:mb-6 px-4 shrink-0 max-w-full">
-              <h1 className="text-lg sm:text-xl lg:text-3xl font-bold text-foreground mb-2 line-clamp-2 leading-tight">
-                {currentTrack.name}
-              </h1>
-              <Link href={`/artist/${currentTrack.artistId}`} className="text-base sm:text-lg lg:text-xl text-foreground/80 mb-1 line-clamp-1">
-                {currentTrack.artist}
-              </Link>
-              <Link href={`/album/${currentTrack.albumId}`}  className="text-sm sm:text-base lg:text-lg text-foreground/60 line-clamp-1 cursor-pointer hover:underline">
-                {currentTrack.album}
-              </Link>
-            </div>
-
-            {/* Progress */}
-            <div className="w-full max-w-sm lg:max-w-md mb-4 lg:mb-6 px-4 shrink-0">
-              <div className="w-full" onClick={handleSeek}>
-                <Progress value={progress} className="h-2 cursor-pointer" />
-              </div>
-              <div className="flex justify-between text-sm text-foreground/60 mt-2">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mb-4 lg:mb-6 shrink-0">
-              <button
-                onClick={toggleShuffle}
-                className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
-                  shuffle ? 'text-primary bg-primary/20' : 'text-gray-400'
-                }`}
-                title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
-              >
-                <FaShuffle className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-
-              <button
-                onClick={playPreviousTrack}
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
-                <FaBackward className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-
-              <button
-                onClick={togglePlayPause}
-                className="p-3 hover:bg-gray-700/50 rounded-full transition-colors">
-                {isPlaying ? (
-                  <FaPause className="w-8 h-8 sm:w-10 sm:h-10" />
-                ) : (
-                  <FaPlay className="w-8 h-8 sm:w-10 sm:h-10" />
-                )}
-              </button>
-
-              <button
-                onClick={playNextTrack}
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
-                <FaForward className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-
-              <button
-                onClick={toggleCurrentTrackStar}
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors"
-                title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
-              >
-                <Heart 
-                  className={`w-4 h-4 sm:w-5 sm:h-5 ${currentTrack?.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
-                />
-              </button>
-
-              
-              
-            </div>
-
-            {/* Volume and Lyrics Toggle */}
-            <div className="flex items-center gap-3 shrink-0 justify-center">
-              <button
-                onMouseEnter={() => setShowVolumeSlider(true)}
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
-                {volume === 0 ? (
-                  <FaVolumeXmark className="w-4 h-4 sm:w-5 sm:h-5" />
-                ) : (
-                  <FaVolumeHigh className="w-4 h-4 sm:w-5 sm:h-5" />
-                )}
-              </button>
-              
-              {lyrics.length > 0 && (
-                <button
-                  onClick={() => setShowLyrics(!showLyrics)}
-                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
-                    showLyrics ? 'text-primary bg-primary/20' : 'text-gray-500'
-                  }`}
-                  title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
+        {/* Desktop Header */}
+        {!isMobile && (
+          <div className="absolute top-0 right-0 z-10 p-4 lg:p-6">
+            <div className="flex items-center gap-2">
+              {onOpenQueue && (
+                <button 
+                  onClick={onOpenQueue}
+                  className="text-white hover:bg-white/20 p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10"
+                  title="Open Queue"
                 >
-                  <FaQuoteLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <FaListUl className="w-5 h-5" />
                 </button>
               )}
-              
-              {showVolumeSlider && (
-                <div 
-                  className="w-16 sm:w-20 lg:w-24"
-                  onMouseLeave={() => setShowVolumeSlider(false)}
-                >
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={volume * 100}
-                    onChange={handleVolumeChange}
-                    className="w-full accent-foreground"
-                  />
-                </div>
-              )}
+              <button 
+                onClick={onClose}
+                className="text-white hover:bg-white/20 p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10"
+                title="Close Player"
+              >
+                <FaXmark className="w-5 h-5" />
+              </button>
             </div>
           </div>
+        )}
 
-          {/* Right Side - Lyrics */}
-          {showLyrics && lyrics.length > 0 && (
-            <div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}>
-              <div className="h-full flex flex-col">
-                <ScrollArea className="flex-1 min-h-0">
-                  <div className="space-y-2 sm:space-y-3 pl-4 pr-4 py-4">
-                    {lyrics.map((line, index) => (
-                      <div
-                        key={index}
-                        data-lyric-index={index}
-                        onClick={() => handleLyricClick(line.time)}
-                        className={`text-sm sm:text-base lg:text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground ${
-                          index === currentLyricIndex
-                            ? 'text-foreground font-bold text-2xl'
-                            : index < currentLyricIndex
-                            ? 'text-foreground/60'
-                            : 'text-foreground/40'
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden">
+          {isMobile ? (
+            /* Mobile Tab Content */
+            <div className="h-full flex flex-col">
+              <div className="flex-1 overflow-hidden">
+                {activeTab === 'player' && (
+                  <div className="h-full flex flex-col justify-center items-center px-8 py-4">
+                    {/* Smaller Album Art */}
+                    <div className="relative mb-6 shrink-0">
+                      <Image
+                        src={currentTrack.coverArt || '/default-album.png'}
+                        alt={currentTrack.album}
+                        width={240}
+                        height={240}
+                        className={`rounded-lg shadow-2xl object-cover transition-all duration-300 ${
+                          !isPlaying ? 'w-48 h-48 opacity-70 scale-95' : 'w-60 h-60'
                         }`}
-                        style={{ 
-                          wordWrap: 'break-word',
-                          overflowWrap: 'break-word',
-                          hyphens: 'auto',
-                          paddingBottom: '4px',
-                          paddingLeft: '8px'
-                        }}
-                        title={`Click to jump to ${formatTime(line.time)}`}
-                      >
-                        {line.text || '♪'}
+                        priority
+                      />
+                    </div>
+
+                    {/* Track Info - Left Aligned and Heart on Same Line */}
+                    <div className="w-full mb-6 shrink-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <h1 className="text-2xl font-bold text-foreground line-clamp-1 flex-1 text-left">
+                          {currentTrack.name}
+                        </h1>
+                        <button
+                          onClick={toggleCurrentTrackStar}
+                          className="p-2 hover:bg-gray-700/50 rounded-full transition-colors ml-3"
+                          title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                          <Heart 
+                            className={`w-6 h-6 ${currentTrack?.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
+                          />
+                        </button>
                       </div>
-                    ))}
-                    {/* Add extra padding at the bottom to allow last lyric to center */}
-                    <div style={{ height: '200px' }} />
+                      <Link 
+                        href={`/artist/${currentTrack.artistId}`} 
+                        className="text-lg text-foreground/80 line-clamp-1 block text-left mb-1"
+                      >
+                        {currentTrack.artist}
+                      </Link>
+                      <Link 
+                        href={`/album/${currentTrack.albumId}`}  
+                        className="text-base text-foreground/60 line-clamp-1 cursor-pointer hover:underline block text-left"
+                      >
+                        {currentTrack.album}
+                      </Link>
+                    </div>
+
+                    {/* Progress */}
+                    <div className="w-full mb-4 shrink-0">
+                      <div className="w-full" onClick={handleSeek}>
+                        <Progress value={progress} className="h-2 cursor-pointer" />
+                      </div>
+                      {/* Time below progress on mobile */}
+                      <div className="flex justify-between text-sm text-foreground/60 mt-2">
+                        <span>{formatTime(currentTime)}</span>
+                        <span>{formatTime(duration)}</span>
+                      </div>
+                    </div>
+
+                    {/* Controls */}
+                    <div className="flex items-center gap-6 mb-4 shrink-0">
+                      <button
+                        onClick={toggleShuffle}
+                        className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
+                          shuffle ? 'text-primary bg-primary/20' : 'text-gray-400'
+                        }`}
+                        title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
+                      >
+                        <FaShuffle className="w-5 h-5" />
+                      </button>
+
+                      <button
+                        onClick={playPreviousTrack}
+                        className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                        <FaBackward className="w-6 h-6" />
+                      </button>
+
+                      <button
+                        onClick={togglePlayPause}
+                        className="p-4 hover:bg-gray-700/50 rounded-full transition-colors">
+                        {isPlaying ? (
+                          <FaPause className="w-10 h-10" />
+                        ) : (
+                          <FaPlay className="w-10 h-10" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={playNextTrack}
+                        className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                        <FaForward className="w-6 h-6" />
+                      </button>
+
+                      <button
+                        onMouseEnter={() => setShowVolumeSlider(true)}
+                        className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                        {volume === 0 ? (
+                          <FaVolumeXmark className="w-5 h-5" />
+                        ) : (
+                          <FaVolumeHigh className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Volume Slider */}
+                    {showVolumeSlider && (
+                      <div 
+                        className="w-32 mb-4"
+                        onMouseLeave={() => setShowVolumeSlider(false)}
+                      >
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={volume * 100}
+                          onChange={handleVolumeChange}
+                          className="w-full accent-foreground"
+                        />
+                      </div>
+                    )}
                   </div>
-                </ScrollArea>
+                )}
+
+                {activeTab === 'lyrics' && lyrics.length > 0 && (
+                  <div className="h-full flex flex-col px-4">
+                    <ScrollArea className="flex-1">
+                      <div className="space-y-3 py-4" ref={lyricsRef}>
+                        {lyrics.map((line, index) => (
+                          <div
+                            key={index}
+                            data-lyric-index={index}
+                            onClick={() => handleLyricClick(line.time)}
+                            className={`text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground px-2 ${
+                              index === currentLyricIndex
+                                ? 'text-foreground font-bold text-xl'
+                                : index < currentLyricIndex
+                                ? 'text-foreground/60'
+                                : 'text-foreground/40'
+                            }`}
+                            style={{ 
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word',
+                              hyphens: 'auto',
+                              paddingBottom: '4px'
+                            }}
+                            title={`Click to jump to ${formatTime(line.time)}`}
+                          >
+                            {line.text || '♪'}
+                          </div>
+                        ))}
+                        <div style={{ height: '200px' }} />
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
+
+                {activeTab === 'queue' && (
+                  <div className="h-full flex flex-col px-4">
+                    <ScrollArea className="flex-1">
+                      <div className="space-y-2 py-4">
+                        {queue.map((track, index) => (
+                          <div
+                            key={`${track.id}-${index}`}
+                            className={`flex items-center p-3 rounded-lg ${
+                              track.id === currentTrack?.id ? 'bg-primary/20' : 'bg-gray-800/30'
+                            }`}
+                          >
+                            <Image
+                              src={track.coverArt || '/default-album.png'}
+                              alt={track.album}
+                              width={40}
+                              height={40}
+                              className="rounded mr-3"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {track.name}
+                              </p>
+                              <p className="text-xs text-gray-400 truncate">
+                                {track.artist}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
               </div>
+
+              {/* Mobile Tab Bar */}
+              <div className="flex-shrink-0 border-t border-gray-700/50 bg-black/80 backdrop-blur-sm">
+                <div className="flex justify-around py-2">
+                  <button
+                    onClick={() => setActiveTab('player')}
+                    className={`flex flex-col items-center p-3 rounded-lg transition-colors ${
+                      activeTab === 'player' ? 'text-primary bg-primary/20' : 'text-gray-400'
+                    }`}
+                  >
+                    <FaPlay className="w-5 h-5 mb-1" />
+                    <span className="text-xs">Player</span>
+                  </button>
+
+                  {lyrics.length > 0 && (
+                    <button
+                      onClick={() => setActiveTab('lyrics')}
+                      className={`flex flex-col items-center p-3 rounded-lg transition-colors ${
+                        activeTab === 'lyrics' ? 'text-primary bg-primary/20' : 'text-gray-400'
+                      }`}
+                    >
+                      <FaQuoteLeft className="w-5 h-5 mb-1" />
+                      <span className="text-xs">Lyrics</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setActiveTab('queue')}
+                    className={`flex flex-col items-center p-3 rounded-lg transition-colors ${
+                      activeTab === 'queue' ? 'text-primary bg-primary/20' : 'text-gray-400'
+                    }`}
+                  >
+                    <FaListUl className="w-5 h-5 mb-1" />
+                    <span className="text-xs">Queue</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Desktop Layout */
+            <div className="h-full flex flex-row gap-8 p-6 overflow-hidden">
+              {/* Left Side - Album Art and Controls */}
+              <div className="flex flex-col items-center justify-center min-h-0 flex-1 min-w-0">
+                {/* Album Art */}
+                <div className="relative mb-6 shrink-0">
+                  <Image
+                    src={currentTrack.coverArt || '/default-album.png'}
+                    alt={currentTrack.album}
+                    width={320}
+                    height={320}
+                    className="w-80 h-80 rounded-lg shadow-2xl object-cover"
+                    priority
+                  />
+                </div>
+
+                {/* Track Info */}
+                <div className="text-center mb-6 px-4 shrink-0 max-w-full">
+                  <div className="flex items-center justify-center gap-4 mb-2">
+                    <h1 className="text-3xl font-bold text-foreground line-clamp-2 leading-tight">
+                      {currentTrack.name}
+                    </h1>
+                    <button
+                      onClick={toggleCurrentTrackStar}
+                      className="p-2 hover:bg-gray-700/50 rounded-full transition-colors"
+                      title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <Heart 
+                        className={`w-6 h-6 ${currentTrack?.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
+                      />
+                    </button>
+                  </div>
+                  <Link href={`/artist/${currentTrack.artistId}`} className="text-xl text-foreground/80 mb-1 line-clamp-1">
+                    {currentTrack.artist}
+                  </Link>
+                  <Link href={`/album/${currentTrack.albumId}`}  className="text-lg text-foreground/60 line-clamp-1 cursor-pointer hover:underline">
+                    {currentTrack.album}
+                  </Link>
+                </div>
+
+                {/* Progress */}
+                <div className="w-full max-w-md mb-6 px-4 shrink-0">
+                  <div className="w-full" onClick={handleSeek}>
+                    <Progress value={progress} className="h-2 cursor-pointer" />
+                  </div>
+                  <div className="flex justify-between text-sm text-foreground/60 mt-2">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
+                </div>
+
+                {/* Controls */}
+                <div className="flex items-center gap-6 mb-6 shrink-0">
+                  <button
+                    onClick={toggleShuffle}
+                    className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
+                      shuffle ? 'text-primary bg-primary/20' : 'text-gray-400'
+                    }`}
+                    title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
+                  >
+                    <FaShuffle className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={playPreviousTrack}
+                    className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                    <FaBackward className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={togglePlayPause}
+                    className="p-3 hover:bg-gray-700/50 rounded-full transition-colors">
+                    {isPlaying ? (
+                      <FaPause className="w-10 h-10" />
+                    ) : (
+                      <FaPlay className="w-10 h-10" />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={playNextTrack}
+                    className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                    <FaForward className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Volume and Lyrics Toggle - Desktop Only */}
+                <div className="flex items-center gap-3 shrink-0 justify-center">
+                  <button
+                    onMouseEnter={() => setShowVolumeSlider(true)}
+                    className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                    {volume === 0 ? (
+                      <FaVolumeXmark className="w-5 h-5" />
+                    ) : (
+                      <FaVolumeHigh className="w-5 h-5" />
+                    )}
+                  </button>
+                  
+                  {lyrics.length > 0 && (
+                    <button
+                      onClick={() => setShowLyrics(!showLyrics)}
+                      className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
+                        showLyrics ? 'text-primary bg-primary/20' : 'text-gray-500'
+                      }`}
+                      title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
+                    >
+                      <FaQuoteLeft className="w-5 h-5" />
+                    </button>
+                  )}
+                  
+                  {showVolumeSlider && (
+                    <div 
+                      className="w-24"
+                      onMouseLeave={() => setShowVolumeSlider(false)}
+                    >
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={volume * 100}
+                        onChange={handleVolumeChange}
+                        className="w-full accent-foreground"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Side - Lyrics (Desktop Only) */}
+              {showLyrics && lyrics.length > 0 && (
+                <div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}>
+                  <div className="h-full flex flex-col">
+                    <ScrollArea className="flex-1 min-h-0">
+                      <div className="space-y-3 pl-4 pr-4 py-4">
+                        {lyrics.map((line, index) => (
+                          <div
+                            key={index}
+                            data-lyric-index={index}
+                            onClick={() => handleLyricClick(line.time)}
+                            className={`text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground ${
+                              index === currentLyricIndex
+                                ? 'text-foreground font-bold text-2xl'
+                                : index < currentLyricIndex
+                                ? 'text-foreground/60'
+                                : 'text-foreground/40'
+                            }`}
+                            style={{ 
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word',
+                              hyphens: 'auto',
+                              paddingBottom: '4px',
+                              paddingLeft: '8px'
+                            }}
+                            title={`Click to jump to ${formatTime(line.time)}`}
+                          >
+                            {line.text || '♪'}
+                          </div>
+                        ))}
+                        <div style={{ height: '200px' }} />
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
