@@ -94,6 +94,42 @@ export const AudioPlayer: React.FC = () => {
       }
     }
     
+    // Mobile-specific audio initialization
+    if (isMobile) {
+      // Add a document click listener to initialize audio context on first user interaction
+      const initializeAudioOnMobile = async () => {
+        if (!audioInitialized) {
+          try {
+            const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+            if (AudioContextClass) {
+              const audioContext = new AudioContextClass();
+              if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+              }
+              setAudioInitialized(true);
+            }
+          } catch (error) {
+            console.log('Mobile audio context initialization failed:', error);
+          }
+        }
+      };
+
+      // Listen for any user interaction to initialize audio
+      const handleFirstUserInteraction = () => {
+        initializeAudioOnMobile();
+        document.removeEventListener('touchstart', handleFirstUserInteraction);
+        document.removeEventListener('click', handleFirstUserInteraction);
+      };
+
+      document.addEventListener('touchstart', handleFirstUserInteraction, { passive: true });
+      document.addEventListener('click', handleFirstUserInteraction);
+
+      return () => {
+        document.removeEventListener('touchstart', handleFirstUserInteraction);
+        document.removeEventListener('click', handleFirstUserInteraction);
+      };
+    }
+    
     // Clean up old localStorage entries with track IDs
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -103,7 +139,7 @@ export const AudioPlayer: React.FC = () => {
       }
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
-  }, []);
+  }, [isMobile, audioInitialized]);
 
   // Apply volume to audio element when volume changes
   useEffect(() => {
@@ -364,47 +400,73 @@ export const AudioPlayer: React.FC = () => {
 
   const togglePlayPause = async () => {
     if (audioCurrent && currentTrack) {
-      // On mobile, ensure audio is initialized on first user interaction
-      if (isMobile && !audioInitialized) {
-        try {
-          // Create a dummy audio context to initialize audio on mobile
-          const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-          if (AudioContextClass) {
-            const audioContext = new AudioContextClass();
-            await audioContext.resume();
-            setAudioInitialized(true);
-          }
-        } catch (error) {
-          console.log('Audio context initialization failed:', error);
-        }
-      }
-
       if (isPlaying) {
         audioCurrent.pause();
         setIsPlaying(false);
         onTrackPause(audioCurrent.currentTime);
       } else {
         try {
+          // On mobile, ensure audio element is properly loaded before playing
+          if (isMobile) {
+            // Ensure the audio element has the correct source
+            if (audioCurrent.src !== currentTrack.url) {
+              audioCurrent.src = currentTrack.url;
+              audioCurrent.load(); // Force reload the audio element
+            }
+            
+            // Wait for the audio to be ready to play
+            if (audioCurrent.readyState < 3) { // HAVE_FUTURE_DATA
+              await new Promise((resolve, reject) => {
+                const handleCanPlay = () => {
+                  audioCurrent.removeEventListener('canplay', handleCanPlay);
+                  audioCurrent.removeEventListener('error', handleError);
+                  resolve(void 0);
+                };
+                const handleError = () => {
+                  audioCurrent.removeEventListener('canplay', handleCanPlay);
+                  audioCurrent.removeEventListener('error', handleError);
+                  reject(new Error('Audio failed to load'));
+                };
+                audioCurrent.addEventListener('canplay', handleCanPlay);
+                audioCurrent.addEventListener('error', handleError);
+              });
+            }
+          }
+
           await audioCurrent.play();
           setIsPlaying(true);
+          setAudioInitialized(true);
           onTrackPlay(currentTrack);
         } catch (error) {
           console.error('Failed to play audio:', error);
-          // Try to initialize audio context and retry
+          
+          // Additional mobile-specific handling
           if (isMobile) {
             try {
+              // Try creating and resuming audio context
               const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
               if (AudioContextClass) {
                 const audioContext = new AudioContextClass();
-                await audioContext.resume();
+                if (audioContext.state === 'suspended') {
+                  await audioContext.resume();
+                }
                 setAudioInitialized(true);
-                await audioCurrent.play();
-                setIsPlaying(true);
-                onTrackPlay(currentTrack);
               }
+              
+              // Retry playing
+              await audioCurrent.play();
+              setIsPlaying(true);
+              onTrackPlay(currentTrack);
             } catch (retryError) {
               console.error('Audio play retry failed:', retryError);
               setIsPlaying(false);
+              
+              // Show user-friendly error on mobile
+              toast({
+                variant: "destructive",
+                title: "Playback Error",
+                description: "Unable to play audio. Please try again or check your connection.",
+              });
             }
           } else {
             setIsPlaying(false);
@@ -468,11 +530,13 @@ export const AudioPlayer: React.FC = () => {
               {/* Mobile controls */}
               <div className="flex items-center space-x-2">
                 <button 
-                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95" 
+                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 touch-manipulation" 
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleCurrentTrackStar();
                   }}
+                  type="button"
+                  aria-label={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
                   title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
                 >
                   <Heart 
@@ -480,20 +544,30 @@ export const AudioPlayer: React.FC = () => {
                   />
                 </button>
                 <button 
-                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95" 
+                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 touch-manipulation" 
                   onClick={playPreviousTrack}
+                  type="button"
+                  aria-label="Previous track"
                 >
                   <FaBackward className="w-4 h-4" />
                 </button>
                 <button 
-                  className="p-4 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 bg-primary/10" 
+                  className="p-4 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 bg-primary/10 touch-manipulation" 
                   onClick={togglePlayPause}
+                  onTouchStart={(e) => {
+                    // Prevent iOS double-tap zoom on the play button
+                    e.preventDefault();
+                  }}
+                  type="button"
+                  aria-label={isPlaying ? 'Pause' : 'Play'}
                 >
                   {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
                 </button>
                 <button 
-                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95" 
+                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 touch-manipulation" 
                   onClick={playNextTrack}
+                  type="button"
+                  aria-label="Next track"
                 >
                   <FaForward className="w-4 h-4" />
                 </button>
@@ -688,9 +762,10 @@ export const AudioPlayer: React.FC = () => {
         ref={audioRef} 
         hidden 
         playsInline
-        preload="auto"
+        preload={isMobile ? "none" : "auto"}
         controls={false}
         crossOrigin="anonymous"
+        webkit-playsinline="true"
       />
       <audio ref={preloadAudioRef} hidden preload="metadata" />
     </>

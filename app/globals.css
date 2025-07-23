@@ -880,6 +880,34 @@
     bottom: calc(4rem + env(safe-area-inset-bottom, 0));
   }
 
+/* Mobile Audio Player Styles */
+.mobile-audio-player {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-audio-player button {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Prevent iOS zoom on input focus */
+@media screen and (max-width: 767px) {
+  input[type="range"] {
+    font-size: 16px;
+  }
+  
+  /* Improve button touch targets */
+  .mobile-audio-player button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
 
 /* Better focus states for accessibility */
 button:focus-visible {
