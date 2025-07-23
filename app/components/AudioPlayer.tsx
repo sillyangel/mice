@@ -16,6 +16,13 @@ export const AudioPlayer: React.FC = () => {
   const { currentTrack, playPreviousTrack, addToQueue, playNextTrack, clearQueue, queue, toggleShuffle, shuffle, toggleCurrentTrackStar } = useAudioPlayer();
   const router = useRouter();
   const isMobile = useIsMobile();
+  
+  // Swipe gesture state for mobile
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  
+  // Minimum swipe distance (in px)
+  const minSwipeDistance = 50;
   const audioRef = useRef<HTMLAudioElement>(null);
   const preloadAudioRef = useRef<HTMLAudioElement>(null);
   const [progress, setProgress] = useState(0);
@@ -28,6 +35,32 @@ export const AudioPlayer: React.FC = () => {
   const [audioInitialized, setAudioInitialized] = useState(false);
   const audioCurrent = audioRef.current;
   const { toast } = useToast();
+  
+  // Swipe gesture handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      // Swipe left -> next track
+      playNextTrack();
+    } else if (isRightSwipe) {
+      // Swipe right -> previous track
+      playPreviousTrack();
+    }
+  };
   
   // Last.fm scrobbler integration (Navidrome)
   const {
@@ -531,10 +564,13 @@ export const AudioPlayer: React.FC = () => {
             </div>
             
             <div className="flex items-center justify-between">
-              {/* Track info */}
+              {/* Track info with swipe gestures */}
               <div 
                 className="flex items-center flex-1 min-w-0 cursor-pointer"
                 onClick={() => setIsFullScreen(true)}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
               >
                 <Image 
                   src={currentTrack.coverArt || '/default-user.jpg'} 
@@ -549,7 +585,7 @@ export const AudioPlayer: React.FC = () => {
                 </div>
               </div>
 
-              {/* Mobile controls */}
+              {/* Mobile controls - Only heart and play/pause */}
               <div className="flex items-center space-x-2">
                 <button 
                   className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 touch-manipulation" 
@@ -566,14 +602,6 @@ export const AudioPlayer: React.FC = () => {
                   />
                 </button>
                 <button 
-                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 touch-manipulation" 
-                  onClick={playPreviousTrack}
-                  type="button"
-                  aria-label="Previous track"
-                >
-                  <FaBackward className="w-4 h-4" />
-                </button>
-                <button 
                   className="p-4 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 bg-primary/10 touch-manipulation" 
                   onClick={togglePlayPause}
                   onTouchStart={(e) => {
@@ -584,14 +612,6 @@ export const AudioPlayer: React.FC = () => {
                   aria-label={isPlaying ? 'Pause' : 'Play'}
                 >
                   {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
-                </button>
-                <button 
-                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 touch-manipulation" 
-                  onClick={playNextTrack}
-                  type="button"
-                  aria-label="Next track"
-                >
-                  <FaForward className="w-4 h-4" />
                 </button>
               </div>
             </div>

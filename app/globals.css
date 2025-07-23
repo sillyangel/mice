@@ -88,6 +88,18 @@
   body {
     font-family: Arial, Helvetica, sans-serif;
   }
+
+  /* Hide scrollbars on mobile */
+  @media (max-width: 768px) {
+    * {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* Internet Explorer 10+ */
+    }
+    
+    *::-webkit-scrollbar {
+      display: none; /* Safari and Chrome */
+    }
+  }
 }
 
 @layer utilities {
