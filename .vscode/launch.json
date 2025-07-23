@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug: Next.js Development",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/next",
+      "args": ["dev"],
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev"],
+      "skipFiles": ["<node_internals>/**"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Debug: Next.js Production",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/next",
+      "args": ["start"],
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "preLaunchTask": "Build: Production Build Only",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "start"],
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}
