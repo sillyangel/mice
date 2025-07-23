@@ -101,7 +101,7 @@ export default function SongsPage() {
 
     setFilteredSongs(filtered);
   }, [songs, searchQuery, sortBy, sortDirection]);
-  const handlePlaySong = (song: Song) => {
+    const handlePlayClick = (song: Song) => {
     if (!api) {
       console.error('Navidrome API not available');
       return;
@@ -114,7 +114,7 @@ export default function SongsPage() {
       artist: song.artist,
       album: song.album,
       duration: song.duration,
-      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 1200) : undefined,
+      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 64) : undefined,
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred
@@ -135,7 +135,7 @@ export default function SongsPage() {
       artist: song.artist,
       album: song.album,
       duration: song.duration,
-      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 1200) : undefined,
+      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 64) : undefined,
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred
@@ -222,7 +222,7 @@ export default function SongsPage() {
                   className={`group flex items-center p-3 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors ${
                     isCurrentlyPlaying(song) ? 'bg-accent/50 border-l-4 border-primary' : ''
                   }`}
-                  onClick={() => handlePlaySong(song)}
+                  onClick={() => handlePlayClick(song)}
                 >
                   {/* Track Number / Play Indicator */}
                   <div className="w-8 text-center text-sm text-muted-foreground mr-3">
@@ -240,7 +240,7 @@ export default function SongsPage() {
 
                   {/* Album Art */}
                   <div className="w-12 h-12 mr-4 shrink-0">                    <Image
-                      src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 300) : '/default-user.jpg'}
+                      src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 48) : '/default-user.jpg'}
                       alt={song.album}
                       width={48}
                       height={48}

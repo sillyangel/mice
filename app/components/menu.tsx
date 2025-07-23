@@ -158,9 +158,9 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
       <div className="flex items-center justify-between w-full">
         {/* Mobile Top Bar - Simplified since navigation is now at bottom */}
         {isMobile ? (
-          <div className="flex items-center justify-center w-full p-2">
-            <h1 className="font-bold text-lg">mice</h1>
-          </div>
+// hey bear!
+// nothing
+            null
         ) : (
           /* Desktop Navigation */
           <Menubar

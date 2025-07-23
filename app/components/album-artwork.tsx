@@ -47,11 +47,14 @@ export function AlbumArtwork({
   const { addAlbumToQueue, playTrack, addToQueue } = useAudioPlayer();
   const { playlists, starItem, unstarItem } = useNavidrome();
   
-  // Memoize cover art URL to prevent recalculation on every render
+  // Memoize cover art URL with dynamic sizing
   const coverArtUrl = useMemo(() => {
     if (!api || !album.coverArt) return '/default-user.jpg';
-    return api.getCoverArtUrl(album.coverArt, 1200);
-  }, [api, album.coverArt]);
+    
+    // Use width prop or default size for optimization
+    const imageSize = width || height || 300;
+    return api.getCoverArtUrl(album.coverArt, imageSize);
+  }, [api, album.coverArt, width, height]);
 
   // Use callback to prevent function recreation on every render
   const handleImageLoad = useCallback(() => {

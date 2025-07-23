@@ -394,13 +394,13 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
                     {/* Track Info - Left Aligned and Heart on Same Line */}
                     <div className="w-full mb-6 shrink-0">
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-0">
                         <h1 className="text-2xl font-bold text-foreground line-clamp-1 flex-1 text-left">
                           {currentTrack.name}
                         </h1>
                         <button
                           onClick={toggleCurrentTrackStar}
-                          className="p-2 hover:bg-gray-700/50 rounded-full transition-colors ml-3"
+                          className="p-2 hover:bg-gray-700/50 rounded-full transition-colors ml-3 pb-0"
                           title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
                         >
                           <Heart 

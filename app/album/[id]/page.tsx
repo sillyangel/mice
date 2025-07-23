@@ -10,7 +10,6 @@ import Link from 'next/link';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext'
 import Loading from "@/app/components/loading";
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { getNavidromeAPI } from '@/lib/navidrome';
 import { useFavoriteAlbums } from '@/hooks/use-favorite-albums';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -121,10 +120,19 @@ export default function AlbumPage() {
     const seconds = duration % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
-  // Get cover art URL with proper fallback
-  const coverArtUrl = album.coverArt && api
-    ? api.getCoverArtUrl(album.coverArt, 1200)
-    : '/default-user.jpg';
+
+  // Dynamic cover art URLs based on image size
+  const getMobileCoverArtUrl = () => {
+    return album.coverArt && api
+      ? api.getCoverArtUrl(album.coverArt, 280)
+      : '/default-user.jpg';
+  };
+
+  const getDesktopCoverArtUrl = () => {
+    return album.coverArt && api
+      ? api.getCoverArtUrl(album.coverArt, 300)
+      : '/default-user.jpg';
+  };
 
   return (
     <>
@@ -136,7 +144,7 @@ export default function AlbumPage() {
             {/* Album Cover - Centered */}
             <div className="flex justify-center">
               <Image 
-                src={coverArtUrl} 
+                src={getMobileCoverArtUrl()} 
                 alt={album.name} 
                 width={280} 
                 height={280}
@@ -180,7 +188,7 @@ export default function AlbumPage() {
           /* Desktop Layout */
           <div className="flex items-start gap-6">
             <Image 
-              src={coverArtUrl} 
+              src={getDesktopCoverArtUrl()} 
               alt={album.name} 
               width={300} 
               height={300}
@@ -209,70 +217,68 @@ export default function AlbumPage() {
         <div className="space-y-4">
           <Separator />
           
-          <ScrollArea className="h-[calc(100vh-500px)]">
-            {tracklist.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No tracks available.</p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {tracklist.map((song, index) => (
-                  <div
-                    key={song.id}
-                    className={`group flex items-center p-3 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors`}
-                    onClick={() => handlePlayClick(song)}
-                  >
-                    {/* Track Number / Play Indicator */}
-                    <div className="w-8 text-center text-sm text-muted-foreground mr-3">
-                        <>
-                          <span className="group-hover:hidden">{song.track || index + 1}</span>
-                          <Play className="w-4 h-4 mx-auto hidden group-hover:block" />
-                        </>
-                    </div>
+          {tracklist.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No tracks available.</p>
+            </div>
+          ) : (
+            <div className="space-y-1 pb-32">
+              {tracklist.map((song, index) => (
+                <div
+                  key={song.id}
+                  className={`group flex items-center p-3 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors`}
+                  onClick={() => handlePlayClick(song)}
+                >
+                  {/* Track Number / Play Indicator */}
+                  <div className="w-8 text-center text-sm text-muted-foreground mr-3">
+                      <>
+                        <span className="group-hover:hidden">{song.track || index + 1}</span>
+                        <Play className="w-4 h-4 mx-auto hidden group-hover:block" />
+                      </>
+                  </div>
 
-                    {/* Song Info */}
-                    <div className="flex-1 min-w-0 mr-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className={`font-semibold truncate ${
-                          isCurrentlyPlaying(song) ? 'text-primary' : ''
-                        }`}>
-                          {song.title}
-                        </p>
+                  {/* Song Info */}
+                  <div className="flex-1 min-w-0 mr-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className={`font-semibold truncate ${
+                        isCurrentlyPlaying(song) ? 'text-primary' : ''
+                      }`}>
+                        {song.title}
+                      </p>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <span className="truncate">{song.artist}</span>
                       </div>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <span className="truncate">{song.artist}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Duration */}
-                    <div className="flex items-center text-sm text-muted-foreground mr-4">
-                      {formatDuration(song.duration)}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center space-x-2 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSongStar(song);
-                        }}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Heart 
-                          className={`w-4 h-4 ${starredSongs.has(song.id) ? 'text-primary' : 'text-gray-500'}`}
-                          fill={starredSongs.has(song.id) ? 'var(--primary)' : 'none'}
-                        />
-                      </Button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
+
+                  {/* Duration */}
+                  <div className="flex items-center text-sm text-muted-foreground mr-4">
+                    {formatDuration(song.duration)}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center space-x-2 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSongStar(song);
+                      }}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Heart 
+                        className={`w-4 h-4 ${starredSongs.has(song.id) ? 'text-primary' : 'text-gray-500'}`}
+                        fill={starredSongs.has(song.id) ? 'var(--primary)' : 'none'}
+                      />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
