@@ -38,6 +38,25 @@ export default function manifest(): MetadataRoute.Manifest {
          type: 'image/png', 
          sizes: '512x512', 
          purpose: 'maskable'
+      },
+      // Apple Touch Icons for iOS
+      { 
+         src: '/apple-touch-icon.png', 
+         type: 'image/png', 
+         sizes: '180x180',
+         purpose: 'any'
+      },
+      { 
+         src: '/icon-192.png', 
+         type: 'image/png', 
+         sizes: '152x152',
+         purpose: 'any'
+      },
+      { 
+         src: '/icon-192.png', 
+         type: 'image/png', 
+         sizes: '120x120',
+         purpose: 'any'
       }
    ],
       screenshots: [
