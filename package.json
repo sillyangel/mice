@@ -81,7 +81,7 @@
     "tailwindcss": "^4.1.11",
     "typescript": "^5"
   },
-  "packageManager": "pnpm@10.12.4",
+  "packageManager": "pnpm@10.13.1",
   "overrides": {
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6"
