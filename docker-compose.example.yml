@@ -3,7 +3,7 @@ version: '3.8'
 services:
   mice:
     container_name: mice-public
-    image: sillyangel/mice:2025.07.10
+    image: sillyangel/mice:dev-latest
     ports:
       - "40625:40625"
     environment:
