@@ -5,12 +5,32 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { title } from 'process';
 
 // Current app version from package.json
-const APP_VERSION = '2025.07.10';
+const APP_VERSION = '2025.07.31';
 
 // Changelog data - add new versions at the top
 const CHANGELOG = [
+  {
+    version: '2025.07.31',
+    title: 'July End of Month Update',
+    changes: [
+      'Native support for moblie devices (using pwa)', 
+    ],
+    fixes: [
+      'Fixed issue with mobile navigation bar not displaying correctly',
+      'Improved performance on mobile devices',
+      'Resolved layout issues on smaller screens',
+      'Fixed audio player controls not responding on mobile',
+      'Improved touch interactions for better usability',
+      'Fixed issue with album artwork not loading on mobile',
+      'Resolved bug with search functionality on mobile devices',
+      'Improved caching for faster load times on mobile',
+    ],
+    breaking: [
+    ]
+  },
   {
     version: '2025.07.10',
     title: 'July Major Update',

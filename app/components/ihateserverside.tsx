@@ -103,14 +103,14 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
       {/* Mobile Layout */}
       <div className="flex md:hidden flex-col h-screen w-screen overflow-hidden">
         {/* Top Menu */}
-        <div className="shrink-0 bg-background border-b w-full">
+        {/* <div className="shrink-0 bg-background border-b w-full">
           <Menu
             toggleSidebar={toggleSidebarVisibility}
             isSidebarVisible={isSidebarVisible}
             toggleStatusBar={() => setIsStatusBarVisible(!isStatusBarVisible)}
             isStatusBarVisible={isStatusBarVisible}
           />
-        </div>
+        </div> */}
 
         {/* Main Content Area with bottom padding for audio player and bottom nav */}
         <div className="flex-1 overflow-y-auto pb-40">
