@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Play, Heart, Music, Shuffle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { UserProfile } from './UserProfile';
 
 interface SongRecommendationsProps {
   userName?: string;
@@ -196,12 +197,18 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
             {isMobile ? 'Here are some albums you might enjoy' : 'Here are some songs you might enjoy'}
           </p>
         </div>
-        {(isMobile ? recommendedAlbums.length > 0 : recommendedSongs.length > 0) && !isMobile && (
-          <Button onClick={handleShuffleAll} variant="outline" size="sm">
-            <Shuffle className="w-4 h-4 mr-2" />
-            Shuffle All
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          {/* Mobile User Profile */}
+          {isMobile && <UserProfile variant="mobile" />}
+          
+          {/* Shuffle All Button (Desktop only) */}
+          {(isMobile ? recommendedAlbums.length > 0 : recommendedSongs.length > 0) && !isMobile && (
+            <Button onClick={handleShuffleAll} variant="outline" size="sm">
+              <Shuffle className="w-4 h-4 mr-2" />
+              Shuffle All
+            </Button>
+          )}
+        </div>
       </div>
       
       {isMobile ? (

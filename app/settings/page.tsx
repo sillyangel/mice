@@ -47,7 +47,6 @@ const SettingsPage = () => {
 
     // Client-side hydration state
     const [isClient, setIsClient] = useState(false);
-    const [isDev, setIsDev] = useState(false);
 
     // Check if Navidrome is configured via environment variables
     const hasEnvConfig = React.useMemo(() => {
@@ -63,7 +62,6 @@ const SettingsPage = () => {
     // Initialize client-side state after hydration
     useEffect(() => {
         setIsClient(true);
-        setIsDev(process.env.NODE_ENV === 'development');
         
         // Initialize form data with config values
         setFormData({
@@ -335,39 +333,6 @@ const SettingsPage = () => {
         }
     };
 
-    const handleDebugClearStorage = () => {
-        if (!isClient) return;
-        
-        try {
-            // Preserve Navidrome config
-            const navidromeConfig = localStorage.getItem('navidrome-config');
-            
-            // Clear all localStorage
-            localStorage.clear();
-            
-            // Restore Navidrome config if it existed
-            if (navidromeConfig) {
-                localStorage.setItem('navidrome-config', navidromeConfig);
-            }
-            
-            toast({
-                title: "Debug: Storage Cleared",
-                description: "All localStorage cleared except Navidrome config. Page will reload.",
-            });
-            
-            // Reload the page to reset all state
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        } catch (error) {
-            toast({
-                title: "Debug: Clear Failed",
-                description: "Failed to clear localStorage: " + (error instanceof Error ? error.message : "Unknown error"),
-                variant: "destructive"
-            });
-        }
-    };
-
     return (
         <div className="p-6 pb-24 w-full">
             {!isClient ? (
@@ -388,7 +353,7 @@ const SettingsPage = () => {
                      style={{ columnFill: 'balance' }}>
 
                 {!hasEnvConfig && (
-                    <Card className="mb-6 break-inside-avoid">
+                    <Card className="mb-6 break-inside-avoid py-5">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <FaServer className="w-5 h-5" />
@@ -477,7 +442,7 @@ const SettingsPage = () => {
                 )}
 
                 {hasEnvConfig && (
-                    <Card className="mb-6 break-inside-avoid">
+                    <Card className="mb-6 break-inside-avoid py-5">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <FaServer className="w-5 h-5" />
@@ -504,7 +469,7 @@ const SettingsPage = () => {
                     </Card>
                 )}
 
-                <Card className="mb-6 break-inside-avoid">
+                <Card className="mb-6 break-inside-avoid py-5">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <FaLastfm className="w-5 h-5" />
@@ -582,7 +547,7 @@ const SettingsPage = () => {
                     </CardContent>
                 </Card> */}
 
-                <Card className="mb-6 break-inside-avoid">
+                <Card className="mb-6 break-inside-avoid py-5">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Settings className="w-5 h-5" />
@@ -637,7 +602,7 @@ const SettingsPage = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="mb-6 break-inside-avoid">
+                {/* <Card className="mb-6 break-inside-avoid py-5">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <FaLastfm className="w-5 h-5" />
@@ -730,7 +695,7 @@ const SettingsPage = () => {
                             </>
                         )}
                     </CardContent>
-                </Card>
+                </Card> */}
 
                 {/* Sidebar Customization */}
                 <div className="break-inside-avoid mb-6">
@@ -747,41 +712,7 @@ const SettingsPage = () => {
                   <CacheManagement />
                 </div>
 
-                {/* Debug Tools - Only in Development */}
-                {isDev && (
-                  <Card className="mb-6 break-inside-avoid border-orange-200 dark:border-orange-800">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
-                        <FaCog className="w-5 h-5" />
-                        Debug Tools (Dev Only)
-                      </CardTitle>
-                      <CardDescription>
-                        Development tools for debugging and testing
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium text-orange-800 dark:text-orange-200">Clear Storage</h4>
-                            <p className="text-sm text-orange-600 dark:text-orange-400">
-                              Clears all localStorage except Navidrome config
-                            </p>
-                          </div>
-                          <Button 
-                            onClick={handleDebugClearStorage}
-                            variant="destructive"
-                            size="sm"
-                          >
-                            Clear Storage
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <Card className="mb-6 break-inside-avoid">
+                <Card className="mb-6 break-inside-avoid py-5">
                     <CardHeader>
                         <CardTitle>Appearance</CardTitle>
                         <CardDescription>
@@ -830,7 +761,7 @@ const SettingsPage = () => {
                 </Card>
 
                 {/* Theme Preview */}
-                <Card className="mb-6 break-inside-avoid">
+                <Card className="mb-6 break-inside-avoid py-5">
                     <CardHeader>
                         <CardTitle>Preview</CardTitle>
                         <CardDescription>

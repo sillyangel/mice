@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
 import { Github, Mail, Menu as MenuIcon, X } from "lucide-react"
+import { UserProfile } from "@/app/components/UserProfile";
 import {
     Menubar,
     MenubarCheckboxItem,
@@ -330,6 +331,13 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           </MenubarMenu>
           </div>
         </Menubar>
+        )}
+        
+        {/* User Profile - Desktop only */}
+        {!isMobile && (
+          <div className="ml-auto">
+            <UserProfile variant="desktop" />
+          </div>
         )}
         
       </div>
