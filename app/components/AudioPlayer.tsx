@@ -634,6 +634,7 @@ export const AudioPlayer: React.FC = () => {
                     e.preventDefault();
                   }}
                   type="button"
+                  data-testid="play-pause-button"
                   aria-label={isPlaying ? 'Pause' : 'Play'}
                 >
                   {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}

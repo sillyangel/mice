@@ -47,6 +47,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     toggleCurrentTrackStar,
     queue 
   } = useAudioPlayer();
+  
   const isMobile = useIsMobile();
   const router = useRouter();
   const [progress, setProgress] = useState(0);
@@ -61,6 +62,16 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
   const [showLyrics, setShowLyrics] = useState(true);
   const [activeTab, setActiveTab] = useState<MobileTab>('player');
   const lyricsRef = useRef<HTMLDivElement>(null);
+
+  // Debug logging for component changes
+  useEffect(() => {
+    console.log('🔍 FullScreenPlayer state changed:', {
+      isOpen,
+      currentTrack,
+      currentTrackKeys: currentTrack ? Object.keys(currentTrack) : 'null',
+      queueLength: queue?.length || 0
+    });
+  }, [isOpen, currentTrack, queue?.length]);
 
   // Load lyrics when track changes
   useEffect(() => {
@@ -85,7 +96,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
           setLyrics([]);
         }
       } catch (error) {
-        console.error('Failed to load lyrics:', error);
+        console.log('Failed to load lyrics:', error);
         setLyrics([]);
       }
     };
@@ -101,9 +112,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     }
   }, [lyrics, currentTime, currentLyricIndex]);
 
-  // Auto-scroll lyrics using lyricsRef - Simplified for iOS compatibility
+  // Auto-scroll lyrics using lyricsRef - Disabled on mobile to prevent iOS audio issues
   useEffect(() => {
-    // Only auto-scroll if lyrics are visible and we're not on mobile to avoid iOS audio issues
+    // Only auto-scroll on desktop to avoid iOS audio interference
     const shouldScroll = !isMobile && showLyrics && lyrics.length > 0;
     
     if (currentLyricIndex >= 0 && shouldScroll && lyricsRef.current) {
@@ -156,34 +167,52 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       
       return () => clearTimeout(resetTimeout);
     }
-  }, [currentTrack?.id, showLyrics, currentTrack, isMobile, lyrics.length]);
+  }, [currentTrack?.id, showLyrics, isMobile, lyrics.length]);
 
   // Sync with main audio player (improved responsiveness)
   useEffect(() => {
     const syncWithMainPlayer = () => {
       const mainAudio = document.querySelector('audio') as HTMLAudioElement;
-      if (mainAudio && currentTrack) {
-        // Console log audio information for debugging
-        console.log('=== FULLSCREEN PLAYER AUDIO DEBUG ===');
+      
+      console.log('=== FULLSCREEN PLAYER AUDIO DEBUG ===');
+      console.log('currentTrack from context:', currentTrack);
+      console.log('currentTrack keys:', currentTrack ? Object.keys(currentTrack) : 'null');
+      if (currentTrack) {
+        console.log('currentTrack.url:', currentTrack.url);
+        console.log('currentTrack.id:', currentTrack.id);
+        console.log('currentTrack.name:', currentTrack.name);
+        console.log('currentTrack.artist:', currentTrack.artist);
+      }
+      console.log('Audio element found:', !!mainAudio);
+      
+      if (mainAudio) {
         console.log('Audio element src:', mainAudio.src);
         console.log('Audio element currentSrc:', mainAudio.currentSrc);
-        console.log('Current track:', {
-          id: currentTrack.id,
-          name: currentTrack.name,
-          url: currentTrack.url,
-          artist: currentTrack.artist,
-          album: currentTrack.album
-        });
         console.log('Audio state:', {
           currentTime: mainAudio.currentTime,
           duration: mainAudio.duration,
           paused: mainAudio.paused,
           ended: mainAudio.ended,
           readyState: mainAudio.readyState,
-          networkState: mainAudio.networkState
+          networkState: mainAudio.networkState,
+          error: mainAudio.error
         });
-        console.log('==========================================');
         
+        // Check if audio source matches current track
+        if (currentTrack) {
+          const audioSourceMatches = mainAudio.src === currentTrack.url || mainAudio.currentSrc === currentTrack.url;
+          console.log('Audio source matches current track URL:', audioSourceMatches);
+          if (!audioSourceMatches) {
+            console.log('⚠️ Audio source mismatch!');
+            console.log('Expected:', currentTrack.url);
+            console.log('Audio src:', mainAudio.src);
+            console.log('Audio currentSrc:', mainAudio.currentSrc);
+          }
+        }
+      }
+      console.log('==========================================');
+      
+      if (mainAudio && currentTrack) {
         const newCurrentTime = mainAudio.currentTime;
         const newDuration = mainAudio.duration || 0;
         const newIsPlaying = !mainAudio.paused;
@@ -245,36 +274,96 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
           setDominantColor(`rgb(${r}, ${g}, ${b})`);
         }
       } catch (error) {
-        console.error('Failed to extract color:', error);
+        console.log('Failed to extract color:', error);
       }
     };
     img.src = currentTrack.coverArt;
   }, [currentTrack]);
 
   const togglePlayPause = () => {
-    const mainAudio = document.querySelector('audio') as HTMLAudioElement;
-    if (!mainAudio) {
-      console.log('❌ No audio element found');
-      return;
-    }
-
-    console.log('🎵 Toggle Play/Pause clicked');
-    console.log('Audio src before toggle:', mainAudio.src);
-    console.log('Audio currentSrc before toggle:', mainAudio.currentSrc);
-    console.log('Audio paused state before toggle:', mainAudio.paused);
-    console.log('Audio currentTime before toggle:', mainAudio.currentTime);
-    console.log('Audio duration before toggle:', mainAudio.duration);
-
-    if (isPlaying) {
-      console.log('⏸️ Pausing audio');
-      mainAudio.pause();
+    console.log('🎵 FullScreenPlayer Toggle Play/Pause clicked');
+    
+    // Find the main audio player's play/pause button and click it
+    // This ensures we use the same logic as the main player
+    const mainPlayButton = document.querySelector('[data-testid="play-pause-button"]') as HTMLButtonElement;
+    
+    if (mainPlayButton) {
+      console.log('✅ Found main play button, triggering click');
+      mainPlayButton.click();
     } else {
-      console.log('▶️ Playing audio');
-      mainAudio.play().then(() => {
-        console.log('✅ Audio play() succeeded');
-      }).catch((error) => {
-        console.error('❌ Audio play() failed:', error);
-      });
+      console.log('❌ Main play button not found, falling back to direct audio control');
+      
+      // Fallback to direct audio control if button not found
+      const mainAudio = document.querySelector('audio') as HTMLAudioElement;
+      if (!mainAudio) {
+        console.log('❌ No audio element found');
+        
+        // Try to find ALL audio elements for debugging
+        const allAudio = document.querySelectorAll('audio');
+        console.log('🔍 Found audio elements:', allAudio.length);
+        allAudio.forEach((audio, index) => {
+          console.log(`Audio ${index}:`, {
+            src: audio.src,
+            currentSrc: audio.currentSrc,
+            paused: audio.paused,
+            hidden: audio.hidden,
+            style: audio.style.display
+          });
+        });
+        return;
+      }
+
+      console.log('🔍 Detailed audio element state:');
+      console.log('- Audio src:', mainAudio.src);
+      console.log('- Audio currentSrc:', mainAudio.currentSrc);
+      console.log('- Audio paused:', mainAudio.paused);
+      console.log('- Audio currentTime:', mainAudio.currentTime);
+      console.log('- Audio duration:', mainAudio.duration);
+      console.log('- Audio readyState:', mainAudio.readyState, '(0=HAVE_NOTHING, 1=HAVE_METADATA, 2=HAVE_CURRENT_DATA, 3=HAVE_FUTURE_DATA, 4=HAVE_ENOUGH_DATA)');
+      console.log('- Audio networkState:', mainAudio.networkState, '(0=EMPTY, 1=IDLE, 2=LOADING, 3=NO_SOURCE)');
+      console.log('- Audio error:', mainAudio.error);
+      console.log('- Audio ended:', mainAudio.ended);
+      console.log('- Audio seeking:', mainAudio.seeking);
+      console.log('- Audio volume:', mainAudio.volume);
+      console.log('- Audio muted:', mainAudio.muted);
+      console.log('- Audio autoplay:', mainAudio.autoplay);
+      console.log('- Audio loop:', mainAudio.loop);
+      console.log('- Audio preload:', mainAudio.preload);
+      console.log('- Audio crossOrigin:', mainAudio.crossOrigin);
+
+      if (isPlaying) {
+        console.log('⏸️ Attempting to pause audio');
+        try {
+          mainAudio.pause();
+          console.log('✅ Audio pause() succeeded');
+        } catch (error) {
+          console.log('❌ Audio pause() failed:', error);
+        }
+      } else {
+        console.log('▶️ Attempting to play audio');
+        
+        // Check if audio has a valid source
+        if (!mainAudio.src && !mainAudio.currentSrc) {
+          console.log('❌ Audio has no source set!');
+          console.log('currentTrack:', currentTrack);
+          if (currentTrack) {
+            console.log('Setting audio source to:', currentTrack.url);
+            mainAudio.src = currentTrack.url;
+            mainAudio.load();
+          }
+        }
+        
+        mainAudio.play().then(() => {
+          console.log('✅ Audio play() succeeded');
+        }).catch((error) => {
+          console.log('❌ Audio play() failed:', error);
+          console.log('Error details:', {
+            name: error.name,
+            message: error.message,
+            code: error.code
+          });
+        });
+      }
     }
   };
 
