@@ -162,13 +162,13 @@ export default function LibraryPage() {
         {/* Library Navigation - Always at top */}
         <div>
           <h2 className="text-lg font-semibold mb-3">Browse</h2>
-          <div className="space-y-3">
+          <div className="flex flex-col gap-2">
             {libraryLinks.map((link) => {
               const Icon = link.icon;
               return (
                 <Link key={link.href} href={link.href}>
                   <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-                    <CardContent className="p-4">
+                    <CardContent className="p-2">
                       <div className="flex items-center space-x-4">
                         <div className="p-2 bg-primary/10 rounded-lg">
                           <Icon className="w-6 h-6 text-primary" />

@@ -108,22 +108,55 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     
     if (currentLyricIndex >= 0 && shouldScroll && lyricsRef.current) {
       const scrollTimeout = setTimeout(() => {
-        // Find the ScrollArea viewport
-        const scrollViewport = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        // Try multiple selectors for better iOS compatibility
+        let scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        
+        // Fallback for iOS - look for the actual scrollable container
+        if (!scrollContainer) {
+          scrollContainer = lyricsRef.current?.querySelector('.scrollable-area') as HTMLElement;
+        }
+        
+        // Another fallback - use the lyricsRef itself if it's scrollable
+        if (!scrollContainer && lyricsRef.current) {
+          const computedStyle = window.getComputedStyle(lyricsRef.current);
+          if (computedStyle.overflowY === 'auto' || computedStyle.overflowY === 'scroll') {
+            scrollContainer = lyricsRef.current;
+          }
+        }
+        
+        // Final fallback - look for any scrollable parent
+        if (!scrollContainer) {
+          let element = lyricsRef.current?.parentElement;
+          while (element) {
+            const computedStyle = window.getComputedStyle(element);
+            if (computedStyle.overflowY === 'auto' || computedStyle.overflowY === 'scroll') {
+              scrollContainer = element;
+              break;
+            }
+            element = element.parentElement;
+          }
+        }
+        
         const currentLyricElement = lyricsRef.current?.querySelector(`[data-lyric-index="${currentLyricIndex}"]`) as HTMLElement;
         
-        if (scrollViewport && currentLyricElement) {
-          const containerHeight = scrollViewport.clientHeight;
+        if (scrollContainer && currentLyricElement) {
+          const containerHeight = scrollContainer.clientHeight;
           const elementTop = currentLyricElement.offsetTop;
           const elementHeight = currentLyricElement.offsetHeight;
           
           // Calculate scroll position to center the current lyric
           const targetScrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
           
-          scrollViewport.scrollTo({
-            top: Math.max(0, targetScrollTop),
-            behavior: 'smooth'
-          });
+          // Use both scrollTo and scrollTop for better iOS compatibility
+          try {
+            scrollContainer.scrollTo({
+              top: Math.max(0, targetScrollTop),
+              behavior: 'smooth'
+            });
+          } catch (error) {
+            // Fallback for older iOS versions
+            scrollContainer.scrollTop = Math.max(0, targetScrollTop);
+          }
         }
       }, 100);
       
@@ -136,15 +169,48 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     const shouldReset = isMobile ? (activeTab === 'lyrics' && lyrics.length > 0) : (showLyrics && lyrics.length > 0);
     
     if (currentTrack && shouldReset && lyricsRef.current) {
-      // Reset scroll position using lyricsRef
+      // Reset scroll position using lyricsRef with iOS compatibility
       const resetScroll = () => {
-        const scrollViewport = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        // Try multiple selectors for better iOS compatibility
+        let scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
         
-        if (scrollViewport) {
-          scrollViewport.scrollTo({
-            top: 0,
-            behavior: 'instant' // Use instant for track changes
-          });
+        // Fallback for iOS - look for the actual scrollable container
+        if (!scrollContainer) {
+          scrollContainer = lyricsRef.current?.querySelector('.scrollable-area') as HTMLElement;
+        }
+        
+        // Another fallback - use the lyricsRef itself if it's scrollable
+        if (!scrollContainer && lyricsRef.current) {
+          const computedStyle = window.getComputedStyle(lyricsRef.current);
+          if (computedStyle.overflowY === 'auto' || computedStyle.overflowY === 'scroll') {
+            scrollContainer = lyricsRef.current;
+          }
+        }
+        
+        // Final fallback - look for any scrollable parent
+        if (!scrollContainer) {
+          let element = lyricsRef.current?.parentElement;
+          while (element) {
+            const computedStyle = window.getComputedStyle(element);
+            if (computedStyle.overflowY === 'auto' || computedStyle.overflowY === 'scroll') {
+              scrollContainer = element;
+              break;
+            }
+            element = element.parentElement;
+          }
+        }
+        
+        if (scrollContainer) {
+          // Use both scrollTo and scrollTop for better iOS compatibility
+          try {
+            scrollContainer.scrollTo({
+              top: 0,
+              behavior: 'instant' // Use instant for track changes
+            });
+          } catch (error) {
+            // Fallback for older iOS versions
+            scrollContainer.scrollTop = 0;
+          }
         }
       };
       
@@ -500,8 +566,15 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
                 {activeTab === 'lyrics' && lyrics.length > 0 && (
                   <div className="h-full flex flex-col px-4">
-                    <ScrollArea className="flex-1">
-                      <div className="space-y-3 py-4" ref={lyricsRef}>
+                    <div 
+                      className="flex-1 overflow-y-auto scrollable-area"
+                      ref={lyricsRef}
+                      style={{
+                        WebkitOverflowScrolling: 'touch', // Enable momentum scrolling on iOS
+                        scrollBehavior: 'smooth'
+                      }}
+                    >
+                      <div className="space-y-3 py-4">
                         {lyrics.map((line, index) => (
                           <div
                             key={index}
@@ -527,7 +600,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                         ))}
                         <div style={{ height: '200px' }} />
                       </div>
-                    </ScrollArea>
+                    </div>
                   </div>
                 )}
 
