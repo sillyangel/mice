@@ -789,6 +789,47 @@ const SettingsPage = () => {
                         </div>
                     </CardContent>
                 </Card>
+                
+                {/* Debug Section - Development Only */}
+                {process.env.NODE_ENV === 'development' && (
+                    <Card className="mb-6 break-inside-avoid py-5 border-orange-200 bg-orange-50/50">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-orange-700">
+                                <Settings className="w-5 h-5" />
+                                Debug Tools
+                            </CardTitle>
+                            <CardDescription className="text-orange-600">
+                                Development-only debugging utilities
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button 
+                                onClick={() => {
+                                    // Save Navidrome config before clearing
+                                    const navidromeConfig = localStorage.getItem('navidrome-config');
+                                    
+                                    // Clear all localStorage
+                                    localStorage.clear();
+                                    
+                                    // Restore Navidrome config
+                                    if (navidromeConfig) {
+                                        localStorage.setItem('navidrome-config', navidromeConfig);
+                                    }
+                                    
+                                    // Reload page to reset state
+                                    window.location.reload();
+                                }}
+                                variant="outline"
+                                className="w-full bg-orange-100 border-orange-300 text-orange-700 hover:bg-orange-200"
+                            >
+                                Clear All Data (Keep Navidrome Config)
+                            </Button>
+                            <p className="text-xs text-orange-600 mt-2">
+                                This will clear all localStorage data except your Navidrome server configuration, then reload the page.
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
                 </div>
                 </div>
             )}

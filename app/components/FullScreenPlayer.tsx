@@ -101,104 +101,89 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     }
   }, [lyrics, currentTime, currentLyricIndex]);
 
-  // Auto-scroll lyrics using lyricsRef
+  // Auto-scroll lyrics using lyricsRef - Simplified for iOS compatibility
   useEffect(() => {
-    // Only auto-scroll if lyrics are visible
-    const shouldScroll = isMobile ? (activeTab === 'lyrics' && lyrics.length > 0) : (showLyrics && lyrics.length > 0);
+    // Only auto-scroll if lyrics are visible and we're not on mobile to avoid iOS audio issues
+    const shouldScroll = !isMobile && showLyrics && lyrics.length > 0;
     
     if (currentLyricIndex >= 0 && shouldScroll && lyricsRef.current) {
       const scrollTimeout = setTimeout(() => {
         try {
-          // Simplified scroll container detection for better iOS compatibility
-          let scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-          
-          // Fallback to the lyrics container itself on mobile (iOS)
-          if (!scrollContainer && isMobile && lyricsRef.current) {
-            scrollContainer = lyricsRef.current;
-          }
-          
+          const scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
           const currentLyricElement = lyricsRef.current?.querySelector(`[data-lyric-index="${currentLyricIndex}"]`) as HTMLElement;
           
           if (scrollContainer && currentLyricElement) {
             const containerHeight = scrollContainer.clientHeight;
             const elementTop = currentLyricElement.offsetTop;
             const elementHeight = currentLyricElement.offsetHeight;
-            
-            // Calculate scroll position to center the current lyric
             const targetScrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
             
-            // Use requestAnimationFrame for smoother iOS performance
-            requestAnimationFrame(() => {
-              try {
-                scrollContainer.scrollTo({
-                  top: Math.max(0, targetScrollTop),
-                  behavior: 'smooth'
-                });
-              } catch (error) {
-                // Simple fallback for iOS
-                scrollContainer.scrollTop = Math.max(0, targetScrollTop);
-              }
+            scrollContainer.scrollTo({
+              top: Math.max(0, targetScrollTop),
+              behavior: 'smooth'
             });
           }
         } catch (error) {
-          // Silently fail to prevent breaking audio playback
           console.warn('Lyrics scroll failed:', error);
         }
-      }, 100);
+      }, 200);
       
       return () => clearTimeout(scrollTimeout);
     }
-  }, [currentLyricIndex, showLyrics, lyrics.length, isMobile, activeTab]);
+  }, [currentLyricIndex, showLyrics, lyrics.length, isMobile]);
 
-  // Reset lyrics to top when song changes
+  // Reset lyrics to top when song changes - Disabled on mobile to prevent iOS audio issues
   useEffect(() => {
-    const shouldReset = isMobile ? (activeTab === 'lyrics' && lyrics.length > 0) : (showLyrics && lyrics.length > 0);
+    // Only reset scroll on desktop to avoid iOS audio interference
+    const shouldReset = !isMobile && showLyrics && lyrics.length > 0;
     
     if (currentTrack && shouldReset && lyricsRef.current) {
-      // Simplified reset scroll logic for better iOS compatibility
-      const resetScroll = () => {
+      const resetTimeout = setTimeout(() => {
         try {
-          let scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-          
-          // Fallback to the lyrics container itself on mobile (iOS)
-          if (!scrollContainer && isMobile && lyricsRef.current) {
-            scrollContainer = lyricsRef.current;
-          }
+          const scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
           
           if (scrollContainer) {
-            // Use requestAnimationFrame for smoother iOS performance
-            requestAnimationFrame(() => {
-              try {
-                scrollContainer.scrollTo({
-                  top: 0,
-                  behavior: 'instant'
-                });
-              } catch (error) {
-                scrollContainer.scrollTop = 0;
-              }
+            scrollContainer.scrollTo({
+              top: 0,
+              behavior: 'instant'
             });
           }
         } catch (error) {
-          // Silently fail to prevent breaking audio playback
           console.warn('Lyrics reset scroll failed:', error);
         }
-      };
-      
-      // Small delay to ensure DOM is ready
-      const resetTimeout = setTimeout(() => {
-        resetScroll();
         setCurrentLyricIndex(-1);
       }, 50);
       
       return () => clearTimeout(resetTimeout);
     }
-  }, [currentTrack?.id, showLyrics, currentTrack, isMobile, activeTab, lyrics.length]); // Only reset when track ID changes
+  }, [currentTrack?.id, showLyrics, currentTrack, isMobile, lyrics.length]);
 
   // Sync with main audio player (improved responsiveness)
   useEffect(() => {
     const syncWithMainPlayer = () => {
       const mainAudio = document.querySelector('audio') as HTMLAudioElement;
       if (mainAudio && currentTrack) {
+        // Console log audio information for debugging
+        console.log('=== FULLSCREEN PLAYER AUDIO DEBUG ===');
+        console.log('Audio element src:', mainAudio.src);
+        console.log('Audio element currentSrc:', mainAudio.currentSrc);
+        console.log('Current track:', {
+          id: currentTrack.id,
+          name: currentTrack.name,
+          url: currentTrack.url,
+          artist: currentTrack.artist,
+          album: currentTrack.album
+        });
+        console.log('Audio state:', {
+          currentTime: mainAudio.currentTime,
+          duration: mainAudio.duration,
+          paused: mainAudio.paused,
+          ended: mainAudio.ended,
+          readyState: mainAudio.readyState,
+          networkState: mainAudio.networkState
+        });
+        console.log('==========================================');
+        
         const newCurrentTime = mainAudio.currentTime;
         const newDuration = mainAudio.duration || 0;
         const newIsPlaying = !mainAudio.paused;
@@ -268,12 +253,28 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
   const togglePlayPause = () => {
     const mainAudio = document.querySelector('audio') as HTMLAudioElement;
-    if (!mainAudio) return;
+    if (!mainAudio) {
+      console.log('❌ No audio element found');
+      return;
+    }
+
+    console.log('🎵 Toggle Play/Pause clicked');
+    console.log('Audio src before toggle:', mainAudio.src);
+    console.log('Audio currentSrc before toggle:', mainAudio.currentSrc);
+    console.log('Audio paused state before toggle:', mainAudio.paused);
+    console.log('Audio currentTime before toggle:', mainAudio.currentTime);
+    console.log('Audio duration before toggle:', mainAudio.duration);
 
     if (isPlaying) {
+      console.log('⏸️ Pausing audio');
       mainAudio.pause();
     } else {
-      mainAudio.play();
+      console.log('▶️ Playing audio');
+      mainAudio.play().then(() => {
+        console.log('✅ Audio play() succeeded');
+      }).catch((error) => {
+        console.error('❌ Audio play() failed:', error);
+      });
     }
   };
 
@@ -537,12 +538,8 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 {activeTab === 'lyrics' && lyrics.length > 0 && (
                   <div className="h-full flex flex-col px-4">
                     <div 
-                      className="flex-1 overflow-y-auto scrollable-area"
+                      className="flex-1 overflow-y-auto"
                       ref={lyricsRef}
-                      style={{
-                        WebkitOverflowScrolling: 'touch', // Enable momentum scrolling on iOS
-                        scrollBehavior: 'smooth'
-                      }}
                     >
                       <div className="space-y-3 py-4">
                         {lyrics.map((line, index) => (

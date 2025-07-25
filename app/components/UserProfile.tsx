@@ -150,8 +150,8 @@ export function UserProfile({ variant = 'desktop' }: UserProfileProps) {
               <Image
                 src={gravatarUrl}
                 alt={`${userInfo.username}'s avatar`}
-                width={16}
-                height={16}
+                width={32}
+                height={32}
                 className="rounded-full"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -171,8 +171,8 @@ export function UserProfile({ variant = 'desktop' }: UserProfileProps) {
               <Image
                 src={gravatarUrl}
                 alt={`${userInfo.username}'s avatar`}
-                width={16}
-                height={16}
+                width={32}
+                height={32}
                 className="rounded-full"
               />
             ) : (
