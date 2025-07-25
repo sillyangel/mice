@@ -108,55 +108,41 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     
     if (currentLyricIndex >= 0 && shouldScroll && lyricsRef.current) {
       const scrollTimeout = setTimeout(() => {
-        // Try multiple selectors for better iOS compatibility
-        let scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-        
-        // Fallback for iOS - look for the actual scrollable container
-        if (!scrollContainer) {
-          scrollContainer = lyricsRef.current?.querySelector('.scrollable-area') as HTMLElement;
-        }
-        
-        // Another fallback - use the lyricsRef itself if it's scrollable
-        if (!scrollContainer && lyricsRef.current) {
-          const computedStyle = window.getComputedStyle(lyricsRef.current);
-          if (computedStyle.overflowY === 'auto' || computedStyle.overflowY === 'scroll') {
+        try {
+          // Simplified scroll container detection for better iOS compatibility
+          let scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+          
+          // Fallback to the lyrics container itself on mobile (iOS)
+          if (!scrollContainer && isMobile && lyricsRef.current) {
             scrollContainer = lyricsRef.current;
           }
-        }
-        
-        // Final fallback - look for any scrollable parent
-        if (!scrollContainer) {
-          let element = lyricsRef.current?.parentElement;
-          while (element) {
-            const computedStyle = window.getComputedStyle(element);
-            if (computedStyle.overflowY === 'auto' || computedStyle.overflowY === 'scroll') {
-              scrollContainer = element;
-              break;
-            }
-            element = element.parentElement;
-          }
-        }
-        
-        const currentLyricElement = lyricsRef.current?.querySelector(`[data-lyric-index="${currentLyricIndex}"]`) as HTMLElement;
-        
-        if (scrollContainer && currentLyricElement) {
-          const containerHeight = scrollContainer.clientHeight;
-          const elementTop = currentLyricElement.offsetTop;
-          const elementHeight = currentLyricElement.offsetHeight;
           
-          // Calculate scroll position to center the current lyric
-          const targetScrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
+          const currentLyricElement = lyricsRef.current?.querySelector(`[data-lyric-index="${currentLyricIndex}"]`) as HTMLElement;
           
-          // Use both scrollTo and scrollTop for better iOS compatibility
-          try {
-            scrollContainer.scrollTo({
-              top: Math.max(0, targetScrollTop),
-              behavior: 'smooth'
+          if (scrollContainer && currentLyricElement) {
+            const containerHeight = scrollContainer.clientHeight;
+            const elementTop = currentLyricElement.offsetTop;
+            const elementHeight = currentLyricElement.offsetHeight;
+            
+            // Calculate scroll position to center the current lyric
+            const targetScrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
+            
+            // Use requestAnimationFrame for smoother iOS performance
+            requestAnimationFrame(() => {
+              try {
+                scrollContainer.scrollTo({
+                  top: Math.max(0, targetScrollTop),
+                  behavior: 'smooth'
+                });
+              } catch (error) {
+                // Simple fallback for iOS
+                scrollContainer.scrollTop = Math.max(0, targetScrollTop);
+              }
             });
-          } catch (error) {
-            // Fallback for older iOS versions
-            scrollContainer.scrollTop = Math.max(0, targetScrollTop);
           }
+        } catch (error) {
+          // Silently fail to prevent breaking audio playback
+          console.warn('Lyrics scroll failed:', error);
         }
       }, 100);
       
@@ -169,48 +155,32 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     const shouldReset = isMobile ? (activeTab === 'lyrics' && lyrics.length > 0) : (showLyrics && lyrics.length > 0);
     
     if (currentTrack && shouldReset && lyricsRef.current) {
-      // Reset scroll position using lyricsRef with iOS compatibility
+      // Simplified reset scroll logic for better iOS compatibility
       const resetScroll = () => {
-        // Try multiple selectors for better iOS compatibility
-        let scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-        
-        // Fallback for iOS - look for the actual scrollable container
-        if (!scrollContainer) {
-          scrollContainer = lyricsRef.current?.querySelector('.scrollable-area') as HTMLElement;
-        }
-        
-        // Another fallback - use the lyricsRef itself if it's scrollable
-        if (!scrollContainer && lyricsRef.current) {
-          const computedStyle = window.getComputedStyle(lyricsRef.current);
-          if (computedStyle.overflowY === 'auto' || computedStyle.overflowY === 'scroll') {
+        try {
+          let scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+          
+          // Fallback to the lyrics container itself on mobile (iOS)
+          if (!scrollContainer && isMobile && lyricsRef.current) {
             scrollContainer = lyricsRef.current;
           }
-        }
-        
-        // Final fallback - look for any scrollable parent
-        if (!scrollContainer) {
-          let element = lyricsRef.current?.parentElement;
-          while (element) {
-            const computedStyle = window.getComputedStyle(element);
-            if (computedStyle.overflowY === 'auto' || computedStyle.overflowY === 'scroll') {
-              scrollContainer = element;
-              break;
-            }
-            element = element.parentElement;
-          }
-        }
-        
-        if (scrollContainer) {
-          // Use both scrollTo and scrollTop for better iOS compatibility
-          try {
-            scrollContainer.scrollTo({
-              top: 0,
-              behavior: 'instant' // Use instant for track changes
+          
+          if (scrollContainer) {
+            // Use requestAnimationFrame for smoother iOS performance
+            requestAnimationFrame(() => {
+              try {
+                scrollContainer.scrollTo({
+                  top: 0,
+                  behavior: 'instant'
+                });
+              } catch (error) {
+                scrollContainer.scrollTop = 0;
+              }
             });
-          } catch (error) {
-            // Fallback for older iOS versions
-            scrollContainer.scrollTop = 0;
           }
+        } catch (error) {
+          // Silently fail to prevent breaking audio playback
+          console.warn('Lyrics reset scroll failed:', error);
         }
       };
       
