@@ -6,12 +6,15 @@ import Image from 'next/image';
 import { Music, Users, Disc, ListMusic, Heart, Play } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { getNavidromeAPI } from '@/lib/navidrome';
+import NavidromeAPI from '@/lib/navidrome';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Album {
   id: string;
   name: string;
   artist: string;
+  artistId?: string;
   coverArt?: string;
   year?: number;
   songCount: number;
@@ -28,26 +31,29 @@ export default function LibraryPage() {
   const [recentAlbums, setRecentAlbums] = useState<Album[]>([]);
   const [stats, setStats] = useState<LibraryStats>({ albums: 0, artists: 0, songs: 0, playlists: 0 });
   const [loading, setLoading] = useState(true);
+  const [api, setApi] = useState<NavidromeAPI | null>(null);
   const { playAlbum } = useAudioPlayer();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const loadLibraryData = async () => {
       try {
-        const api = getNavidromeAPI();
-        if (!api) {
+        const navidromeApi = getNavidromeAPI();
+        if (!navidromeApi) {
           console.error('Navidrome API not available');
           return;
         }
+        setApi(navidromeApi);
 
         // Load recent albums
-        const albumsData = await api.getAlbums('newest', 4, 0);
+        const albumsData = await navidromeApi.getAlbums('newest', 4, 0);
         setRecentAlbums(albumsData || []);
 
         // Load library stats
         const [allAlbums, allArtists, allPlaylists] = await Promise.all([
-          api.getAlbums('alphabeticalByName', 1, 0), // Just to get count
-          api.getArtists(),
-          api.getPlaylists()
+          navidromeApi.getAlbums('alphabeticalByName', 1, 0), // Just to get count
+          navidromeApi.getArtists(),
+          navidromeApi.getPlaylists()
         ]);
 
         setStats({
@@ -118,6 +124,18 @@ export default function LibraryPage() {
         <div className="space-y-4">
           <h1 className="text-2xl font-bold">Your Library</h1>
           
+          {/* Loading skeleton for library links */}
+          <div>
+            <h2 className="text-lg font-semibold mb-3">Browse</h2>
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-muted rounded-lg h-16"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Loading skeleton for recent albums */}
           <div>
             <h2 className="text-lg font-semibold mb-3">Recently Added</h2>
@@ -127,18 +145,6 @@ export default function LibraryPage() {
                   <div className="bg-muted rounded-lg aspect-square mb-2"></div>
                   <div className="bg-muted h-4 rounded mb-1"></div>
                   <div className="bg-muted h-3 rounded w-3/4"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Loading skeleton for library links */}
-          <div>
-            <h2 className="text-lg font-semibold mb-3">Browse</h2>
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-muted rounded-lg h-16"></div>
                 </div>
               ))}
             </div>
@@ -153,41 +159,7 @@ export default function LibraryPage() {
       <div className="space-y-4">
         <h1 className="text-2xl font-bold">Your Library</h1>
         
-        {/* Recently Added Albums */}
-        <div>
-          <h2 className="text-lg font-semibold mb-3">Recently Added</h2>
-          <div className="grid grid-cols-2 gap-4">
-            {recentAlbums.map((album) => (
-              <Card key={album.id} className="group cursor-pointer hover:bg-muted/50 transition-colors">
-                <CardContent className="p-3">
-                  <div className="relative aspect-square mb-2">
-                    <Image
-                      src={album.coverArt || '/default-user.jpg'}
-                      alt={album.name}
-                      fill
-                      className="object-cover rounded-lg"
-                    />
-                    <button
-                      onClick={() => handlePlayAlbum(album)}
-                      className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center"
-                    >
-                      <Play className="w-8 h-8 text-white fill-white" />
-                    </button>
-                  </div>
-                  <Link href={`/album/${album.id}`}>
-                    <h3 className="font-medium text-sm truncate hover:underline">{album.name}</h3>
-                    <p className="text-xs text-muted-foreground truncate">{album.artist}</p>
-                    {album.year && (
-                      <p className="text-xs text-muted-foreground">{album.year}</p>
-                    )}
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Library Navigation */}
+        {/* Library Navigation - Always at top */}
         <div>
           <h2 className="text-lg font-semibold mb-3">Browse</h2>
           <div className="space-y-3">
@@ -216,6 +188,53 @@ export default function LibraryPage() {
                 </Link>
               );
             })}
+          </div>
+        </div>
+
+        {/* Recently Added Albums - At bottom on mobile, after Browse on desktop */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Recently Added</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {recentAlbums.map((album) => (
+              <Card key={album.id} className="group cursor-pointer hover:bg-muted/50 transition-colors">
+                <CardContent className="p-3">
+                  <Link href={`/album/${album.id}`}>
+                    <div className="relative aspect-square mb-2">
+                      <Image
+                        src={album.coverArt && api ? api.getCoverArtUrl(album.coverArt, 200) : '/default-user.jpg'}
+                        alt={album.name}
+                        fill
+                        className="object-cover rounded-lg"
+                        sizes="(max-width: 768px) 50vw, 200px"
+                      />
+                      {!isMobile && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handlePlayAlbum(album);
+                          }}
+                          className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center"
+                        >
+                          <Play className="w-8 h-8 text-white fill-white" />
+                        </button>
+                      )}
+                    </div>
+                    <h3 className="font-medium text-sm truncate hover:underline">{album.name}</h3>
+                    <Link 
+                      href={`/artist/${album.artistId || album.artist}`}
+                      className="text-xs text-muted-foreground truncate hover:underline block"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {album.artist}
+                    </Link>
+                    {album.year && (
+                      <p className="text-xs text-muted-foreground">{album.year}</p>
+                    )}
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
