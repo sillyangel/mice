@@ -173,14 +173,6 @@ export default function AlbumPage() {
                 >
                   <Play className="w-6 h-6" />
                 </Button>
-                <Button 
-                  onClick={handleStar} 
-                  variant="ghost" 
-                  className="w-12 h-12 rounded-full p-0"
-                  title={isStarred ? "Unstar album" : "Star album"}
-                >
-                  <Heart className={`w-6 h-6 ${isStarred ? 'text-primary' : 'text-gray-500'}`} fill={isStarred ? 'var(--primary)' : ""}/>
-                </Button>
               </div>
             </div>
           </div>
