@@ -5,6 +5,7 @@ import { Menu } from "@/app/components/menu";
 import { Sidebar } from "@/app/components/sidebar";
 import { useNavidrome } from "@/app/components/NavidromeContext";
 import { AudioPlayer } from "./AudioPlayer";
+import { BottomNavigation } from './BottomNavigation';
 import { Toaster } from "@/components/ui/toaster";
 import { useFavoriteAlbums } from "@/hooks/use-favorite-albums";
 
@@ -96,48 +97,74 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
       </div>
     );
   }
+  
   return (
-    <div className="hidden md:flex md:flex-col md:h-screen md:w-screen md:overflow-hidden">
-      {/* Top Menu */}
-      <div
-        className="sticky z-10 bg-background border-b w-full"
-        style={{
-          left: 'env(titlebar-area-x, 0)',
-          top: 'env(titlebar-area-y, 0)',
-        }}
-      >
-        <Menu
-          toggleSidebar={toggleSidebarVisibility}
-          isSidebarVisible={isSidebarVisible}
-          toggleStatusBar={() => setIsStatusBarVisible(!isStatusBarVisible)}
-          isStatusBarVisible={isStatusBarVisible}
-        />
-      </div>
+    <>
+      {/* Mobile Layout */}
+      <div className="flex md:hidden flex-col h-screen w-screen overflow-hidden">
+        {/* Top Menu */}
+        {/* <div className="shrink-0 bg-background border-b w-full">
+          <Menu
+            toggleSidebar={toggleSidebarVisibility}
+            isSidebarVisible={isSidebarVisible}
+            toggleStatusBar={() => setIsStatusBarVisible(!isStatusBarVisible)}
+            isStatusBarVisible={isStatusBarVisible}
+          />
+        </div> */}
 
-      {/* Main Content Area */}
-        <div className="flex-1 flex overflow-hidden w-full">
-          {isSidebarVisible && (
-            <div className="w-16 shrink-0 border-r transition-all duration-200">
-              <Sidebar
-                playlists={playlists}
-                className="h-full overflow-y-auto"
-                visible={isSidebarVisible}
-                favoriteAlbums={favoriteAlbums}
-                onRemoveFavoriteAlbum={removeFavoriteAlbum}
-              />
-            </div>
-          )}
-          <div className="flex-1 overflow-y-auto min-w-0">
-            <div>{children}</div>
-          </div>
+        {/* Main Content Area with bottom padding for audio player and bottom nav */}
+        <div className="flex-1 overflow-y-auto pb-40">
+          <div>{children}</div>
         </div>
 
-      {/* Floating Audio Player */}
-      {isStatusBarVisible && (
-        <AudioPlayer />
-      )}
-      <Toaster />
-    </div>
+        {/* Bottom Navigation for Mobile */}
+        <BottomNavigation />
+
+        <Toaster />
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden md:flex md:flex-col md:h-screen md:w-screen md:overflow-hidden">
+        {/* Top Menu */}
+        <div
+          className="sticky z-10 bg-background border-b w-full"
+          style={{
+            left: 'env(titlebar-area-x, 0)',
+            top: 'env(titlebar-area-y, 0)',
+          }}
+        >
+          <Menu
+            toggleSidebar={toggleSidebarVisibility}
+            isSidebarVisible={isSidebarVisible}
+            toggleStatusBar={() => setIsStatusBarVisible(!isStatusBarVisible)}
+            isStatusBarVisible={isStatusBarVisible}
+          />
+        </div>
+
+        {/* Main Content Area */}
+          <div className="flex-1 flex overflow-hidden w-full">
+            {isSidebarVisible && (
+              <div className="w-16 shrink-0 border-r transition-all duration-200">
+                <Sidebar
+                  playlists={playlists}
+                  className="h-full overflow-y-auto"
+                  visible={isSidebarVisible}
+                  favoriteAlbums={favoriteAlbums}
+                  onRemoveFavoriteAlbum={removeFavoriteAlbum}
+                />
+              </div>
+            )}
+            <div className="flex-1 overflow-y-auto min-w-0">
+              <div>{children}</div>
+            </div>
+          </div>
+
+        <Toaster />
+      </div>
+      
+      {/* Single Shared Audio Player - shows on all layouts */}
+      <AudioPlayer />
+    </>
   );
 };
 

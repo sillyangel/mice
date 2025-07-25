@@ -153,7 +153,7 @@ export function SidebarCustomization() {
 
 
   return (
-    <Card>
+    <Card className="py-5">
       <CardHeader>
         <CardTitle>Sidebar Customization</CardTitle>
         <CardDescription>

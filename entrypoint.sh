@@ -15,6 +15,3 @@ printenv | grep NEXT_PUBLIC_ | while read -r line ; do
 done
 
 echo "✅ Environment variable replacement complete"
-
-# Execute the container's main process (CMD in Dockerfile)
-exec "$@"

@@ -9,6 +9,8 @@ import { PostHogProvider } from "../components/PostHogProvider";
 import { WhatsNewPopup } from "../components/WhatsNewPopup";
 import Ihateserverside from "./ihateserverside";
 import DynamicViewportTheme from "./DynamicViewportTheme";
+import ThemeColorHandler from "./ThemeColorHandler";
+import { useViewportThemeColor } from "@/hooks/use-viewport-theme-color";
 import { LoginForm } from "./start-screen";
 import Image from "next/image";
 
@@ -83,6 +85,7 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
     <PostHogProvider>
       <ThemeProvider>
         <DynamicViewportTheme />
+        <ThemeColorHandler />
         <NavidromeConfigProvider>
           <NavidromeProvider>
             <NavidromeErrorBoundary>

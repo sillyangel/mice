@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { useNavidromeConfig } from '@/app/components/NavidromeConfigContext';
 import { useTheme } from '@/app/components/ThemeProvider';
 import { useToast } from '@/hooks/use-toast';
-import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaPalette, FaLastfm, FaBars } from 'react-icons/fa';
+import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaPalette, FaLastfm } from 'react-icons/fa';
 
 export function LoginForm({
   className,
@@ -45,20 +45,7 @@ export function LoginForm({
     return true;
   });
 
-  // New settings
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('sidebar-collapsed') === 'true';
-    }
-    return false;
-  });
-
-  const [standaloneLastfmEnabled, setStandaloneLastfmEnabled] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('standalone-lastfm-enabled') === 'true';
-    }
-    return false;
-  });
+  // New settings - removed sidebar and standalone lastfm options
 
   // Check if Navidrome is configured via environment variables
   const hasEnvConfig = React.useMemo(() => {
@@ -187,8 +174,6 @@ export function LoginForm({
   const handleFinishSetup = () => {
     // Save all settings
     localStorage.setItem('lastfm-scrobbling-enabled', scrobblingEnabled.toString());
-    localStorage.setItem('sidebar-collapsed', sidebarCollapsed.toString());
-    localStorage.setItem('standalone-lastfm-enabled', standaloneLastfmEnabled.toString());
     
     // Mark onboarding as complete
     localStorage.setItem('onboarding-completed', '1.1.0');
@@ -252,7 +237,7 @@ export function LoginForm({
   if (step === 'settings') {
     return (
       <div className={cn("flex flex-col gap-6", className)} {...props}>
-        <Card>
+        <Card className='py-5'>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FaPalette className="w-5 h-5" />
@@ -286,29 +271,6 @@ export function LoginForm({
                 </Select>
               </div>
 
-              {/* Sidebar Settings */}
-              <div className="grid gap-3">
-                <Label className="flex items-center gap-2">
-                  <FaBars className="w-4 h-4" />
-                  Sidebar Layout
-                </Label>
-                <Select 
-                  value={sidebarCollapsed ? "collapsed" : "expanded"} 
-                  onValueChange={(value) => setSidebarCollapsed(value === "collapsed")}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="expanded">Expanded (with labels)</SelectItem>
-                    <SelectItem value="collapsed">Collapsed (icons only)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  You can always toggle this later using the button in the sidebar
-                </p>
-              </div>
-
               {/* Last.fm Scrobbling */}
               <div className="grid gap-3">
                 <Label className="flex items-center gap-2">
@@ -331,31 +293,6 @@ export function LoginForm({
                   {scrobblingEnabled 
                     ? "Tracks will be scrobbled to Last.fm via Navidrome" 
                     : "Last.fm scrobbling will be disabled"}
-                </p>
-              </div>
-
-              {/* Standalone Last.fm */}
-              <div className="grid gap-3">
-                <Label className="flex items-center gap-2">
-                  <FaLastfm className="w-4 h-4" />
-                  Standalone Last.fm (Advanced)
-                </Label>
-                <Select 
-                  value={standaloneLastfmEnabled ? "enabled" : "disabled"} 
-                  onValueChange={(value) => setStandaloneLastfmEnabled(value === "enabled")}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="enabled">Enabled</SelectItem>
-                    <SelectItem value="disabled">Disabled</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  {standaloneLastfmEnabled 
-                    ? "Direct Last.fm API integration (configure in Settings later)" 
-                    : "Use only Navidrome's Last.fm integration"}
                 </p>
               </div>
 
@@ -383,7 +320,7 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
+      <Card className="py-5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FaServer className="w-5 h-5" />

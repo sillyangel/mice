@@ -88,6 +88,18 @@
   body {
     font-family: Arial, Helvetica, sans-serif;
   }
+
+  /* Hide scrollbars on mobile */
+  @media (max-width: 768px) {
+    * {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* Internet Explorer 10+ */
+    }
+    
+    *::-webkit-scrollbar {
+      display: none; /* Safari and Chrome */
+    }
+  }
 }
 
 @layer utilities {
@@ -816,34 +828,170 @@
   ---break---
 */
 
-/* 
-
-will delete after the new theme replaces the old one
-since the new theme already has the sidebar colors defined
-
-:root {
-  --sidebar: hsl(0 0% 98%);
-  --sidebar-foreground: hsl(240 5.3% 26.1%);
-  --sidebar-primary: hsl(240 5.9% 10%);
-  --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(240 4.8% 95.9%);
-  --sidebar-accent-foreground: hsl(240 5.9% 10%);
-  --sidebar-border: hsl(220 13% 91%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+/* Mobile-specific optimizations */
+@media (max-width: 767px) {
+  /* Improve touch targets for mobile */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better touch feedback */
+  button:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+  
+  /* Ensure proper viewport behavior */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Smooth scrolling for mobile */
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Mobile audio player specific */
+  .mobile-audio-player {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
 }
 
 
-.dark {
-  --sidebar: hsl(240 5.9% 10%);
-  --sidebar-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-primary: hsl(224.3 76.3% 48%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(240 3.7% 15.9%);
-  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-border: hsl(240 3.7% 15.9%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
-} */
+  /* Safe area support for mobile devices */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+  }
+
+  .mobile-safe-bottom {
+    margin-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* Touch-optimized navigation */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Bottom navigation z-index fix */
+  .bottom-nav {
+    z-index: 45;
+  }
+
+  /* Audio player above bottom nav */
+  .mobile-audio-above-nav {
+    z-index: 50;
+    bottom: calc(4rem + env(safe-area-inset-bottom, 0));
+  }
+
+/* Mobile Audio Player Styles */
+.mobile-audio-player {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-audio-player button {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Prevent iOS zoom on input focus */
+@media screen and (max-width: 767px) {
+  input[type="range"] {
+    font-size: 16px;
+  }
+  
+  /* Improve button touch targets */
+  .mobile-audio-player button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+
+/* Better focus states for accessibility */
+button:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Improved animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Safe area insets for mobile devices */
+@supports (padding: max(0px)) {
+  .mobile-safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  .mobile-safe-top {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+}
+
+/* Progress bar improvements for mobile */
+@media (max-width: 767px) {
+  .progress-mobile {
+    height: 3px;
+    cursor: pointer;
+    -webkit-appearance: none;
+    touch-action: manipulation;
+  }
+  
+  .progress-mobile::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: hsl(var(--primary));
+    cursor: pointer;
+    margin-top: -6px;
+  }
+}
 
 /*
   ---break---
 */
+
+/* Mobile Bottom Navigation Styles */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+}
+
+.mobile-safe-bottom {
+  margin-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-audio-above-nav {
+  bottom: calc(4rem + env(safe-area-inset-bottom, 0));
+}

@@ -1,0 +1,114 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Dev: Start Development Server",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"run",
+				"dev"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"isBackground": true,
+			"problemMatcher": [
+				"$tsc-watch"
+			],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new",
+				"showReuseMessage": true,
+				"clear": false
+			},
+			"options": {
+				"env": {
+					"NODE_ENV": "development"
+				}
+			}
+		},
+		{
+			"label": "Prod: Build and Start Production",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-c",
+				"pnpm run build && pnpm run start"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new",
+				"showReuseMessage": true,
+				"clear": true
+			},
+			"options": {
+				"env": {
+					"NODE_ENV": "production"
+				}
+			},
+			"problemMatcher": ["$tsc"],
+			"dependsOrder": "sequence"
+		},
+		{
+			"label": "Debug: Development with Debug Info",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"run",
+				"dev"
+			],
+			"group": {
+				"kind": "test",
+				"isDefault": false
+			},
+			"isBackground": true,
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new",
+				"showReuseMessage": true,
+				"clear": false
+			},
+			"options": {
+				"env": {
+					"NODE_ENV": "development",
+					"DEBUG": "*",
+					"NEXT_TELEMETRY_DISABLED": "1"
+				}
+			},
+			"problemMatcher": ["$tsc-watch"]
+		},
+		{
+			"label": "Build: Production Build Only",
+			"type": "shell",
+			"command": "pnpm",
+			"args": [
+				"run",
+				"build"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new",
+				"showReuseMessage": true,
+				"clear": true
+			},
+			"options": {
+				"env": {
+					"NODE_ENV": "production"
+				}
+			},
+			"problemMatcher": ["$tsc"]
+		}
+	]
+}

@@ -143,7 +143,7 @@ export function CacheManagement() {
   };
 
   return (
-    <Card className="break-inside-avoid">
+    <Card className="break-inside-avoid py-5">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Database className="h-5 w-5" />

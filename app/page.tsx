@@ -12,6 +12,8 @@ import { useSearchParams } from 'next/navigation';
 import { useAudioPlayer } from './components/AudioPlayerContext';
 import { SongRecommendations } from './components/SongRecommendations';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { UserProfile } from './components/UserProfile';
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 
@@ -24,6 +26,7 @@ function MusicPageContent() {
   const [favoriteAlbums, setFavoriteAlbums] = useState<Album[]>([]);
   const [favoritesLoading, setFavoritesLoading] = useState(true);
   const [shortcutProcessed, setShortcutProcessed] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (albums.length > 0) {
