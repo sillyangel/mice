@@ -203,6 +203,11 @@ export const AudioPlayer: React.FC = () => {
       
       audioCurrent.src = currentTrack.url;
       
+      // For iOS, ensure audio element is properly loaded
+      if (isMobile) {
+        audioCurrent.load();
+      }
+      
       // Notify scrobbler about new track
       onTrackStart(currentTrack);
       
@@ -229,21 +234,31 @@ export const AudioPlayer: React.FC = () => {
         localStorage.removeItem('navidrome-current-track-time');
       }
       
-      // Auto-play only if the track has the autoPlay flag
-      if (currentTrack.autoPlay) {
-        audioCurrent.play().then(() => {
+      // Auto-play only if the track has the autoPlay flag and audio is initialized
+      if (currentTrack.autoPlay && (!isMobile || audioInitialized)) {
+        // Add a small delay for iOS compatibility
+        const playPromise = isMobile ? 
+          new Promise(resolve => setTimeout(resolve, 100)).then(() => audioCurrent.play()) :
+          audioCurrent.play();
+          
+        playPromise.then(() => {
           setIsPlaying(true);
           // Notify scrobbler about play
           onTrackPlay(currentTrack);
         }).catch((error) => {
           console.error('Failed to auto-play:', error);
           setIsPlaying(false);
+          
+          // On iOS, auto-play might fail - that's normal
+          if (isMobile) {
+            console.log('Auto-play failed on mobile - user interaction required');
+          }
         });
       } else {
         setIsPlaying(false);
       }
     }
-  }, [currentTrack, onTrackStart, onTrackPlay]);
+  }, [currentTrack, onTrackStart, onTrackPlay, isMobile, audioInitialized]);
 
   useEffect(() => {
     const audioCurrent = audioRef.current;
@@ -472,12 +487,20 @@ export const AudioPlayer: React.FC = () => {
             // Wait for the audio to be ready to play
             if (audioCurrent.readyState < 3) { // HAVE_FUTURE_DATA
               await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                  audioCurrent.removeEventListener('canplay', handleCanPlay);
+                  audioCurrent.removeEventListener('error', handleError);
+                  reject(new Error('Audio load timeout'));
+                }, 10000); // 10 second timeout
+                
                 const handleCanPlay = () => {
+                  clearTimeout(timeout);
                   audioCurrent.removeEventListener('canplay', handleCanPlay);
                   audioCurrent.removeEventListener('error', handleError);
                   resolve(void 0);
                 };
                 const handleError = () => {
+                  clearTimeout(timeout);
                   audioCurrent.removeEventListener('canplay', handleCanPlay);
                   audioCurrent.removeEventListener('error', handleError);
                   reject(new Error('Audio failed to load'));
@@ -508,7 +531,9 @@ export const AudioPlayer: React.FC = () => {
                 setAudioInitialized(true);
               }
               
-              // Retry playing
+              // Force load and retry
+              audioCurrent.load();
+              await new Promise(resolve => setTimeout(resolve, 200)); // Small delay for iOS
               await audioCurrent.play();
               setIsPlaying(true);
               onTrackPlay(currentTrack);
@@ -626,7 +651,15 @@ export const AudioPlayer: React.FC = () => {
         />
         
         {/* Single audio element - shared across all UI states */}
-        <audio ref={audioRef} hidden />
+        <audio 
+          ref={audioRef} 
+          hidden 
+          playsInline
+          preload={isMobile ? "none" : "auto"}
+          controls={false}
+          crossOrigin="anonymous"
+          style={{ display: 'none' }}
+        />
         <audio ref={preloadAudioRef} hidden preload="metadata" />
       </>
     );
@@ -690,9 +723,10 @@ export const AudioPlayer: React.FC = () => {
           ref={audioRef} 
           hidden 
           playsInline
-          preload="auto"
+          preload={isMobile ? "none" : "auto"}
           controls={false}
           crossOrigin="anonymous"
+          style={{ display: 'none' }}
         />
         <audio ref={preloadAudioRef} hidden preload="metadata" />
       </>
@@ -807,7 +841,7 @@ export const AudioPlayer: React.FC = () => {
         preload={isMobile ? "none" : "auto"}
         controls={false}
         crossOrigin="anonymous"
-        webkit-playsinline="true"
+        style={{ display: 'none' }}
       />
       <audio ref={preloadAudioRef} hidden preload="metadata" />
     </>

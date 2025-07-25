@@ -229,9 +229,9 @@ export default function LibraryPage() {
                     >
                       {album.artist}
                     </Link>
-                    {album.year && (
+                    {/* {album.year && (
                       <p className="text-xs text-muted-foreground">{album.year}</p>
-                    )}
+                    )} */}
                   </Link>
                 </CardContent>
               </Card>
