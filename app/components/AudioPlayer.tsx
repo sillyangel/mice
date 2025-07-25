@@ -129,26 +129,73 @@ export const AudioPlayer: React.FC = () => {
     
     // Mobile-specific audio initialization
     if (isMobile) {
+      // Detect if running as PWA
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                    (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+      
+      console.log('🔍 Audio initialization debug:', {
+        isMobile,
+        isPWA,
+        audioInitialized,
+        userAgent: navigator.userAgent
+      });
+      
       // Add a document click listener to initialize audio context on first user interaction
       const initializeAudioOnMobile = async () => {
         if (!audioInitialized) {
           try {
+            console.log('🎵 Initializing mobile audio context...', { isPWA });
+            
             const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
             if (AudioContextClass) {
               const audioContext = new AudioContextClass();
+              console.log('Audio context state:', audioContext.state);
+              
               if (audioContext.state === 'suspended') {
+                console.log('Resuming suspended audio context...');
                 await audioContext.resume();
+                console.log('Audio context resumed, new state:', audioContext.state);
               }
+              
+              // For PWA, we need to explicitly unlock audio
+              if (isPWA && audioRef.current) {
+                console.log('PWA detected, performing audio unlock...');
+                
+                // Create a silent audio buffer to unlock audio
+                const buffer = audioContext.createBuffer(1, 1, 22050);
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start(0);
+                
+                // Also try to load the audio element
+                try {
+                  audioRef.current.volume = 0;
+                  const playPromise = audioRef.current.play();
+                  if (playPromise) {
+                    await playPromise;
+                    audioRef.current.pause();
+                    audioRef.current.currentTime = 0;
+                  }
+                  audioRef.current.volume = volume;
+                  console.log('✅ PWA audio unlock successful');
+                } catch (unlockError) {
+                  console.log('⚠️ PWA audio unlock failed:', unlockError);
+                }
+              }
+              
               setAudioInitialized(true);
+              console.log('✅ Mobile audio context initialized successfully');
             }
           } catch (error) {
-            console.log('Mobile audio context initialization failed:', error);
+            console.log('❌ Mobile audio context initialization failed:', error);
           }
         }
       };
 
       // Listen for any user interaction to initialize audio
       const handleFirstUserInteraction = () => {
+        console.log('🎯 First user interaction detected, initializing audio...');
         initializeAudioOnMobile();
         document.removeEventListener('touchstart', handleFirstUserInteraction);
         document.removeEventListener('click', handleFirstUserInteraction);
@@ -172,7 +219,7 @@ export const AudioPlayer: React.FC = () => {
       }
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
-  }, [isMobile, audioInitialized]);
+  }, [isMobile, audioInitialized, volume]);
 
   // Apply volume to audio element when volume changes
   useEffect(() => {
@@ -470,22 +517,57 @@ export const AudioPlayer: React.FC = () => {
 
   const togglePlayPause = async () => {
     if (audioCurrent && currentTrack) {
+      // Detect if running as PWA
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                    (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+      
+      console.log('🎵 togglePlayPause called:', {
+        isPlaying,
+        isMobile,
+        isPWA,
+        audioInitialized,
+        currentTrackUrl: currentTrack.url,
+        audioSrc: audioCurrent.src,
+        audioReadyState: audioCurrent.readyState
+      });
+      
       if (isPlaying) {
+        console.log('⏸️ Pausing audio');
         audioCurrent.pause();
         setIsPlaying(false);
         onTrackPause(audioCurrent.currentTime);
       } else {
         try {
+          // PWA-specific initialization if needed
+          if (isPWA && !audioInitialized) {
+            console.log('🔧 PWA detected - initializing audio context...');
+            try {
+              const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+              if (AudioContextClass) {
+                const audioContext = new AudioContextClass();
+                if (audioContext.state === 'suspended') {
+                  await audioContext.resume();
+                }
+                setAudioInitialized(true);
+                console.log('✅ PWA audio context initialized');
+              }
+            } catch (contextError) {
+              console.log('⚠️ PWA audio context initialization failed:', contextError);
+            }
+          }
+          
           // On mobile, ensure audio element is properly loaded before playing
           if (isMobile) {
             // Ensure the audio element has the correct source
             if (audioCurrent.src !== currentTrack.url) {
+              console.log('🔄 Setting audio source:', currentTrack.url);
               audioCurrent.src = currentTrack.url;
               audioCurrent.load(); // Force reload the audio element
             }
             
             // Wait for the audio to be ready to play
             if (audioCurrent.readyState < 3) { // HAVE_FUTURE_DATA
+              console.log('⏳ Waiting for audio to be ready...');
               await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                   audioCurrent.removeEventListener('canplay', handleCanPlay);
@@ -494,12 +576,14 @@ export const AudioPlayer: React.FC = () => {
                 }, 10000); // 10 second timeout
                 
                 const handleCanPlay = () => {
+                  console.log('✅ Audio ready to play');
                   clearTimeout(timeout);
                   audioCurrent.removeEventListener('canplay', handleCanPlay);
                   audioCurrent.removeEventListener('error', handleError);
                   resolve(void 0);
                 };
                 const handleError = () => {
+                  console.log('❌ Audio load error');
                   clearTimeout(timeout);
                   audioCurrent.removeEventListener('canplay', handleCanPlay);
                   audioCurrent.removeEventListener('error', handleError);
@@ -511,16 +595,20 @@ export const AudioPlayer: React.FC = () => {
             }
           }
 
+          console.log('▶️ Attempting to play audio...');
           await audioCurrent.play();
           setIsPlaying(true);
           setAudioInitialized(true);
           onTrackPlay(currentTrack);
+          console.log('✅ Audio play successful');
         } catch (error) {
-          console.error('Failed to play audio:', error);
+          console.error('❌ Failed to play audio:', error);
           
           // Additional mobile-specific handling
           if (isMobile) {
             try {
+              console.log('🔄 Attempting mobile audio recovery...');
+              
               // Try creating and resuming audio context
               const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
               if (AudioContextClass) {
@@ -534,18 +622,22 @@ export const AudioPlayer: React.FC = () => {
               // Force load and retry
               audioCurrent.load();
               await new Promise(resolve => setTimeout(resolve, 200)); // Small delay for iOS
+              console.log('🔄 Retrying audio play...');
               await audioCurrent.play();
               setIsPlaying(true);
               onTrackPlay(currentTrack);
+              console.log('✅ Audio play retry successful');
             } catch (retryError) {
-              console.error('Audio play retry failed:', retryError);
+              console.error('❌ Audio play retry failed:', retryError);
               setIsPlaying(false);
               
               // Show user-friendly error on mobile
               toast({
                 variant: "destructive",
                 title: "Playback Error",
-                description: "Unable to play audio. Please try again or check your connection.",
+                description: isPWA 
+                  ? "Unable to play audio in PWA mode. Try refreshing the app or playing in Safari browser."
+                  : "Unable to play audio. Please try again or check your connection.",
               });
             }
           } else {

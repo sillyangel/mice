@@ -148,7 +148,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     // Only reset scroll on desktop to avoid iOS audio interference
     const shouldReset = !isMobile && showLyrics && lyrics.length > 0;
     
-    if (currentTrack && shouldReset && lyricsRef.current) {
+    if (currentTrack?.id && shouldReset && lyricsRef.current) {
       const resetTimeout = setTimeout(() => {
         try {
           const scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
