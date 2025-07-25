@@ -201,9 +201,10 @@ export default function LibraryPage() {
                   <Link href={`/album/${album.id}`}>
                     <div className="relative aspect-square mb-2">
                       <Image
-                        src={album.coverArt && api ? api.getCoverArtUrl(album.coverArt, 200) : '/default-user.jpg'}
+                        src={album.coverArt && api ? api.getCoverArtUrl(album.coverArt, 300) : '/default-user.jpg'}
                         alt={album.name}
-                        fill
+                        width={600}
+                        height={600}
                         className="object-cover rounded-lg"
                         sizes="(max-width: 768px) 50vw, 200px"
                       />

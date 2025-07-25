@@ -217,9 +217,10 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
                   <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
                     {album.coverArt && api ? (
                       <Image
-                        src={api.getCoverArtUrl(album.coverArt, 200)}
+                        src={api.getCoverArtUrl(album.coverArt, 300)}
                         alt={album.name}
-                        fill
+                        width={600}
+                        height={600}
                         className="object-cover"
                         sizes="(max-width: 768px) 33vw, 200px"
                         onLoad={handleImageLoad}
