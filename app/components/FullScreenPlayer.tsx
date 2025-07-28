@@ -747,20 +747,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
                 {/* Track Info */}
                 <div className="text-center mb-6 px-4 shrink-0 max-w-full">
-                  <div className="flex items-center justify-center gap-4 mb-2">
-                    <h1 className="text-3xl font-bold text-foreground line-clamp-2 leading-tight">
-                      {currentTrack.name}
-                    </h1>
-                    <button
-                      onClick={toggleCurrentTrackStar}
-                      className="p-2 hover:bg-gray-700/50 rounded-full transition-colors"
-                      title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
-                    >
-                      <Heart 
-                        className={`w-6 h-6 ${currentTrack?.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
-                      />
-                    </button>
-                  </div>
+                  <h1 className="text-3xl font-bold text-foreground line-clamp-2 leading-tight mb-2">
+                    {currentTrack.name}
+                  </h1>
                   <Link href={`/artist/${currentTrack.artistId}`} className="text-xl text-foreground/80 mb-1 line-clamp-1">
                     {currentTrack.artist}
                   </Link>
@@ -812,6 +801,16 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                     onClick={playNextTrack}
                     className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
                     <FaForward className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={toggleCurrentTrackStar}
+                    className="p-2 hover:bg-gray-700/50 rounded-full transition-colors"
+                    title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Heart 
+                      className={`w-5 h-5 ${currentTrack?.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
+                    />
                   </button>
                 </div>
 
