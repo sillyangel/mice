@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Song } from '@/lib/navidrome';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Song, Album } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Play, Heart, Music, Shuffle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { UserProfile } from './UserProfile';
 
 interface SongRecommendationsProps {
   userName?: string;
@@ -17,14 +19,26 @@ interface SongRecommendationsProps {
 export function SongRecommendations({ userName }: SongRecommendationsProps) {
   const { api, isConnected } = useNavidrome();
   const { playTrack, shuffle, toggleShuffle } = useAudioPlayer();
+  const isMobile = useIsMobile();
   const [recommendedSongs, setRecommendedSongs] = useState<Song[]>([]);
+  const [recommendedAlbums, setRecommendedAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [songStates, setSongStates] = useState<Record<string, boolean>>({});
-  const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({});
 
-  // Get greeting based on time of day
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  // Memoize the greeting to prevent recalculation
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  }, []);
+
+  // Memoized callbacks to prevent re-renders
+  const handleImageLoad = useCallback(() => {
+    // Image loaded - no state update needed to prevent re-renders
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    // Image error - no state update needed to prevent re-renders
+  }, []);
 
   useEffect(() => {
     const loadRecommendations = async () => {
@@ -32,43 +46,47 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
       
       setLoading(true);
       try {
-        // Get random albums and extract songs from them
-        const randomAlbums = await api.getAlbums('random', 10); // Get 10 random albums
-        const allSongs: Song[] = [];
+        // Get random albums for both mobile album view and desktop song extraction
+        const randomAlbums = await api.getAlbums('random', 10);
         
-        // Get songs from first few albums
-        for (let i = 0; i < Math.min(3, randomAlbums.length); i++) {
-          try {
-            const albumSongs = await api.getAlbumSongs(randomAlbums[i].id);
-            allSongs.push(...albumSongs);
-          } catch (error) {
-            console.error('Failed to get album songs:', error);
+        if (isMobile) {
+          // For mobile: show 6 random albums
+          setRecommendedAlbums(randomAlbums.slice(0, 6));
+        } else {
+          // For desktop: extract songs from albums (original behavior)
+          const allSongs: Song[] = [];
+          
+          // Get songs from first few albums
+          for (let i = 0; i < Math.min(3, randomAlbums.length); i++) {
+            try {
+              const albumSongs = await api.getAlbumSongs(randomAlbums[i].id);
+              allSongs.push(...albumSongs);
+            } catch (error) {
+              console.error('Failed to get album songs:', error);
+            }
           }
+          
+          // Shuffle and limit to 6 songs
+          const shuffled = allSongs.sort(() => Math.random() - 0.5);
+          const recommendations = shuffled.slice(0, 6);
+          setRecommendedSongs(recommendations);
+          
+          // Initialize starred states for songs
+          const states: Record<string, boolean> = {};
+          recommendations.forEach((song: Song) => {
+            states[song.id] = !!song.starred;
+          });
+          setSongStates(states);
         }
-        
-        // Shuffle and limit to 6 songs
-        const shuffled = allSongs.sort(() => Math.random() - 0.5);
-        const recommendations = shuffled.slice(0, 6);
-        setRecommendedSongs(recommendations);
-        
-        // Initialize starred states and image loading states
-        const states: Record<string, boolean> = {};
-        const imageStates: Record<string, boolean> = {};
-        recommendations.forEach((song: Song) => {
-          states[song.id] = !!song.starred;
-          imageStates[song.id] = true; // Start with loading state
-        });
-        setSongStates(states);
-        setImageLoadingStates(imageStates);
       } catch (error) {
-        console.error('Failed to load song recommendations:', error);
+        console.error('Failed to load recommendations:', error);
       } finally {
         setLoading(false);
       }
     };
 
     loadRecommendations();
-  }, [api, isConnected]);
+  }, [api, isConnected, isMobile]);
 
   const handlePlaySong = async (song: Song) => {
     if (!api) return;
@@ -83,7 +101,7 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
         album: song.album || 'Unknown Album',
         albumId: song.albumId || '',
         duration: song.duration || 0,
-        coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
+        coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 64) : undefined,
         starred: !!song.starred
       };
       await playTrack(track, true);
@@ -92,17 +110,50 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
     }
   };
 
+  const handlePlayAlbum = async (album: Album) => {
+    if (!api) return;
+    
+    try {
+      // Get album songs and play the first one
+      const albumSongs = await api.getAlbumSongs(album.id);
+      if (albumSongs.length > 0) {
+        const track = {
+          id: albumSongs[0].id,
+          name: albumSongs[0].title,
+          url: api.getStreamUrl(albumSongs[0].id),
+          artist: albumSongs[0].artist || 'Unknown Artist',
+          artistId: albumSongs[0].artistId || '',
+          album: albumSongs[0].album || 'Unknown Album',
+          albumId: albumSongs[0].albumId || '',
+          duration: albumSongs[0].duration || 0,
+          coverArt: albumSongs[0].coverArt ? api.getCoverArtUrl(albumSongs[0].coverArt, 64) : undefined,
+          starred: !!albumSongs[0].starred
+        };
+        await playTrack(track, true);
+      }
+    } catch (error) {
+      console.error('Failed to play album:', error);
+    }
+  };
+
   const handleShuffleAll = async () => {
-    if (recommendedSongs.length === 0) return;
+    if (isMobile && recommendedAlbums.length === 0) return;
+    if (!isMobile && recommendedSongs.length === 0) return;
     
     // Enable shuffle if not already on
     if (!shuffle) {
       toggleShuffle();
     }
     
-    // Play a random song from recommendations
-    const randomSong = recommendedSongs[Math.floor(Math.random() * recommendedSongs.length)];
-    await handlePlaySong(randomSong);
+    if (isMobile) {
+      // Play a random album
+      const randomAlbum = recommendedAlbums[Math.floor(Math.random() * recommendedAlbums.length)];
+      await handlePlayAlbum(randomAlbum);
+    } else {
+      // Play a random song from recommendations
+      const randomSong = recommendedSongs[Math.floor(Math.random() * recommendedSongs.length)];
+      await handlePlaySong(randomSong);
+    }
   };
 
   const formatDuration = (duration: number): string => {
@@ -118,11 +169,19 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
           <div className="h-8 w-48 bg-muted animate-pulse rounded" />
           <div className="h-4 w-64 bg-muted animate-pulse rounded" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-16 bg-muted animate-pulse rounded" />
-          ))}
-        </div>
+        {isMobile ? (
+          <div className="grid grid-cols-3 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="aspect-square bg-muted animate-pulse rounded" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -135,95 +194,153 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
             {greeting}{userName ? `, ${userName}` : ''}!
           </h2>
           <p className="text-muted-foreground">
-            Here are some songs you might enjoy
+            {isMobile ? 'Here are some albums you might enjoy' : 'Here are some songs you might enjoy'}
           </p>
         </div>
-        {recommendedSongs.length > 0 && (
-          <Button onClick={handleShuffleAll} variant="outline" size="sm">
-            <Shuffle className="w-4 h-4 mr-2" />
-            Shuffle All
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          {/* Mobile User Profile */}
+          {isMobile && <UserProfile variant="mobile" />}
+          
+          {/* Shuffle All Button (Desktop only) */}
+          {(isMobile ? recommendedAlbums.length > 0 : recommendedSongs.length > 0) && !isMobile && (
+            <Button onClick={handleShuffleAll} variant="outline" size="sm">
+              <Shuffle className="w-4 h-4 mr-2" />
+              Shuffle All
+            </Button>
+          )}
+        </div>
       </div>
       
-      {recommendedSongs.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {recommendedSongs.map((song) => (
-            <Card 
-              key={song.id} 
-              className="group cursor-pointer hover:bg-accent/50 transition-colors py-2"
-              onClick={() => handlePlaySong(song)}
-            >
-              <CardContent className="px-2">
-                <div className="flex items-center gap-3">
-                  <div className="relative w-12 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
-                    {song.coverArt && api ? (
-                      <>
-                        {imageLoadingStates[song.id] && (
-                          <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                            <Music className="w-6 h-6 text-muted-foreground animate-pulse" />
-                          </div>
-                        )}
-                        <Image
-                          src={api.getCoverArtUrl(song.coverArt, 100)}
-                          alt={song.title}
-                          fill
-                          className={`object-cover transition-opacity duration-300 ${
-                            imageLoadingStates[song.id] ? 'opacity-0' : 'opacity-100'
-                          }`}
-                          sizes="48px"
-                          onLoad={() => setImageLoadingStates(prev => ({ ...prev, [song.id]: false }))}
-                          onError={() => setImageLoadingStates(prev => ({ ...prev, [song.id]: false }))}
-                        />
-                      </>
+      {isMobile ? (
+        /* Mobile: Show albums in 3x2 grid */
+        recommendedAlbums.length > 0 ? (
+          <div className="grid grid-cols-3 gap-3">
+            {recommendedAlbums.map((album) => (
+              <div key={album.id} className="space-y-2">
+                <Link
+                  href={`/album/${album.id}`}
+                  className="group cursor-pointer block"
+                >
+                  <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                    {album.coverArt && api ? (
+                      <Image
+                        src={api.getCoverArtUrl(album.coverArt, 300)}
+                        alt={album.name}
+                        width={600}
+                        height={600}
+                        className="object-cover"
+                        sizes="(max-width: 768px) 33vw, 200px"
+                        onLoad={handleImageLoad}
+                        onError={handleImageError}
+                        loading="lazy"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Music className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                    )}
-                    {!imageLoadingStates[song.id] && (
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Play className="w-4 h-4 text-white" />
+                        <Music className="w-8 h-8 text-muted-foreground" />
                       </div>
                     )}
                   </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{song.title}</p>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Link 
-                        href={`/artist/${song.artistId}`}
-                        className="hover:underline truncate"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {song.artist}
-                      </Link>
-                      {song.duration && (
+                </Link>
+                <div className="space-y-1">
+                  <Link 
+                    href={`/album/${album.id}`}
+                    className="font-medium text-sm truncate hover:underline block"
+                  >
+                    {album.name}
+                  </Link>
+                  <Link 
+                    href={`/artist/${album.artistId || album.artist}`}
+                    className="text-xs text-muted-foreground truncate hover:underline block"
+                  >
+                    {album.artist}
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <Music className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">
+                No albums available for recommendations
+              </p>
+            </CardContent>
+          </Card>
+        )
+      ) : (
+        /* Desktop: Show songs in original format */
+        recommendedSongs.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {recommendedSongs.map((song) => (
+              <Card 
+                key={song.id} 
+                className="group cursor-pointer hover:bg-accent/50 transition-colors py-2"
+                onClick={() => handlePlaySong(song)}
+              >
+                <CardContent className="px-2">
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-12 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
+                      {song.coverArt && api ? (
                         <>
-                          <span>•</span>
-                          <span>{formatDuration(song.duration)}</span>
+                          <Image
+                            src={api.getCoverArtUrl(song.coverArt, 48)}
+                            alt={song.title}
+                            fill
+                            className="object-cover"
+                            sizes="48px"
+                            onLoad={handleImageLoad}
+                            onError={handleImageError}
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Play className="w-4 h-4 text-white" />
+                          </div>
                         </>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Music className="w-6 h-6 text-muted-foreground" />
+                        </div>
                       )}
                     </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{song.title}</p>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Link 
+                          href={`/artist/${song.artistId}`}
+                          className="hover:underline truncate"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {song.artist}
+                        </Link>
+                        {song.duration && (
+                          <>
+                            <span>•</span>
+                            <span>{formatDuration(song.duration)}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {songStates[song.id] && (
+                      <Heart className="w-4 h-4 text-primary flex-shrink-0" fill="currentColor" />
+                    )}
                   </div>
-                  
-                  {songStates[song.id] && (
-                    <Heart className="w-4 h-4 text-primary flex-shrink-0" fill="currentColor" />
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Music className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">
-              No songs available for recommendations
-            </p>
-          </CardContent>
-        </Card>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <Music className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">
+                No songs available for recommendations
+              </p>
+            </CardContent>
+          </Card>
+        )
       )}
     </div>
   );

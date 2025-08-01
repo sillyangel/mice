@@ -1,16 +1,33 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Current app version from package.json
-const APP_VERSION = '2025.07.10';
+const APP_VERSION = '2025.07.31';
 
 // Changelog data - add new versions at the top
 const CHANGELOG = [
+  {
+    version: '2025.07.31',
+    title: 'July End of Month Update',
+    changes: [
+      'Native support for moblie devices (using pwa)', 
+    ],
+    fixes: [
+      'Fixed issue with mobile navigation bar not displaying correctly',
+      'Improved performance on mobile devices',
+      'Resolved layout issues on smaller screens',
+      'Fixed audio player controls not responding on mobile',
+      'Improved touch interactions for better usability',
+      'Fixed issue with album artwork not loading on mobile',
+      'Resolved bug with search functionality on mobile devices',
+      'Improved caching for faster load times on mobile',
+    ],
+    breaking: [
+    ]
+  },
   {
     version: '2025.07.10',
     title: 'July Major Update',
@@ -189,65 +206,86 @@ export function WhatsNewPopup() {
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <div>
-            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-              What&apos;s New in Mice
-              <Badge variant="outline">
-                {tab === 'latest' ? currentVersionChangelog.version : archiveChangelog?.version}
-              </Badge>
-            </DialogTitle>
+    <>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50" 
+            onClick={handleClose}
+          />
+          
+          {/* Dialog content */}
+          <div className="relative bg-background rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="flex flex-row items-center justify-between space-y-0 p-6 pb-4 shrink-0">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  What&apos;s New in Mice
+                  <Badge variant="outline">
+                    {tab === 'latest' ? currentVersionChangelog.version : archiveChangelog?.version}
+                  </Badge>
+                </h2>
+              </div>
+              <button
+                onClick={handleClose}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 px-6 pt-4 shrink-0">
+              <Button
+                variant={tab === 'latest' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTab('latest')}
+              >
+                Latest
+              </Button>
+              <Button
+                variant={tab === 'archive' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTab('archive')}
+                disabled={archiveChangelogs.length === 0}
+              >
+                Archive
+              </Button>
+              {tab === 'archive' && archiveChangelogs.length > 0 && (
+                <select
+                  className="ml-2 border rounded px-2 py-1 text-sm bg-background"
+                  value={selectedArchive}
+                  onChange={e => setSelectedArchive(e.target.value)}
+                >
+                  {archiveChangelogs.map(entry => (
+                    <option key={entry.version} value={entry.version}>
+                      {entry.version}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+              <div className="space-y-6">
+                {tab === 'latest'
+                  ? renderChangelog(currentVersionChangelog)
+                  : archiveChangelog && renderChangelog(archiveChangelog)}
+              </div>
+            </div>
+
+            {/* Footer button */}
+            <div className="flex justify-center p-6 pt-4 shrink-0">
+              <Button onClick={handleClose}>
+                Got it!
+              </Button>
+            </div>
           </div>
-        </DialogHeader>
-
-        {/* Tabs */}
-        <>
-        <div className="flex gap-2 mb-4">
-          <Button
-            variant={tab === 'latest' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTab('latest')}
-          >
-            Latest
-          </Button>
-          <Button
-            variant={tab === 'archive' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTab('archive')}
-            disabled={archiveChangelogs.length === 0}
-          >
-            Archive
-          </Button>
-          {tab === 'archive' && archiveChangelogs.length > 0 && (
-            <select
-              className="ml-2 border rounded px-2 py-1 text-sm"
-              value={selectedArchive}
-              onChange={e => setSelectedArchive(e.target.value)}
-            >
-              {archiveChangelogs.map(entry => (
-                <option key={entry.version} value={entry.version}>
-                  {entry.version}
-                </option>
-              ))}
-            </select>
-          )}
         </div>
-        <ScrollArea className="max-h-[60vh] pr-4">
-          {tab === 'latest'
-            ? renderChangelog(currentVersionChangelog)
-            : archiveChangelog && renderChangelog(archiveChangelog)}
-        </ScrollArea>
-
-        <div className="flex justify-center pt-4">
-          <Button onClick={handleClose}>
-            Got it!
-          </Button>
-        </div>
-        </>
-      </DialogContent>
-    </Dialog>
+      )}
+    </>
   );
 }
 

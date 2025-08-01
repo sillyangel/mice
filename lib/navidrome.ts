@@ -110,6 +110,26 @@ export interface ArtistInfo {
   similarArtist?: Artist[];
 }
 
+export interface User {
+  username: string;
+  email?: string;
+  scrobblingEnabled: boolean;
+  maxBitRate?: number;
+  adminRole: boolean;
+  settingsRole: boolean;
+  downloadRole: boolean;
+  uploadRole: boolean;
+  playlistRole: boolean;
+  coverArtRole: boolean;
+  commentRole: boolean;
+  podcastRole: boolean;
+  streamRole: boolean;
+  jukeboxRole: boolean;
+  shareRole: boolean;
+  videoConversionRole: boolean;
+  avatarLastChanged?: string;
+}
+
 class NavidromeAPI {
   private config: NavidromeConfig;
   private clientName = 'miceclient';
@@ -169,6 +189,12 @@ class NavidromeAPI {
     } catch {
       return false;
     }
+  }
+
+  async getUserInfo(): Promise<User> {
+    const response = await this.makeRequest('getUser', { username: this.config.username });
+    const userData = response.user as User;
+    return userData;
   }
 
   async getArtists(): Promise<Artist[]> {

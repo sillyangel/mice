@@ -7,6 +7,7 @@ import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Progress } from '@/components/ui/progress';
 import { lrcLibClient } from '@/lib/lrclib';
 import Link from 'next/link';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { 
   FaPlay, 
   FaPause, 
@@ -34,8 +35,20 @@ interface FullScreenPlayerProps {
   onOpenQueue?: () => void;
 }
 
+type MobileTab = 'player' | 'lyrics' | 'queue';
+
 export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onClose, onOpenQueue }) => {
-  const { currentTrack, playPreviousTrack, playNextTrack, shuffle, toggleShuffle, toggleCurrentTrackStar } = useAudioPlayer();
+  const { 
+    currentTrack, 
+    playPreviousTrack, 
+    playNextTrack, 
+    shuffle, 
+    toggleShuffle, 
+    toggleCurrentTrackStar,
+    queue 
+  } = useAudioPlayer();
+  
+  const isMobile = useIsMobile();
   const router = useRouter();
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -47,7 +60,18 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
   const [showLyrics, setShowLyrics] = useState(true);
+  const [activeTab, setActiveTab] = useState<MobileTab>('player');
   const lyricsRef = useRef<HTMLDivElement>(null);
+
+  // Debug logging for component changes
+  useEffect(() => {
+    console.log('🔍 FullScreenPlayer state changed:', {
+      isOpen,
+      currentTrack,
+      currentTrackKeys: currentTrack ? Object.keys(currentTrack) : 'null',
+      queueLength: queue?.length || 0
+    });
+  }, [isOpen, currentTrack, queue?.length]);
 
   // Load lyrics when track changes
   useEffect(() => {
@@ -72,7 +96,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
           setLyrics([]);
         }
       } catch (error) {
-        console.error('Failed to load lyrics:', error);
+        console.log('Failed to load lyrics:', error);
         setLyrics([]);
       }
     };
@@ -88,62 +112,106 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     }
   }, [lyrics, currentTime, currentLyricIndex]);
 
-  // Auto-scroll lyrics using lyricsRef
+  // Auto-scroll lyrics using lyricsRef - Disabled on mobile to prevent iOS audio issues
   useEffect(() => {
-    if (currentLyricIndex >= 0 && lyrics.length > 0 && showLyrics && lyricsRef.current) {
+    // Only auto-scroll on desktop to avoid iOS audio interference
+    const shouldScroll = !isMobile && showLyrics && lyrics.length > 0;
+    
+    if (currentLyricIndex >= 0 && shouldScroll && lyricsRef.current) {
       const scrollTimeout = setTimeout(() => {
-        // Find the ScrollArea viewport
-        const scrollViewport = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-        const currentLyricElement = lyricsRef.current?.querySelector(`[data-lyric-index="${currentLyricIndex}"]`) as HTMLElement;
-        
-        if (scrollViewport && currentLyricElement) {
-          const containerHeight = scrollViewport.clientHeight;
-          const elementTop = currentLyricElement.offsetTop;
-          const elementHeight = currentLyricElement.offsetHeight;
+        try {
+          const scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+          const currentLyricElement = lyricsRef.current?.querySelector(`[data-lyric-index="${currentLyricIndex}"]`) as HTMLElement;
           
-          // Calculate scroll position to center the current lyric
-          const targetScrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
-          
-          scrollViewport.scrollTo({
-            top: Math.max(0, targetScrollTop),
-            behavior: 'smooth'
-          });
+          if (scrollContainer && currentLyricElement) {
+            const containerHeight = scrollContainer.clientHeight;
+            const elementTop = currentLyricElement.offsetTop;
+            const elementHeight = currentLyricElement.offsetHeight;
+            const targetScrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
+            
+            scrollContainer.scrollTo({
+              top: Math.max(0, targetScrollTop),
+              behavior: 'smooth'
+            });
+          }
+        } catch (error) {
+          console.warn('Lyrics scroll failed:', error);
         }
-      }, 100);
+      }, 200);
       
       return () => clearTimeout(scrollTimeout);
     }
-  }, [currentLyricIndex, showLyrics, lyrics.length]);
+  }, [currentLyricIndex, showLyrics, lyrics.length, isMobile]);
 
-  // Reset lyrics to top when song changes
+  // Reset lyrics to top when song changes - Disabled on mobile to prevent iOS audio issues
   useEffect(() => {
-    if (currentTrack && showLyrics && lyricsRef.current) {
-      // Reset scroll position using lyricsRef
-      const resetScroll = () => {
-        const scrollViewport = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-        
-        if (scrollViewport) {
-          scrollViewport.scrollTo({
-            top: 0,
-            behavior: 'instant' // Use instant for track changes
-          });
-        }
-      };
-      
-      // Small delay to ensure DOM is ready
+    // Only reset scroll on desktop to avoid iOS audio interference
+    const shouldReset = !isMobile && showLyrics && lyrics.length > 0;
+    
+    if (currentTrack?.id && shouldReset && lyricsRef.current) {
       const resetTimeout = setTimeout(() => {
-        resetScroll();
+        try {
+          const scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+          
+          if (scrollContainer) {
+            scrollContainer.scrollTo({
+              top: 0,
+              behavior: 'instant'
+            });
+          }
+        } catch (error) {
+          console.warn('Lyrics reset scroll failed:', error);
+        }
         setCurrentLyricIndex(-1);
       }, 50);
       
       return () => clearTimeout(resetTimeout);
     }
-  }, [currentTrack?.id, showLyrics, currentTrack]); // Only reset when track ID changes
+  }, [currentTrack?.id, showLyrics, isMobile, lyrics.length]);
 
   // Sync with main audio player (improved responsiveness)
   useEffect(() => {
     const syncWithMainPlayer = () => {
       const mainAudio = document.querySelector('audio') as HTMLAudioElement;
+      
+      console.log('=== FULLSCREEN PLAYER AUDIO DEBUG ===');
+      console.log('currentTrack from context:', currentTrack);
+      console.log('currentTrack keys:', currentTrack ? Object.keys(currentTrack) : 'null');
+      if (currentTrack) {
+        console.log('currentTrack.url:', currentTrack.url);
+        console.log('currentTrack.id:', currentTrack.id);
+        console.log('currentTrack.name:', currentTrack.name);
+        console.log('currentTrack.artist:', currentTrack.artist);
+      }
+      console.log('Audio element found:', !!mainAudio);
+      
+      if (mainAudio) {
+        console.log('Audio element src:', mainAudio.src);
+        console.log('Audio element currentSrc:', mainAudio.currentSrc);
+        console.log('Audio state:', {
+          currentTime: mainAudio.currentTime,
+          duration: mainAudio.duration,
+          paused: mainAudio.paused,
+          ended: mainAudio.ended,
+          readyState: mainAudio.readyState,
+          networkState: mainAudio.networkState,
+          error: mainAudio.error
+        });
+        
+        // Check if audio source matches current track
+        if (currentTrack) {
+          const audioSourceMatches = mainAudio.src === currentTrack.url || mainAudio.currentSrc === currentTrack.url;
+          console.log('Audio source matches current track URL:', audioSourceMatches);
+          if (!audioSourceMatches) {
+            console.log('⚠️ Audio source mismatch!');
+            console.log('Expected:', currentTrack.url);
+            console.log('Audio src:', mainAudio.src);
+            console.log('Audio currentSrc:', mainAudio.currentSrc);
+          }
+        }
+      }
+      console.log('==========================================');
+      
       if (mainAudio && currentTrack) {
         const newCurrentTime = mainAudio.currentTime;
         const newDuration = mainAudio.duration || 0;
@@ -206,20 +274,96 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
           setDominantColor(`rgb(${r}, ${g}, ${b})`);
         }
       } catch (error) {
-        console.error('Failed to extract color:', error);
+        console.log('Failed to extract color:', error);
       }
     };
     img.src = currentTrack.coverArt;
   }, [currentTrack]);
 
   const togglePlayPause = () => {
-    const mainAudio = document.querySelector('audio') as HTMLAudioElement;
-    if (!mainAudio) return;
-
-    if (isPlaying) {
-      mainAudio.pause();
+    console.log('🎵 FullScreenPlayer Toggle Play/Pause clicked');
+    
+    // Find the main audio player's play/pause button and click it
+    // This ensures we use the same logic as the main player
+    const mainPlayButton = document.querySelector('[data-testid="play-pause-button"]') as HTMLButtonElement;
+    
+    if (mainPlayButton) {
+      console.log('✅ Found main play button, triggering click');
+      mainPlayButton.click();
     } else {
-      mainAudio.play();
+      console.log('❌ Main play button not found, falling back to direct audio control');
+      
+      // Fallback to direct audio control if button not found
+      const mainAudio = document.querySelector('audio') as HTMLAudioElement;
+      if (!mainAudio) {
+        console.log('❌ No audio element found');
+        
+        // Try to find ALL audio elements for debugging
+        const allAudio = document.querySelectorAll('audio');
+        console.log('🔍 Found audio elements:', allAudio.length);
+        allAudio.forEach((audio, index) => {
+          console.log(`Audio ${index}:`, {
+            src: audio.src,
+            currentSrc: audio.currentSrc,
+            paused: audio.paused,
+            hidden: audio.hidden,
+            style: audio.style.display
+          });
+        });
+        return;
+      }
+
+      console.log('🔍 Detailed audio element state:');
+      console.log('- Audio src:', mainAudio.src);
+      console.log('- Audio currentSrc:', mainAudio.currentSrc);
+      console.log('- Audio paused:', mainAudio.paused);
+      console.log('- Audio currentTime:', mainAudio.currentTime);
+      console.log('- Audio duration:', mainAudio.duration);
+      console.log('- Audio readyState:', mainAudio.readyState, '(0=HAVE_NOTHING, 1=HAVE_METADATA, 2=HAVE_CURRENT_DATA, 3=HAVE_FUTURE_DATA, 4=HAVE_ENOUGH_DATA)');
+      console.log('- Audio networkState:', mainAudio.networkState, '(0=EMPTY, 1=IDLE, 2=LOADING, 3=NO_SOURCE)');
+      console.log('- Audio error:', mainAudio.error);
+      console.log('- Audio ended:', mainAudio.ended);
+      console.log('- Audio seeking:', mainAudio.seeking);
+      console.log('- Audio volume:', mainAudio.volume);
+      console.log('- Audio muted:', mainAudio.muted);
+      console.log('- Audio autoplay:', mainAudio.autoplay);
+      console.log('- Audio loop:', mainAudio.loop);
+      console.log('- Audio preload:', mainAudio.preload);
+      console.log('- Audio crossOrigin:', mainAudio.crossOrigin);
+
+      if (isPlaying) {
+        console.log('⏸️ Attempting to pause audio');
+        try {
+          mainAudio.pause();
+          console.log('✅ Audio pause() succeeded');
+        } catch (error) {
+          console.log('❌ Audio pause() failed:', error);
+        }
+      } else {
+        console.log('▶️ Attempting to play audio');
+        
+        // Check if audio has a valid source
+        if (!mainAudio.src && !mainAudio.currentSrc) {
+          console.log('❌ Audio has no source set!');
+          console.log('currentTrack:', currentTrack);
+          if (currentTrack) {
+            console.log('Setting audio source to:', currentTrack.url);
+            mainAudio.src = currentTrack.url;
+            mainAudio.load();
+          }
+        }
+        
+        mainAudio.play().then(() => {
+          console.log('✅ Audio play() succeeded');
+        }).catch((error) => {
+          console.log('❌ Audio play() failed:', error);
+          console.log('Error details:', {
+            name: error.name,
+            message: error.message,
+            code: error.code
+          });
+        });
+      }
     }
   };
 
@@ -269,212 +413,485 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
   if (!isOpen || !currentTrack) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black overflow-hidden">
-      {/* Blurred background image */}
+    <div className="fixed inset-0 z-[70] bg-black overflow-hidden">
+      {/* Enhanced Blurred background image */}
       {currentTrack.coverArt && (
-        <div 
-          className="absolute inset-0 w-full h-full"
-          style={{
-            backgroundImage: `url(${currentTrack.coverArt})`,
-            backgroundSize: '120%',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            filter: 'blur(20px) brightness(0.3)',
-            transform: 'scale(1.1)',
-          }}
-        />
+        <div className="absolute inset-0 w-full h-full">
+          {/* Main background */}
+          <div 
+            className="absolute inset-0 w-full h-full"
+            style={{
+              backgroundImage: `url(${currentTrack.coverArt})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              filter: 'blur(20px) brightness(0.3)',
+              transform: 'scale(1.1)',
+            }}
+          />
+          {/* Top gradient blur for mobile */}
+          <div 
+            className="absolute top-0 left-0 right-0 h-32"
+            style={{
+              background: `linear-gradient(to bottom, 
+                rgba(0,0,0,0.8) 0%, 
+                rgba(0,0,0,0.4) 50%, 
+                transparent 100%)`,
+              backdropFilter: 'blur(10px)',
+            }}
+          />
+          {/* Bottom gradient blur for mobile */}
+          <div 
+            className="absolute bottom-0 left-0 right-0 h-32"
+            style={{
+              background: `linear-gradient(to top, 
+                rgba(0,0,0,0.8) 0%, 
+                rgba(0,0,0,0.4) 50%, 
+                transparent 100%)`,
+              backdropFilter: 'blur(10px)',
+            }}
+          />
+        </div>
       )}
       
       {/* Overlay for better contrast */}
-      <div className="absolute inset-0 bg-black/50" />
-        <div className="relative h-full w-full">
-        {/* Floating Header */}
-        <div className="absolute top-0 right-0 z-50 p-4 lg:p-6">
-          <div className="flex items-center gap-2">
-            {onOpenQueue && (
-              <button 
-                onClick={onOpenQueue}
-                className="text-white hover:bg-white/20 p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10"
-                title="Open Queue"
-              >
-                <FaListUl className="w-5 h-5" />
-              </button>
-            )}
-            <button 
+      <div className="absolute inset-0 bg-black/30" />
+      
+      <div className="relative h-full w-full flex flex-col">
+        
+        {/* Mobile Close Handle */}
+        {isMobile && (
+          <div className="flex justify-center py-4 px-4">
+            <div 
               onClick={onClose}
-              className="text-white hover:bg-white/20 p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10"
-              title="Close Player"
+              className="cursor-pointer px-8 py-3 -mx-8 -my-3"
+              style={{ touchAction: 'manipulation' }}
             >
-              <FaXmark className="w-5 h-5" />
-            </button>
+              <div className="w-8 h-1 bg-gray-300 rounded-full opacity-60" />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Main Content */}
-        <div className="h-full flex flex-col lg:flex-row gap-4 lg:gap-8 p-4 lg:p-6 overflow-hidden">
-          {/* Left Side - Album Art and Controls */}
-          <div className="flex flex-col items-center justify-center min-h-0 flex-1 min-w-0">
-            {/* Album Art */}
-            <div className="relative mb-4 lg:mb-6 shrink-0">
-              <Image
-                src={currentTrack.coverArt || '/default-album.png'}
-                alt={currentTrack.album}
-                width={320}
-                height={320}
-                className="w-56 h-56 sm:w-64 sm:h-64 lg:w-80 lg:h-80 rounded-lg shadow-2xl object-cover"
-                priority
-              />
-            </div>
-
-            {/* Track Info */}
-            <div className="text-center mb-4 lg:mb-6 px-4 shrink-0 max-w-full">
-              <h1 className="text-lg sm:text-xl lg:text-3xl font-bold text-foreground mb-2 line-clamp-2 leading-tight">
-                {currentTrack.name}
-              </h1>
-              <Link href={`/artist/${currentTrack.artistId}`} className="text-base sm:text-lg lg:text-xl text-foreground/80 mb-1 line-clamp-1">
-                {currentTrack.artist}
-              </Link>
-              <Link href={`/album/${currentTrack.albumId}`}  className="text-sm sm:text-base lg:text-lg text-foreground/60 line-clamp-1 cursor-pointer hover:underline">
-                {currentTrack.album}
-              </Link>
-            </div>
-
-            {/* Progress */}
-            <div className="w-full max-w-sm lg:max-w-md mb-4 lg:mb-6 px-4 shrink-0">
-              <div className="w-full" onClick={handleSeek}>
-                <Progress value={progress} className="h-2 cursor-pointer" />
-              </div>
-              <div className="flex justify-between text-sm text-foreground/60 mt-2">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mb-4 lg:mb-6 shrink-0">
-              <button
-                onClick={toggleShuffle}
-                className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
-                  shuffle ? 'text-primary bg-primary/20' : 'text-gray-400'
-                }`}
-                title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
-              >
-                <FaShuffle className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-
-              <button
-                onClick={playPreviousTrack}
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
-                <FaBackward className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-
-              <button
-                onClick={togglePlayPause}
-                className="p-3 hover:bg-gray-700/50 rounded-full transition-colors">
-                {isPlaying ? (
-                  <FaPause className="w-8 h-8 sm:w-10 sm:h-10" />
-                ) : (
-                  <FaPlay className="w-8 h-8 sm:w-10 sm:h-10" />
-                )}
-              </button>
-
-              <button
-                onClick={playNextTrack}
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
-                <FaForward className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-
-              <button
-                onClick={toggleCurrentTrackStar}
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors"
-                title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
-              >
-                <Heart 
-                  className={`w-4 h-4 sm:w-5 sm:h-5 ${currentTrack?.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
-                />
-              </button>
-
-              
-              
-            </div>
-
-            {/* Volume and Lyrics Toggle */}
-            <div className="flex items-center gap-3 shrink-0 justify-center">
-              <button
-                onMouseEnter={() => setShowVolumeSlider(true)}
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
-                {volume === 0 ? (
-                  <FaVolumeXmark className="w-4 h-4 sm:w-5 sm:h-5" />
-                ) : (
-                  <FaVolumeHigh className="w-4 h-4 sm:w-5 sm:h-5" />
-                )}
-              </button>
-              
-              {lyrics.length > 0 && (
-                <button
-                  onClick={() => setShowLyrics(!showLyrics)}
-                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
-                    showLyrics ? 'text-primary bg-primary/20' : 'text-gray-500'
-                  }`}
-                  title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
+        {/* Desktop Header */}
+        {!isMobile && (
+          <div className="absolute top-0 right-0 z-10 p-4 lg:p-6">
+            <div className="flex items-center gap-2">
+              {onOpenQueue && (
+                <button 
+                  onClick={onOpenQueue}
+                  className="text-white hover:bg-white/20 p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10"
+                  title="Open Queue"
                 >
-                  <FaQuoteLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <FaListUl className="w-5 h-5" />
                 </button>
               )}
-              
-              {showVolumeSlider && (
-                <div 
-                  className="w-16 sm:w-20 lg:w-24"
-                  onMouseLeave={() => setShowVolumeSlider(false)}
-                >
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={volume * 100}
-                    onChange={handleVolumeChange}
-                    className="w-full accent-foreground"
-                  />
-                </div>
-              )}
+              <button 
+                onClick={onClose}
+                className="text-white hover:bg-white/20 p-2 rounded-full transition-colors flex items-center justify-center w-10 h-10"
+                title="Close Player"
+              >
+                <FaXmark className="w-5 h-5" />
+              </button>
             </div>
           </div>
+        )}
 
-          {/* Right Side - Lyrics */}
-          {showLyrics && lyrics.length > 0 && (
-            <div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}>
-              <div className="h-full flex flex-col">
-                <ScrollArea className="flex-1 min-h-0">
-                  <div className="space-y-2 sm:space-y-3 pl-4 pr-4 py-4">
-                    {lyrics.map((line, index) => (
-                      <div
-                        key={index}
-                        data-lyric-index={index}
-                        onClick={() => handleLyricClick(line.time)}
-                        className={`text-sm sm:text-base lg:text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground ${
-                          index === currentLyricIndex
-                            ? 'text-foreground font-bold text-2xl'
-                            : index < currentLyricIndex
-                            ? 'text-foreground/60'
-                            : 'text-foreground/40'
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden">
+          {isMobile ? (
+            /* Mobile Tab Content */
+            <div className="h-full flex flex-col">
+              <div className="flex-1 overflow-hidden">
+                {activeTab === 'player' && (
+                  <div className="h-full flex flex-col justify-center items-center px-8 py-4">
+                    {/* Mobile Album Art */}
+                    <div className="relative mb-6 shrink-0">
+                      <Image
+                        src={currentTrack.coverArt || '/default-album.png'}
+                        alt={currentTrack.album}
+                        width={260}
+                        height={260}
+                        className={`rounded-lg shadow-2xl object-cover transition-all duration-300 ${
+                          !isPlaying ? 'w-52 h-52 opacity-70 scale-95' : 'w-64 h-64'
                         }`}
-                        style={{ 
-                          wordWrap: 'break-word',
-                          overflowWrap: 'break-word',
-                          hyphens: 'auto',
-                          paddingBottom: '4px',
-                          paddingLeft: '8px'
-                        }}
-                        title={`Click to jump to ${formatTime(line.time)}`}
-                      >
-                        {line.text || '♪'}
+                        priority
+                      />
+                    </div>
+
+                    {/* Track Info - Left Aligned and Heart on Same Line */}
+                    <div className="w-full mb-6 shrink-0">
+                      <div className="flex items-center justify-between mb-0">
+                        <h1 className="text-2xl font-bold text-foreground line-clamp-1 flex-1 text-left">
+                          {currentTrack.name}
+                        </h1>
+                        <button
+                          onClick={toggleCurrentTrackStar}
+                          className="p-2 hover:bg-gray-700/50 rounded-full transition-colors ml-3 pb-0"
+                          title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                          <Heart 
+                            className={`w-6 h-6 ${currentTrack?.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
+                          />
+                        </button>
                       </div>
-                    ))}
-                    {/* Add extra padding at the bottom to allow last lyric to center */}
-                    <div style={{ height: '200px' }} />
+                      <Link 
+                        href={`/artist/${currentTrack.artistId}`} 
+                        className="text-lg text-foreground/80 line-clamp-1 block text-left mb-1"
+                      >
+                        {currentTrack.artist}
+                      </Link>
+                      <Link 
+                        href={`/album/${currentTrack.albumId}`}  
+                        className="text-base text-foreground/60 line-clamp-1 cursor-pointer hover:underline block text-left"
+                      >
+                        {currentTrack.album}
+                      </Link>
+                    </div>
+
+                    {/* Progress */}
+                    <div className="w-full mb-4 shrink-0">
+                      <div className="w-full" onClick={handleSeek}>
+                        <Progress value={progress} className="h-2 cursor-pointer" />
+                      </div>
+                      {/* Time below progress on mobile */}
+                      <div className="flex justify-between text-sm text-foreground/60 mt-2">
+                        <span>{formatTime(currentTime)}</span>
+                        <span>{formatTime(duration)}</span>
+                      </div>
+                    </div>
+
+                    {/* Controls */}
+                    <div className="flex items-center gap-6 mb-4 shrink-0">
+                      <button
+                        onClick={toggleShuffle}
+                        className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
+                          shuffle ? 'text-primary bg-primary/20' : 'text-gray-400'
+                        }`}
+                        title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
+                      >
+                        <FaShuffle className="w-5 h-5" />
+                      </button>
+
+                      <button
+                        onClick={playPreviousTrack}
+                        className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                        <FaBackward className="w-6 h-6" />
+                      </button>
+
+                      <button
+                        onClick={togglePlayPause}
+                        className="p-4 hover:bg-gray-700/50 rounded-full transition-colors">
+                        {isPlaying ? (
+                          <FaPause className="w-10 h-10" />
+                        ) : (
+                          <FaPlay className="w-10 h-10" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={playNextTrack}
+                        className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                        <FaForward className="w-6 h-6" />
+                      </button>
+
+                      <button
+                        onMouseEnter={() => setShowVolumeSlider(true)}
+                        className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                        {volume === 0 ? (
+                          <FaVolumeXmark className="w-5 h-5" />
+                        ) : (
+                          <FaVolumeHigh className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Volume Slider */}
+                    {showVolumeSlider && (
+                      <div 
+                        className="w-32 mb-4"
+                        onMouseLeave={() => setShowVolumeSlider(false)}
+                      >
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={volume * 100}
+                          onChange={handleVolumeChange}
+                          className="w-full accent-foreground"
+                        />
+                      </div>
+                    )}
                   </div>
-                </ScrollArea>
+                )}
+
+                {activeTab === 'lyrics' && lyrics.length > 0 && (
+                  <div className="h-full flex flex-col px-4">
+                    <div 
+                      className="flex-1 overflow-y-auto"
+                      ref={lyricsRef}
+                    >
+                      <div className="space-y-3 py-4">
+                        {lyrics.map((line, index) => (
+                          <div
+                            key={index}
+                            data-lyric-index={index}
+                            onClick={() => handleLyricClick(line.time)}
+                            className={`text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground px-2 ${
+                              index === currentLyricIndex
+                                ? 'text-foreground font-bold text-xl'
+                                : index < currentLyricIndex
+                                ? 'text-foreground/60'
+                                : 'text-foreground/40'
+                            }`}
+                            style={{ 
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word',
+                              hyphens: 'auto',
+                              paddingBottom: '4px'
+                            }}
+                            title={`Click to jump to ${formatTime(line.time)}`}
+                          >
+                            {line.text || '♪'}
+                          </div>
+                        ))}
+                        <div style={{ height: '200px' }} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'queue' && (
+                  <div className="h-full flex flex-col px-4">
+                    <ScrollArea className="flex-1">
+                      <div className="space-y-2 py-4">
+                        {queue.map((track, index) => (
+                          <div
+                            key={`${track.id}-${index}`}
+                            className={`flex items-center p-3 rounded-lg ${
+                              track.id === currentTrack?.id ? 'bg-primary/20' : 'bg-gray-800/30'
+                            }`}
+                          >
+                            <Image
+                              src={track.coverArt || '/default-album.png'}
+                              alt={track.album}
+                              width={40}
+                              height={40}
+                              className="rounded mr-3"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {track.name}
+                              </p>
+                              <p className="text-xs text-gray-400 truncate">
+                                {track.artist}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
               </div>
+
+              {/* Mobile Tab Bar */}
+              <div className="flex-shrink-0 pb-safe">
+                <div className="flex justify-around py-4 mb-2">
+                  <button
+                    onClick={() => setActiveTab('player')}
+                    className={`flex items-center justify-center p-4 rounded-full transition-colors ${
+                      activeTab === 'player' ? 'text-primary bg-primary/20' : 'text-gray-400'
+                    }`}
+                  >
+                    <FaPlay className="w-6 h-6" />
+                  </button>
+
+                  {lyrics.length > 0 && (
+                    <button
+                      onClick={() => setActiveTab('lyrics')}
+                      className={`flex items-center justify-center p-4 rounded-full transition-colors ${
+                        activeTab === 'lyrics' ? 'text-primary bg-primary/20' : 'text-gray-400'
+                      }`}
+                    >
+                      <FaQuoteLeft className="w-6 h-6" />
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setActiveTab('queue')}
+                    className={`flex items-center justify-center p-4 rounded-full transition-colors ${
+                      activeTab === 'queue' ? 'text-primary bg-primary/20' : 'text-gray-400'
+                    }`}
+                  >
+                    <FaListUl className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Desktop Layout */
+            <div className="h-full flex flex-row gap-8 p-6 overflow-hidden">
+              {/* Left Side - Album Art and Controls */}
+              <div className="flex flex-col items-center justify-center min-h-0 flex-1 min-w-0">
+                {/* Album Art */}
+                <div className="relative mb-6 shrink-0">
+                  <Image
+                    src={currentTrack.coverArt || '/default-album.png'}
+                    alt={currentTrack.album}
+                    width={320}
+                    height={320}
+                    className="w-80 h-80 rounded-lg shadow-2xl object-cover"
+                    priority
+                  />
+                </div>
+
+                {/* Track Info */}
+                <div className="text-center mb-6 px-4 shrink-0 max-w-full">
+                  <h1 className="text-3xl font-bold text-foreground line-clamp-2 leading-tight mb-2">
+                    {currentTrack.name}
+                  </h1>
+                  <Link href={`/artist/${currentTrack.artistId}`} className="text-xl text-foreground/80 mb-1 line-clamp-1">
+                    {currentTrack.artist}
+                  </Link>
+                  <Link href={`/album/${currentTrack.albumId}`}  className="text-lg text-foreground/60 line-clamp-1 cursor-pointer hover:underline">
+                    {currentTrack.album}
+                  </Link>
+                </div>
+
+                {/* Progress */}
+                <div className="w-full max-w-md mb-6 px-4 shrink-0">
+                  <div className="w-full" onClick={handleSeek}>
+                    <Progress value={progress} className="h-2 cursor-pointer" />
+                  </div>
+                  <div className="flex justify-between text-sm text-foreground/60 mt-2">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
+                </div>
+
+                {/* Controls */}
+                <div className="flex items-center gap-6 mb-6 shrink-0">
+                  <button
+                    onClick={toggleShuffle}
+                    className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
+                      shuffle ? 'text-primary bg-primary/20' : 'text-gray-400'
+                    }`}
+                    title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
+                  >
+                    <FaShuffle className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={playPreviousTrack}
+                    className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                    <FaBackward className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={togglePlayPause}
+                    className="p-3 hover:bg-gray-700/50 rounded-full transition-colors">
+                    {isPlaying ? (
+                      <FaPause className="w-10 h-10" />
+                    ) : (
+                      <FaPlay className="w-10 h-10" />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={playNextTrack}
+                    className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                    <FaForward className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    onClick={toggleCurrentTrackStar}
+                    className="p-2 hover:bg-gray-700/50 rounded-full transition-colors"
+                    title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Heart 
+                      className={`w-5 h-5 ${currentTrack?.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
+                    />
+                  </button>
+                </div>
+
+                {/* Volume and Lyrics Toggle - Desktop Only */}
+                <div className="flex items-center gap-3 shrink-0 justify-center">
+                  <button
+                    onMouseEnter={() => setShowVolumeSlider(true)}
+                    className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
+                    {volume === 0 ? (
+                      <FaVolumeXmark className="w-5 h-5" />
+                    ) : (
+                      <FaVolumeHigh className="w-5 h-5" />
+                    )}
+                  </button>
+                  
+                  {lyrics.length > 0 && (
+                    <button
+                      onClick={() => setShowLyrics(!showLyrics)}
+                      className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
+                        showLyrics ? 'text-primary bg-primary/20' : 'text-gray-500'
+                      }`}
+                      title={showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
+                    >
+                      <FaQuoteLeft className="w-5 h-5" />
+                    </button>
+                  )}
+                  
+                  {showVolumeSlider && (
+                    <div 
+                      className="w-24"
+                      onMouseLeave={() => setShowVolumeSlider(false)}
+                    >
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={volume * 100}
+                        onChange={handleVolumeChange}
+                        className="w-full accent-foreground"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Side - Lyrics (Desktop Only) */}
+              {showLyrics && lyrics.length > 0 && (
+                <div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}>
+                  <div className="h-full flex flex-col">
+                    <ScrollArea className="flex-1 min-h-0">
+                      <div className="space-y-3 pl-4 pr-4 py-4">
+                        {lyrics.map((line, index) => (
+                          <div
+                            key={index}
+                            data-lyric-index={index}
+                            onClick={() => handleLyricClick(line.time)}
+                            className={`text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground ${
+                              index === currentLyricIndex
+                                ? 'text-foreground font-bold text-2xl'
+                                : index < currentLyricIndex
+                                ? 'text-foreground/60'
+                                : 'text-foreground/40'
+                            }`}
+                            style={{ 
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word',
+                              hyphens: 'auto',
+                              paddingBottom: '4px',
+                              paddingLeft: '8px'
+                            }}
+                            title={`Click to jump to ${formatTime(line.time)}`}
+                          >
+                            {line.text || '♪'}
+                          </div>
+                        ))}
+                        <div style={{ height: '200px' }} />
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -81,12 +81,6 @@ jobs:
           cache-to: |
             type=gha,mode=max,scope=deps-only
 
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v1
-        with:
-          subject-name: ${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.build.outputs.digest }}
-          push-to-registry: true
 
       # - name: Docker Hub Description
       #   uses: peter-evans/dockerhub-description@v4
