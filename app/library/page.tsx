@@ -161,7 +161,7 @@ export default function LibraryPage() {
         
         {/* Library Navigation - Always at top */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Browse</h2>
+          {/* <h2 className="text-lg font-semibold mb-3">Browse</h2> */}
           <div className="flex flex-col gap-2">
             {libraryLinks.map((link) => {
               const Icon = link.icon;
