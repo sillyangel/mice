@@ -53,7 +53,15 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isLoading, setIsLoading] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const { toast } = useToast();
-  const api = useMemo(() => getNavidromeAPI(), []);
+  const api = useMemo(() => {
+    const navidromeApi = getNavidromeAPI();
+    if (!navidromeApi) {
+      console.warn('⚠️ Navidrome API not configured');
+    } else {
+      console.log('✅ Navidrome API initialized');
+    }
+    return navidromeApi;
+  }, []);
 
   useEffect(() => {
     const savedQueue = localStorage.getItem('navidrome-audioQueue');
@@ -98,10 +106,14 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (!api) {
       throw new Error('Navidrome API not configured');
     }
+    
+    const streamUrl = api.getStreamUrl(song.id);
+    console.log('🎵 Creating track with stream URL:', streamUrl);
+    
     return {
       id: song.id,
       name: song.title,
-      url: api.getStreamUrl(song.id),
+      url: streamUrl,
       artist: song.artist,
       album: song.album,
       duration: song.duration,

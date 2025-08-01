@@ -248,7 +248,70 @@ export const AudioPlayer: React.FC = () => {
       // Always clear current track time when changing tracks
       localStorage.removeItem('navidrome-current-track-time');
       
+      console.log('🔄 Setting audio source:', currentTrack.url);
+      
+      // Debug: Check if URL is valid
+      if (!currentTrack.url || currentTrack.url === 'undefined' || currentTrack.url === '') {
+        console.error('❌ Invalid audio URL:', currentTrack.url);
+        return;
+      }
+      
+      // Debug: Log current audio element state
+      console.log('🔍 Audio element state before loading:', {
+        src: audioCurrent.src,
+        readyState: audioCurrent.readyState,
+        networkState: audioCurrent.networkState,
+        crossOrigin: audioCurrent.crossOrigin,
+        canPlayType_mp3: audioCurrent.canPlayType('audio/mpeg'),
+        canPlayType_mp4: audioCurrent.canPlayType('audio/mp4'),
+        canPlayType_webm: audioCurrent.canPlayType('audio/webm'),
+        canPlayType_ogg: audioCurrent.canPlayType('audio/ogg'),
+        canPlayType_flac: audioCurrent.canPlayType('audio/flac'),
+        canPlayType_wav: audioCurrent.canPlayType('audio/wav')
+      });
+      
+      // Clear any previous error handlers
+      audioCurrent.onerror = null;
+      audioCurrent.onloadstart = null;
+      audioCurrent.oncanplay = null;
+      
+      // Simple error handling
+      audioCurrent.onerror = (e) => {
+        const event = e as Event;
+        const error = event.target as HTMLAudioElement;
+        console.error('❌ Audio element error:', {
+          error: error.error,
+          networkState: error.networkState,
+          readyState: error.readyState,
+          src: error.src
+        });
+      };
+      
+      audioCurrent.onloadstart = () => {
+        console.log('📥 Audio load started');
+      };
+      
+      audioCurrent.oncanplay = () => {
+        console.log('✅ Audio can play');
+      };
+      
+      // Set source without any CORS configuration
+      audioCurrent.removeAttribute('crossorigin');
       audioCurrent.src = currentTrack.url;
+      
+      // Force load and log state after setting source
+      audioCurrent.load();
+      
+      // Log state after load
+      setTimeout(() => {
+        console.log('🔍 Audio element state after load:', {
+          src: audioCurrent.src,
+          readyState: audioCurrent.readyState,
+          networkState: audioCurrent.networkState,
+          error: audioCurrent.error,
+          duration: audioCurrent.duration
+        });
+      }, 100);
       
       // For iOS, ensure audio element is properly loaded
       if (isMobile) {
@@ -721,10 +784,7 @@ export const AudioPlayer: React.FC = () => {
                 <button 
                   className="p-4 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 bg-primary/10 touch-manipulation" 
                   onClick={togglePlayPause}
-                  onTouchStart={(e) => {
-                    // Prevent iOS double-tap zoom on the play button
-                    e.preventDefault();
-                  }}
+                  style={{ touchAction: 'manipulation' }}
                   type="button"
                   data-testid="play-pause-button"
                   aria-label={isPlaying ? 'Pause' : 'Play'}
@@ -746,11 +806,8 @@ export const AudioPlayer: React.FC = () => {
         {/* Single audio element - shared across all UI states */}
         <audio 
           ref={audioRef} 
-          hidden 
           playsInline
-          preload={isMobile ? "none" : "auto"}
-          controls={false}
-          crossOrigin="anonymous"
+          preload="metadata"
           style={{ display: 'none' }}
         />
         <audio ref={preloadAudioRef} hidden preload="metadata" />
@@ -814,11 +871,8 @@ export const AudioPlayer: React.FC = () => {
         {/* Single audio element - shared across all UI states */}
         <audio 
           ref={audioRef} 
-          hidden 
           playsInline
-          preload={isMobile ? "none" : "auto"}
-          controls={false}
-          crossOrigin="anonymous"
+          preload="metadata"
           style={{ display: 'none' }}
         />
         <audio ref={preloadAudioRef} hidden preload="metadata" />
@@ -929,11 +983,8 @@ export const AudioPlayer: React.FC = () => {
       {/* Single audio element - shared across all UI states with mobile support */}
       <audio 
         ref={audioRef} 
-        hidden 
         playsInline
-        preload={isMobile ? "none" : "auto"}
-        controls={false}
-        crossOrigin="anonymous"
+        preload="metadata"
         style={{ display: 'none' }}
       />
       <audio ref={preloadAudioRef} hidden preload="metadata" />
