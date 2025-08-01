@@ -15,6 +15,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Loading from '@/app/components/loading';
 import { getNavidromeAPI } from '@/lib/navidrome';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function ArtistPage() {
   const { artist: artistId } = useParams();
@@ -27,6 +28,7 @@ export default function ArtistPage() {
   const { getArtist, starItem, unstarItem } = useNavidrome();
   const { playArtist } = useAudioPlayer();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const api = getNavidromeAPI();
 
   useEffect(() => {
@@ -103,7 +105,7 @@ export default function ArtistPage() {
   }
   // Get artist image URL with proper fallback
   const artistImageUrl = artist.coverArt && api
-    ? api.getCoverArtUrl(artist.coverArt, 300)
+    ? api.getCoverArtUrl(artist.coverArt, 1200)
     : '/default-user.jpg';
 
   return (
@@ -152,7 +154,7 @@ export default function ArtistPage() {
         <ArtistBio artistName={artist.name} />
         
         {/* Popular Songs Section */}
-        {popularSongs.length > 0 && (
+        {!isMobile && popularSongs.length > 0 && (
           <PopularSongs songs={popularSongs} artistName={artist.name} />
         )}
 

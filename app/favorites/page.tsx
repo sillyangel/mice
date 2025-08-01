@@ -58,7 +58,7 @@ const FavoritesPage = () => {
       artistId: song.artistId,
       url: api?.getStreamUrl(song.id) || '',
       duration: song.duration,
-      coverArt: song.coverArt ? api?.getCoverArtUrl(song.coverArt) : undefined,
+      coverArt: song.coverArt ? api?.getCoverArtUrl(song.coverArt, 1200) : undefined,
       starred: !!song.starred
     });
   };
@@ -78,7 +78,7 @@ const FavoritesPage = () => {
           artistId: song.artistId,
           url: api.getStreamUrl(song.id),
           duration: song.duration,
-          coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt) : undefined,
+          coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 1200) : undefined,
           starred: !!song.starred
         }));
         
@@ -201,7 +201,7 @@ const FavoritesPage = () => {
                     <div className="w-12 h-12 relative shrink-0">
                       {song.coverArt && api ? (
                         <Image
-                          src={api.getCoverArtUrl(song.coverArt)}
+                          src={api.getCoverArtUrl(song.coverArt, 1200)}
                           alt={song.album}
                           fill
                           className="rounded object-cover"
