@@ -1,15 +1,13 @@
-<p align="left" style="display: flex; align-items: center; gap: 12px;">
-  <img src="https://github.com/sillyangel/mice/blob/main/public/icon-512.png?raw=true" alt="Mice Logo" width="64" style="border-radius: 12px;" />
-  <strong style="font-size: 2rem;">Mice | Navidrome Client</strong>
+<p align="center">
+  <img src="https://github.com/sillyangel/mice/blob/main/public/icon-512.png?raw=true" alt="Mice Logo" width="120" />
 </p>
-
-#
+<h1 align="center"><strong>Mice | Navidrome Client</strong></h1>
 
 > Project based on [shadcn/ui](https://github.com/shadcn-ui/ui)'s music template.
 
-<!-- This is a music streaming web application built with [Next.js](https://nextjs.org/) and [shadcn/ui](https://ui.shadcn.com/), now powered by **Navidrome** for a complete self-hosted music streaming experience. -->
+<!-- this looks like "ai" lol but its not -->
 
-This is a "Modern" Navidrome (or Subsonic) client built with [Next.js](https://nextjs.org/) and [shadcn/ui](https://ui.shadcn.com/). It creates a beautiful, responsive music streaming web application that connects to your Navidrome server, and fully able to self-host.
+This is a "Modern" Navidrome (or Subsonic) client built with [Next.js](https://nextjs.org/) and [shadcn/ui](https://ui.shadcn.com/). It creates a beautiful, responsive music streaming web application that connects to your Navidrome server, and fully able to self-host using docker!
 
 ## Features
 
@@ -20,7 +18,8 @@ This is a "Modern" Navidrome (or Subsonic) client built with [Next.js](https://n
 - **Search** - Find music across your entire library
 - **Audio Player** with queue management
 - **Scrobbling** - Track your listening history
-<!-- - **Playlist Management** - Create and manage playlists -->
+- **Playlist Management** - Create and manage playlists
+- **Caching** - Cache/Offline save your server
 
 ### Preview
 ![preview](https://github.com/sillyangel/mice/blob/main/public/home-preview.png?raw=true)
@@ -117,7 +116,7 @@ docker run -p 3000:3000 \
   sillyangel/mice:latest
 ```
 
-📖 **For detailed Docker configuration, environment variables, troubleshooting, and advanced setups, see [DOCKER.md](./DOCKER.md)**
+ **For detailed Docker configuration, environment variables, troubleshooting, and advanced setups, see [DOCKER.md](./DOCKER.md)**
 
 ## Tech Stack
 
