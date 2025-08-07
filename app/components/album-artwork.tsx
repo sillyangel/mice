@@ -24,8 +24,9 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArtistIcon } from "@/app/components/artist-icon";
-import { Heart, Music, Disc, Mic, Play } from "lucide-react";
+import { Heart, Music, Disc, Mic, Play, Download } from "lucide-react";
 import { Album, Artist, Song } from "@/lib/navidrome";
+import { OfflineIndicator } from "@/app/components/OfflineIndicator";
 
 interface AlbumArtworkProps extends React.HTMLAttributes<HTMLDivElement> {
   album: Album
@@ -147,6 +148,16 @@ export function AlbumArtwork({
               )}
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                 <Play className="w-6 h-6 mx-auto hidden group-hover:block" onClick={() => handlePlayAlbum(album)}/>
+              </div>
+              
+              {/* Offline indicator in top-right corner */}
+              <div className="absolute top-2 right-2">
+                <OfflineIndicator 
+                  id={album.id} 
+                  type="album" 
+                  size="sm"
+                  className="bg-black/60 text-white rounded-full p-1"
+                />
               </div>
             </div>
             <CardContent className="p-4">
