@@ -11,7 +11,8 @@ function PathnameTracker() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    if (posthogClient) {
+    // Only track if PostHog client is available and properly initialized
+    if (posthogClient && typeof posthogClient.capture === 'function') {
       posthogClient.capture('$pageview', {
         path: pathname + (searchParams.toString() ? `?${searchParams.toString()}` : ''),
       })
@@ -31,20 +32,35 @@ function SuspendedPostHogPageView() {
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-      api_host: "/ingest",
-      ui_host: "https://us.posthog.com",
-      capture_pageview: 'history_change',
-      capture_pageleave: true,
-      capture_exceptions: true,
-      debug: process.env.NODE_ENV === "development",
-    })
+    const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+    
+    // Only initialize PostHog if we have a valid key
+    if (posthogKey && posthogKey.trim() !== '') {
+      posthog.init(posthogKey, {
+        api_host: "/ingest",
+        ui_host: "https://us.posthog.com",
+        capture_pageview: 'history_change',
+        capture_pageleave: true,
+        capture_exceptions: true,
+        debug: process.env.NODE_ENV === "development",
+      });
+    } else {
+      console.log('PostHog not initialized - NEXT_PUBLIC_POSTHOG_KEY not provided');
+    }
   }, [])
 
-  return (
-    <PHProvider client={posthog}>
-      <SuspendedPostHogPageView />
-      {children}
-    </PHProvider>
-  )
+  // Only provide PostHog context if we have a key
+  const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+  
+  if (posthogKey && posthogKey.trim() !== '') {
+    return (
+      <PHProvider client={posthog}>
+        <SuspendedPostHogPageView />
+        {children}
+      </PHProvider>
+    );
+  }
+
+  // Return children without PostHog context if no key is provided
+  return <>{children}</>;
 }
