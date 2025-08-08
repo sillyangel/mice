@@ -4,9 +4,9 @@ import { ScrollArea, ScrollBar } from '../components/ui/scroll-area';
 import { Separator } from '../components/ui/separator';
 import { Tabs, TabsContent } from '../components/ui/tabs';
 import { AlbumArtwork } from './components/album-artwork';
-import { useNavidrome } from './components/NavidromeContext';
+import { useOfflineNavidrome } from './components/OfflineNavidromeProvider';
 import { useEffect, useState, Suspense } from 'react';
-import { Album } from '@/lib/navidrome';
+import { Album, Song, getNavidromeAPI } from '@/lib/navidrome';
 import { useNavidromeConfig } from './components/NavidromeConfigContext';
 import { useSearchParams } from 'next/navigation';
 import { useAudioPlayer } from './components/AudioPlayerContext';
@@ -14,52 +14,75 @@ import { SongRecommendations } from './components/SongRecommendations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { UserProfile } from './components/UserProfile';
+import { OfflineStatusIndicator } from './components/OfflineStatusIndicator';
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 
 function MusicPageContent() {
-  const { albums, isLoading, api, isConnected } = useNavidrome();
+  // Offline-first provider (falls back to offline data when not connected)
+  const offline = useOfflineNavidrome();
   const { playAlbum, playTrack, shuffle, toggleShuffle, addToQueue } = useAudioPlayer();
   const searchParams = useSearchParams();
+  const [allAlbums, setAllAlbums] = useState<Album[]>([]);
   const [recentAlbums, setRecentAlbums] = useState<Album[]>([]);
   const [newestAlbums, setNewestAlbums] = useState<Album[]>([]);
   const [favoriteAlbums, setFavoriteAlbums] = useState<Album[]>([]);
+  const [albumsLoading, setAlbumsLoading] = useState(true);
   const [favoritesLoading, setFavoritesLoading] = useState(true);
   const [shortcutProcessed, setShortcutProcessed] = useState(false);
   const isMobile = useIsMobile();
 
+  // Load albums (offline-first)
   useEffect(() => {
-    if (albums.length > 0) {
-      // Split albums into recent and newest for display
-      const recent = albums.slice(0, Math.ceil(albums.length / 2));
-      const newest = albums.slice(Math.ceil(albums.length / 2));
-      setRecentAlbums(recent);
-      setNewestAlbums(newest);
-    }
-  }, [albums]);
-
-  useEffect(() => {
-    const loadFavoriteAlbums = async () => {
-      if (!api || !isConnected) return;
-      
-      setFavoritesLoading(true);
+    let mounted = true;
+    const load = async () => {
+      setAlbumsLoading(true);
       try {
-        const starredAlbums = await api.getAlbums('starred', 20); // Limit to 20 for homepage
-        setFavoriteAlbums(starredAlbums);
-      } catch (error) {
-        console.error('Failed to load favorite albums:', error);
+        const list = await offline.getAlbums(false);
+        if (!mounted) return;
+        setAllAlbums(list || []);
+        // Split albums into two sections
+        const recent = list.slice(0, Math.ceil(list.length / 2));
+        const newest = list.slice(Math.ceil(list.length / 2));
+        setRecentAlbums(recent);
+        setNewestAlbums(newest);
+      } catch (e) {
+        console.error('Failed to load albums (offline-first):', e);
+        if (mounted) {
+          setAllAlbums([]);
+          setRecentAlbums([]);
+          setNewestAlbums([]);
+        }
       } finally {
-        setFavoritesLoading(false);
+        if (mounted) setAlbumsLoading(false);
       }
     };
+    load();
+    return () => { mounted = false; };
+  }, [offline]);
 
+  useEffect(() => {
+    let mounted = true;
+    const loadFavoriteAlbums = async () => {
+      setFavoritesLoading(true);
+      try {
+        const starred = await offline.getAlbums(true);
+        if (mounted) setFavoriteAlbums((starred || []).slice(0, 20));
+      } catch (error) {
+        console.error('Failed to load favorite albums (offline-first):', error);
+        if (mounted) setFavoriteAlbums([]);
+      } finally {
+        if (mounted) setFavoritesLoading(false);
+      }
+    };
     loadFavoriteAlbums();
-  }, [api, isConnected]);
+    return () => { mounted = false; };
+  }, [offline]);
 
   // Handle PWA shortcuts
   useEffect(() => {
     const action = searchParams.get('action');
-    if (!action || shortcutProcessed || !api || !isConnected) return;
+    if (!action || shortcutProcessed) return;
 
     const handleShortcuts = async () => {
       try {
@@ -93,12 +116,13 @@ function MusicPageContent() {
               // Add remaining albums to queue
               for (let i = 1; i < shuffledAlbums.length; i++) {
                 try {
-                  const albumSongs = await api.getAlbumSongs(shuffledAlbums[i].id);
-                  albumSongs.forEach(song => {
+                  const songs = await offline.getSongs(shuffledAlbums[i].id);
+                  const api = getNavidromeAPI();
+                  songs.forEach((song: Song) => {
                     addToQueue({
                       id: song.id,
                       name: song.title,
-                      url: api.getStreamUrl(song.id),
+                      url: api ? api.getStreamUrl(song.id) : `offline-song-${song.id}`,
                       artist: song.artist || 'Unknown Artist',
                       artistId: song.artistId || '',
                       album: song.album || 'Unknown Album',
@@ -109,7 +133,7 @@ function MusicPageContent() {
                     });
                   });
                 } catch (error) {
-                  console.error('Failed to load album tracks:', error);
+                  console.error('Failed to load album tracks (offline-first):', error);
                 }
               }
             }
@@ -131,12 +155,13 @@ function MusicPageContent() {
               // Add remaining albums to queue
               for (let i = 1; i < shuffledFavorites.length; i++) {
                 try {
-                  const albumSongs = await api.getAlbumSongs(shuffledFavorites[i].id);
-                  albumSongs.forEach(song => {
+                  const songs = await offline.getSongs(shuffledFavorites[i].id);
+                  const api = getNavidromeAPI();
+                  songs.forEach((song: Song) => {
                     addToQueue({
                       id: song.id,
                       name: song.title,
-                      url: api.getStreamUrl(song.id),
+                      url: api ? api.getStreamUrl(song.id) : `offline-song-${song.id}`,
                       artist: song.artist || 'Unknown Artist',
                       artistId: song.artistId || '',
                       album: song.album || 'Unknown Album',
@@ -147,7 +172,7 @@ function MusicPageContent() {
                     });
                   });
                 } catch (error) {
-                  console.error('Failed to load album tracks:', error);
+                  console.error('Failed to load album tracks (offline-first):', error);
                 }
               }
             }
@@ -162,7 +187,7 @@ function MusicPageContent() {
     // Delay to ensure data is loaded
     const timeout = setTimeout(handleShortcuts, 1000);
     return () => clearTimeout(timeout);
-  }, [searchParams, api, isConnected, recentAlbums, favoriteAlbums, shortcutProcessed, playAlbum, playTrack, shuffle, toggleShuffle, addToQueue]);
+  }, [searchParams, recentAlbums, favoriteAlbums, shortcutProcessed, playAlbum, playTrack, shuffle, toggleShuffle, addToQueue, offline]);
 
   // Try to get user name from navidrome context, fallback to 'user'
   let userName = '';
@@ -175,6 +200,20 @@ function MusicPageContent() {
 
   return (
     <div className="p-6 pb-24 w-full">
+      {/* Connection status (offline indicator) */}
+      {!offline.isOfflineMode ? null : (
+        <div className="mb-4">
+          <OfflineStatusIndicator />
+        </div>
+      )}
+      {/* Offline empty state when nothing is cached */}
+      {offline.isOfflineMode && !albumsLoading && recentAlbums.length === 0 && newestAlbums.length === 0 && favoriteAlbums.length === 0 && (
+        <div className="mb-6 p-4 border rounded-lg bg-muted/30">
+          <p className="text-sm text-muted-foreground">
+            You are offline and no albums are cached yet. Download albums for offline use from an album page, or open Settings → Offline Library to sync your library.
+          </p>
+        </div>
+      )}
       {/* Song Recommendations Section */}
       <div className="mb-8">
         <SongRecommendations userName={userName} />
@@ -197,7 +236,7 @@ function MusicPageContent() {
           <div className="relative">
             <ScrollArea>
               <div className="flex space-x-4 pb-4">
-                {isLoading ? (
+                {albumsLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
                     <div key={i} className="w-[220px] shrink-0 space-y-3">
@@ -284,7 +323,7 @@ function MusicPageContent() {
           <div className="relative">
             <ScrollArea>
             <div className="flex space-x-4 pb-4">
-            {isLoading ? (
+            {albumsLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
                     <div key={i} className="w-[220px] shrink-0 space-y-3">

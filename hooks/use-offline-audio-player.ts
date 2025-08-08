@@ -46,6 +46,8 @@ export function useOfflineAudioPlayer() {
       if (offlineStatus) {
         track.isOffline = true;
         track.offlineUrl = `offline-song-${song.id}`;
+        // Prefer offline cached URL to avoid re-streaming even when online
+        track.url = track.offlineUrl;
       }
     }
 

@@ -17,6 +17,7 @@ import {
 } from "../../components/ui/context-menu"
 
 import { useNavidrome } from "./NavidromeContext"
+import { useOfflineNavidrome } from "./OfflineNavidromeProvider"
 import Link from "next/link";
 import { useAudioPlayer, Track } from "@/app/components/AudioPlayerContext";
 import { getNavidromeAPI } from "@/lib/navidrome";
@@ -44,6 +45,7 @@ export function AlbumArtwork({
   ...props
 }: AlbumArtworkProps) {
   const { api, isConnected } = useNavidrome();
+  const offline = useOfflineNavidrome();
   const router = useRouter();
   const { addAlbumToQueue, playTrack, addToQueue } = useAudioPlayer();
   const { playlists, starItem, unstarItem } = useNavidrome();
@@ -129,7 +131,7 @@ export function AlbumArtwork({
         <ContextMenuTrigger>
           <Card key={album.id} className="overflow-hidden cursor-pointer px-0 py-0 gap-0" onClick={() => handleClick()}>
             <div className="aspect-square relative group">
-              {album.coverArt && api ? (
+              {album.coverArt && api && !offline.isOfflineMode ? (
                 <Image
                   src={coverArtUrl}
                   alt={album.name}

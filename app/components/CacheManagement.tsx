@@ -95,16 +95,16 @@ export function CacheManagement() {
     });
   };
 
-  const loadOfflineItems = useCallback(() => {
+  const loadOfflineItems = useCallback(async () => {
     if (isOfflineInitialized) {
-      const items = getOfflineItems();
+      const items = await getOfflineItems();
       setOfflineItems(items);
     }
   }, [isOfflineInitialized, getOfflineItems]);
 
   useEffect(() => {
-    loadCacheStats();
-    loadOfflineItems();
+  loadCacheStats();
+  loadOfflineItems();
     
     // Load offline mode settings
     const storedOfflineMode = localStorage.getItem('offline-mode-enabled');
