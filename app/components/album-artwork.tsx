@@ -72,6 +72,17 @@ export function AlbumArtwork({
     router.push(`/album/${album.id}`);
   };
 
+  const handlePrefetch = () => {
+    try {
+      // Next.js App Router will prefetch on hover when using Link with prefetch
+      // but we also call router.prefetch to ensure programmatic prefetch.
+      // @ts-ignore - prefetch exists in next/navigation router in app router
+      if (router && typeof (router as any).prefetch === 'function') {
+        (router as any).prefetch(`/album/${album.id}`);
+      }
+    } catch {}
+  };
+
   const handleAddToQueue = () => {
     addAlbumToQueue(album.id);
   };
@@ -129,7 +140,7 @@ export function AlbumArtwork({
     <div className={cn("space-y-3", className)} {...props}>
       <ContextMenu>
         <ContextMenuTrigger>
-          <Card key={album.id} className="overflow-hidden cursor-pointer px-0 py-0 gap-0" onClick={() => handleClick()}>
+          <Card key={album.id} className="overflow-hidden cursor-pointer px-0 py-0 gap-0" onClick={() => handleClick()} onMouseEnter={handlePrefetch} onFocus={handlePrefetch}>
             <div className="aspect-square relative group">
               {album.coverArt && api && !offline.isOfflineMode ? (
                 <Image
@@ -163,7 +174,9 @@ export function AlbumArtwork({
               </div>
             </div>
             <CardContent className="p-4">
-              <h3 className="font-semibold truncate">{album.name}</h3>
+              <h3 className="font-semibold truncate">
+                <Link href={`/album/${album.id}`} prefetch>{album.name}</Link>
+              </h3>
               <p className="text-sm text-muted-foreground truncate " onClick={() => router.push(album.artistId)}>{album.artist}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {album.songCount} songs • {Math.floor(album.duration / 60)} min

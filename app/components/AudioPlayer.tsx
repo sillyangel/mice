@@ -31,6 +31,8 @@ export const AudioPlayer: React.FC = () => {
   const [volume, setVolume] = useState(1);
   const [isClient, setIsClient] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  // Notifications and title management
+  const [lastNotifiedTrackId, setLastNotifiedTrackId] = useState<string | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [audioInitialized, setAudioInitialized] = useState(false);
   const audioCurrent = audioRef.current;
@@ -441,6 +443,48 @@ export const AudioPlayer: React.FC = () => {
       }
     };
   }, [playNextTrack, currentTrack, onTrackProgress, onTrackEnd, onTrackPlay, onTrackPause]);
+
+  // Update document title and optionally show a notification when a new song starts
+  useEffect(() => {
+    if (!isClient) return;
+    if (currentTrack) {
+      // Update favicon/title like Spotify
+      const baseTitle = `${currentTrack.name} • ${currentTrack.artist} – mice`;
+      document.title = isPlaying ? baseTitle : `(Paused) ${baseTitle}`;
+
+      // Notifications
+      const notifyEnabled = localStorage.getItem('playback-notifications-enabled') === 'true';
+      const canNotify = 'Notification' in window && Notification.permission !== 'denied';
+      if (notifyEnabled && canNotify && lastNotifiedTrackId !== currentTrack.id) {
+        try {
+          if (Notification.permission === 'default') {
+            Notification.requestPermission().then((perm) => {
+              if (perm === 'granted') {
+                new Notification('Now Playing', {
+                  body: `${currentTrack.name} — ${currentTrack.artist}`,
+                  icon: currentTrack.coverArt || '/icon-192.png',
+                  badge: '/icon-192.png',
+                });
+                setLastNotifiedTrackId(currentTrack.id);
+              }
+            });
+          } else if (Notification.permission === 'granted') {
+            new Notification('Now Playing', {
+              body: `${currentTrack.name} — ${currentTrack.artist}`,
+              icon: currentTrack.coverArt || '/icon-192.png',
+              badge: '/icon-192.png',
+            });
+            setLastNotifiedTrackId(currentTrack.id);
+          }
+        } catch (e) {
+          console.warn('Notification failed:', e);
+        }
+      }
+    } else {
+      // Reset title when no track
+      document.title = 'mice';
+    }
+  }, [currentTrack?.id, currentTrack?.name, currentTrack?.artist, isPlaying, isClient]);
 
   // Media Session API integration - Enhanced for mobile
   useEffect(() => {

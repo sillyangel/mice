@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import React, { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
@@ -410,15 +411,23 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (!isOpen || !currentTrack) return null;
+  if (!currentTrack) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black overflow-hidden">
+    <AnimatePresence>
+      {isOpen && (
+      <motion.div
+        className="fixed inset-0 z-[70] bg-black overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2, ease: 'easeInOut' }}
+      >
       {/* Enhanced Blurred background image */}
       {currentTrack.coverArt && (
-        <div className="absolute inset-0 w-full h-full">
+        <motion.div className="absolute inset-0 w-full h-full" initial={{ scale: 1.02 }} animate={{ scale: 1.08 }} transition={{ duration: 10, ease: 'linear' }}>
           {/* Main background */}
-          <div 
+          <motion.div 
             className="absolute inset-0 w-full h-full"
             style={{
               backgroundImage: `url(${currentTrack.coverArt})`,
@@ -428,9 +437,12 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               filter: 'blur(20px) brightness(0.3)',
               transform: 'scale(1.1)',
             }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
           />
           {/* Top gradient blur for mobile */}
-          <div 
+          <motion.div 
             className="absolute top-0 left-0 right-0 h-32"
             style={{
               background: `linear-gradient(to bottom, 
@@ -439,9 +451,12 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 transparent 100%)`,
               backdropFilter: 'blur(10px)',
             }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25 }}
           />
           {/* Bottom gradient blur for mobile */}
-          <div 
+          <motion.div 
             className="absolute bottom-0 left-0 right-0 h-32"
             style={{
               background: `linear-gradient(to top, 
@@ -450,31 +465,34 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 transparent 100%)`,
               backdropFilter: 'blur(10px)',
             }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25 }}
           />
-        </div>
+        </motion.div>
       )}
       
       {/* Overlay for better contrast */}
-      <div className="absolute inset-0 bg-black/30" />
+      <motion.div className="absolute inset-0 bg-black/30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
       
-      <div className="relative h-full w-full flex flex-col">
+      <motion.div className="relative h-full w-full flex flex-col" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 10, opacity: 0 }} transition={{ duration: 0.2, ease: 'easeOut' }}>
         
         {/* Mobile Close Handle */}
         {isMobile && (
-          <div className="flex justify-center py-4 px-4">
+          <motion.div className="flex justify-center py-4 px-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
             <div 
               onClick={onClose}
               className="cursor-pointer px-8 py-3 -mx-8 -my-3"
               style={{ touchAction: 'manipulation' }}
             >
-              <div className="w-8 h-1 bg-gray-300 rounded-full opacity-60" />
+              <motion.div className="w-8 h-1 bg-gray-300 rounded-full opacity-60" initial={{ scaleX: 0.9 }} animate={{ scaleX: 1 }} transition={{ duration: 0.3 }} />
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Desktop Header */}
         {!isMobile && (
-          <div className="absolute top-0 right-0 z-10 p-4 lg:p-6">
+          <motion.div className="absolute top-0 right-0 z-10 p-4 lg:p-6" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
             <div className="flex items-center gap-2">
               {onOpenQueue && (
                 <button 
@@ -493,7 +511,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 <FaXmark className="w-5 h-5" />
               </button>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Main Content */}
@@ -502,8 +520,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             /* Mobile Tab Content */
             <div className="h-full flex flex-col">
               <div className="flex-1 overflow-hidden">
+                <AnimatePresence mode="wait" initial={false}>
                 {activeTab === 'player' && (
-                  <div className="h-full flex flex-col justify-center items-center px-8 py-4">
+                  <motion.div key="tab-player" className="h-full flex flex-col justify-center items-center px-8 py-4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} transition={{ duration: 0.2 }}>
                     {/* Mobile Album Art */}
                     <div className="relative mb-6 shrink-0">
                       <Image
@@ -621,11 +640,11 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                         />
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 )}
 
                 {activeTab === 'lyrics' && lyrics.length > 0 && (
-                  <div className="h-full flex flex-col px-4">
+                  <motion.div key="tab-lyrics" className="h-full flex flex-col px-4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} transition={{ duration: 0.2 }}>
                     <div 
                       className="flex-1 overflow-y-auto"
                       ref={lyricsRef}
@@ -657,11 +676,11 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                         <div style={{ height: '200px' }} />
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
 
                 {activeTab === 'queue' && (
-                  <div className="h-full flex flex-col px-4">
+                  <motion.div key="tab-queue" className="h-full flex flex-col px-4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} transition={{ duration: 0.2 }}>
                     <ScrollArea className="flex-1">
                       <div className="space-y-2 py-4">
                         {queue.map((track, index) => (
@@ -690,8 +709,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                         ))}
                       </div>
                     </ScrollArea>
-                  </div>
+                  </motion.div>
                 )}
+                </AnimatePresence>
               </div>
 
               {/* Mobile Tab Bar */}
@@ -857,8 +877,14 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               </div>
 
               {/* Right Side - Lyrics (Desktop Only) */}
+              <AnimatePresence initial={false}>
               {showLyrics && lyrics.length > 0 && (
-                <div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}>
+                <motion.div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}
+                  initial={{ x: 30, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: 30, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
                   <div className="h-full flex flex-col">
                     <ScrollArea className="flex-1 min-h-0">
                       <div className="space-y-3 pl-4 pr-4 py-4">
@@ -890,12 +916,15 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                       </div>
                     </ScrollArea>
                   </div>
-                </div>
+                </motion.div>
               )}
+              </AnimatePresence>
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+  </motion.div>
+  )}
+    </AnimatePresence>
   );
 };
