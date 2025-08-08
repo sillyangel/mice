@@ -523,18 +523,29 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 <AnimatePresence mode="wait" initial={false}>
                 {activeTab === 'player' && (
                   <motion.div key="tab-player" className="h-full flex flex-col justify-center items-center px-8 py-4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} transition={{ duration: 0.2 }}>
-                    {/* Mobile Album Art */}
-                    <div className="relative mb-6 shrink-0">
-                      <Image
-                        src={currentTrack.coverArt || '/default-album.png'}
-                        alt={currentTrack.album}
-                        width={260}
-                        height={260}
-                        className={`rounded-lg shadow-2xl object-cover transition-all duration-300 ${
-                          !isPlaying ? 'w-52 h-52 opacity-70 scale-95' : 'w-64 h-64'
-                        }`}
-                        priority
-                      />
+                    {/* Mobile Album Art (crossfade on track change) */}
+                    <div className="relative mb-6 shrink-0 flex items-center justify-center" style={{ minHeight: 208 }}>
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.div
+                          key={currentTrack.id}
+                          initial={{ opacity: 0, scale: 0.98 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 1.02, position: 'absolute' as const }}
+                          transition={{ duration: 0.25 }}
+                          className="flex items-center justify-center"
+                        >
+                          <Image
+                            src={currentTrack.coverArt || '/default-album.png'}
+                            alt={currentTrack.album}
+                            width={260}
+                            height={260}
+                            className={`rounded-lg shadow-2xl object-cover transition-all duration-300 ${
+                              !isPlaying ? 'w-52 h-52 opacity-70 scale-95' : 'w-64 h-64'
+                            }`}
+                            priority
+                          />
+                        </motion.div>
+                      </AnimatePresence>
                     </div>
 
                     {/* Track Info - Left Aligned and Heart on Same Line */}
@@ -651,11 +662,14 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                     >
                       <div className="space-y-3 py-4">
                         {lyrics.map((line, index) => (
-                          <div
+                          <motion.div
                             key={index}
                             data-lyric-index={index}
                             onClick={() => handleLyricClick(line.time)}
-                            className={`text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground px-2 ${
+                            initial={false}
+                            animate={index === currentLyricIndex ? { scale: 1, opacity: 1 } : index < currentLyricIndex ? { scale: 0.995, opacity: 0.7 } : { scale: 0.99, opacity: 0.5 }}
+                            transition={{ duration: 0.2 }}
+                            className={`text-base leading-relaxed transition-colors duration-200 break-words cursor-pointer hover:text-foreground px-2 ${
                               index === currentLyricIndex
                                 ? 'text-foreground font-bold text-xl'
                                 : index < currentLyricIndex
@@ -671,7 +685,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                             title={`Click to jump to ${formatTime(line.time)}`}
                           >
                             {line.text || '♪'}
-                          </div>
+                          </motion.div>
                         ))}
                         <div style={{ height: '200px' }} />
                       </div>
@@ -753,16 +767,27 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             <div className="h-full flex flex-row gap-8 p-6 overflow-hidden">
               {/* Left Side - Album Art and Controls */}
               <div className="flex flex-col items-center justify-center min-h-0 flex-1 min-w-0">
-                {/* Album Art */}
-                <div className="relative mb-6 shrink-0">
-                  <Image
-                    src={currentTrack.coverArt || '/default-album.png'}
-                    alt={currentTrack.album}
-                    width={320}
-                    height={320}
-                    className="w-80 h-80 rounded-lg shadow-2xl object-cover"
-                    priority
-                  />
+                {/* Album Art (crossfade on track change) */}
+                <div className="relative mb-6 shrink-0 w-80 h-80">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={currentTrack.id}
+                      className="absolute inset-0"
+                      initial={{ opacity: 0, scale: 0.985 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.02 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <Image
+                        src={currentTrack.coverArt || '/default-album.png'}
+                        alt={currentTrack.album}
+                        width={320}
+                        height={320}
+                        className="w-80 h-80 rounded-lg shadow-2xl object-cover"
+                        priority
+                      />
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
 
                 {/* Track Info */}
@@ -889,11 +914,14 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                     <ScrollArea className="flex-1 min-h-0">
                       <div className="space-y-3 pl-4 pr-4 py-4">
                         {lyrics.map((line, index) => (
-                          <div
+                          <motion.div
                             key={index}
                             data-lyric-index={index}
                             onClick={() => handleLyricClick(line.time)}
-                            className={`text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground ${
+                            initial={false}
+                            animate={index === currentLyricIndex ? { scale: 1, opacity: 1 } : index < currentLyricIndex ? { scale: 0.995, opacity: 0.75 } : { scale: 0.99, opacity: 0.5 }}
+                            transition={{ duration: 0.2 }}
+                            className={`text-base leading-relaxed transition-colors duration-200 break-words cursor-pointer hover:text-foreground ${
                               index === currentLyricIndex
                                 ? 'text-foreground font-bold text-2xl'
                                 : index < currentLyricIndex
@@ -910,7 +938,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                             title={`Click to jump to ${formatTime(line.time)}`}
                           >
                             {line.text || '♪'}
-                          </div>
+                          </motion.div>
                         ))}
                         <div style={{ height: '200px' }} />
                       </div>
