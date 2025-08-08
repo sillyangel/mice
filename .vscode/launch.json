@@ -17,7 +17,34 @@
       "resolveSourceMapLocations": [
         "${workspaceFolder}/**",
         "!**/node_modules/**"
-      ]
+      ],
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "http://localhost:40625"
+      }
+    },
+    {
+      "name": "Debug: Development (Verbose)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "NODE_ENV": "development",
+        "DEBUG": "*",
+        "NEXT_TELEMETRY_DISABLED": "1"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "http://localhost:40625"
+      }
     },
     {
       "name": "Debug: Next.js Production",
@@ -32,7 +59,11 @@
       "preLaunchTask": "Build: Production Build Only",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["run", "start"],
-      "skipFiles": ["<node_internals>/**"]
+      "skipFiles": ["<node_internals>/**"],
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "http://localhost:40625"
+      }
     }
   ]
 }

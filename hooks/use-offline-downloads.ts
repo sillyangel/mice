@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Album, Song } from '@/lib/navidrome';
+import { Album, Song, getNavidromeAPI } from '@/lib/navidrome';
 
 export interface DownloadProgress {
   completed: number;
@@ -104,10 +104,14 @@ class DownloadManager {
         }
       };
       
-      // Add stream URLs to songs
+      // Add direct download URLs to songs (use 'streamUrl' field name to keep SW compatibility)
       const songsWithUrls = songs.map(song => ({
         ...song,
-        streamUrl: this.getStreamUrl(song.id)
+        streamUrl: this.getDownloadUrl(song.id),
+        offlineUrl: `offline-song-${song.id}`,
+        duration: song.duration,
+  bitRate: song.bitRate,
+  size: song.size
       }));
       
       this.worker!.postMessage({
@@ -120,7 +124,11 @@ class DownloadManager {
   async downloadSong(song: Song): Promise<void> {
     const songWithUrl = {
       ...song,
-      streamUrl: this.getStreamUrl(song.id)
+  streamUrl: this.getDownloadUrl(song.id),
+      offlineUrl: `offline-song-${song.id}`,
+      duration: song.duration,
+  bitRate: song.bitRate,
+  size: song.size
     };
     
     return this.sendMessage('DOWNLOAD_SONG', songWithUrl);
@@ -129,7 +137,11 @@ class DownloadManager {
   async downloadQueue(songs: Song[]): Promise<void> {
     const songsWithUrls = songs.map(song => ({
       ...song,
-      streamUrl: this.getStreamUrl(song.id)
+  streamUrl: this.getDownloadUrl(song.id),
+      offlineUrl: `offline-song-${song.id}`,
+      duration: song.duration,
+  bitRate: song.bitRate,
+  size: song.size
     }));
     
     return this.sendMessage('DOWNLOAD_QUEUE', { songs: songsWithUrls });
@@ -160,15 +172,20 @@ class DownloadManager {
   async getOfflineStats(): Promise<OfflineStats> {
     return this.sendMessage('GET_OFFLINE_STATS', {});
   }
+
+  async getOfflineItems(): Promise<{ albums: OfflineItem[]; songs: OfflineItem[] }> {
+    return this.sendMessage('GET_OFFLINE_ITEMS', {});
+  }
   
-  private getStreamUrl(songId: string): string {
-    // This should match your actual Navidrome stream URL format
-    const config = JSON.parse(localStorage.getItem('navidrome-config') || '{}');
-    if (!config.serverUrl) {
-      throw new Error('Navidrome server not configured');
+  private getDownloadUrl(songId: string): string {
+    const api = getNavidromeAPI();
+    if (!api) throw new Error('Navidrome server not configured');
+    // Use direct download to fetch original file; browser handles transcoding/decoding.
+    // Fall back to stream URL if the server does not allow downloads.
+    if (typeof (api as any).getDownloadUrl === 'function') {
+      return (api as any).getDownloadUrl(songId);
     }
-    
-    return `${config.serverUrl}/rest/stream?id=${songId}&u=${config.username}&p=${config.password}&c=mice&f=json`;
+    return api.getStreamUrl(songId);
   }
   
   // LocalStorage fallback for browsers without service worker support
@@ -375,11 +392,19 @@ export function useOfflineDownloads() {
     }
   }, [isSupported]);
   
-  const getOfflineItems = useCallback((): OfflineItem[] => {
+  const getOfflineItems = useCallback(async (): Promise<OfflineItem[]> => {
+    if (isSupported) {
+      try {
+        const { albums, songs } = await downloadManager.getOfflineItems();
+        return [...albums, ...songs].sort((a, b) => b.downloadedAt - a.downloadedAt);
+      } catch (e) {
+        console.error('Failed to get offline items from SW, falling back:', e);
+      }
+    }
     const albums = downloadManager.getOfflineAlbums();
     const songs = downloadManager.getOfflineSongs();
     return [...albums, ...songs].sort((a, b) => b.downloadedAt - a.downloadedAt);
-  }, []);
+  }, [isSupported]);
   
   const clearDownloadProgress = useCallback(() => {
     setDownloadProgress({
