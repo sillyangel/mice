@@ -4,6 +4,7 @@ import Image from "next/image"
 import { PlusCircledIcon } from "@radix-ui/react-icons"
 import { useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils"
+import { motion } from 'framer-motion'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -88,6 +89,13 @@ export function ArtistIcon({
     <div className={cn("space-y-3", className)} {...props}>
       <ContextMenu>
         <ContextMenuTrigger>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.2 }}
+            whileHover={{ y: -2 }}
+          >
           <Card key={artist.id} className="overflow-hidden cursor-pointer px-0 py-0 gap-0" onClick={() => handleClick()}>
             <div
               className="aspect-square relative group"
@@ -118,6 +126,7 @@ export function ArtistIcon({
               </p>
             </CardContent>
           </Card>
+          </motion.div>
         </ContextMenuTrigger>
         <ContextMenuContent className="w-40">
           <ContextMenuItem onClick={handleStar}>

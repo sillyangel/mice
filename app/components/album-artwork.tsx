@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { PlusCircledIcon } from "@radix-ui/react-icons"
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 
 import { cn } from "@/lib/utils"
 import {
@@ -29,7 +30,10 @@ import { Heart, Music, Disc, Mic, Play, Download } from "lucide-react";
 import { Album, Artist, Song } from "@/lib/navidrome";
 import { OfflineIndicator } from "@/app/components/OfflineIndicator";
 
-interface AlbumArtworkProps extends React.HTMLAttributes<HTMLDivElement> {
+interface AlbumArtworkProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  'onDrag' | 'onDragStart' | 'onDragEnd' | 'onDragOver' | 'onDragEnter' | 'onDragLeave' | 'onDrop'
+> {
   album: Album
   aspectRatio?: "portrait" | "square"
   width?: number
@@ -75,10 +79,10 @@ export function AlbumArtwork({
   const handlePrefetch = () => {
     try {
       // Next.js App Router will prefetch on hover when using Link with prefetch
-      // but we also call router.prefetch to ensure programmatic prefetch.
-      // @ts-ignore - prefetch exists in next/navigation router in app router
-      if (router && typeof (router as any).prefetch === 'function') {
-        (router as any).prefetch(`/album/${album.id}`);
+      // but we also call router.prefetch to ensure programmatic prefetch when present.
+      const r = router as unknown as { prefetch?: (href: string) => Promise<void> | void };
+      if (r && typeof r.prefetch === 'function') {
+        r.prefetch(`/album/${album.id}`);
       }
     } catch {}
   };
@@ -138,6 +142,13 @@ export function AlbumArtwork({
     
   return (
     <div className={cn("space-y-3", className)} {...props}>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.15 }}
+        transition={{ duration: 0.2 }}
+        whileHover={{ y: -2 }}
+      >
       <ContextMenu>
         <ContextMenuTrigger>
           <Card key={album.id} className="overflow-hidden cursor-pointer px-0 py-0 gap-0" onClick={() => handleClick()} onMouseEnter={handlePrefetch} onFocus={handlePrefetch}>
@@ -239,6 +250,7 @@ export function AlbumArtwork({
           <ContextMenuItem>Share</ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+      </motion.div>
     </div>
   )
 }

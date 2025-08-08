@@ -484,7 +484,7 @@ export const AudioPlayer: React.FC = () => {
       // Reset title when no track
       document.title = 'mice';
     }
-  }, [currentTrack?.id, currentTrack?.name, currentTrack?.artist, isPlaying, isClient]);
+  }, [currentTrack?.id, currentTrack?.name, currentTrack?.artist, currentTrack?.coverArt, isPlaying, isClient, lastNotifiedTrackId]);
 
   // Media Session API integration - Enhanced for mobile
   useEffect(() => {
