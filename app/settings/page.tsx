@@ -17,6 +17,7 @@ import { CacheManagement } from '@/app/components/CacheManagement';
 import { OfflineManagement } from '@/app/components/OfflineManagement';
 import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm, FaCog } from 'react-icons/fa';
 import { Settings, ExternalLink } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 const SettingsPage = () => {
     const { theme, setTheme, mode, setMode } = useTheme();
@@ -59,6 +60,7 @@ const SettingsPage = () => {
     // Sidebar settings
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [sidebarVisible, setSidebarVisible] = useState(true);
+    const [notifyNowPlaying, setNotifyNowPlaying] = useState(false);
 
     // Initialize client-side state after hydration
     useEffect(() => {
@@ -92,6 +94,12 @@ const SettingsPage = () => {
             setSidebarVisible(savedSidebarVisible === 'true');
         } else {
             setSidebarVisible(true); // Default to visible
+        }
+
+        // Notifications preference
+        const savedNotify = localStorage.getItem('playback-notifications-enabled');
+        if (savedNotify !== null) {
+            setNotifyNowPlaying(savedNotify === 'true');
         }
 
         // Load Last.fm credentials
@@ -261,6 +269,43 @@ const SettingsPage = () => {
         // Trigger a custom event to notify the sidebar component
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('sidebar-visibility-toggle', { detail: { visible } }));
+        }
+    };
+
+    const handleNotifyToggle = async (enabled: boolean) => {
+        setNotifyNowPlaying(enabled);
+        if (isClient) {
+            localStorage.setItem('playback-notifications-enabled', enabled.toString());
+        }
+        if (enabled && typeof window !== 'undefined' && 'Notification' in window) {
+            try {
+                if (Notification.permission === 'default') {
+                    await Notification.requestPermission();
+                }
+            } catch {}
+        }
+        toast({
+            title: enabled ? 'Notifications Enabled' : 'Notifications Disabled',
+            description: enabled ? 'You will be notified when a new song starts.' : 'Now playing notifications are off.',
+        });
+    };
+
+    const handleTestNotification = () => {
+        if (typeof window === 'undefined') return;
+        if (!('Notification' in window)) {
+            toast({ title: 'Not supported', description: 'Browser does not support notifications.', variant: 'destructive' });
+            return;
+        }
+        if (Notification.permission === 'denied') {
+            toast({ title: 'Permission denied', description: 'Enable notifications in your browser settings.', variant: 'destructive' });
+            return;
+        }
+        const title = 'mice – Test Notification';
+        const body = 'This is how a now playing notification will look.';
+        try {
+            new Notification(title, { body, icon: '/icon-192.png', badge: '/icon-192.png' });
+        } catch {
+            toast({ title: 'Test Notification', description: body });
         }
     };
 
@@ -469,6 +514,29 @@ const SettingsPage = () => {
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Notifications */}
+                <Card className="mb-6 break-inside-avoid py-5">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Settings className="w-5 h-5" />
+                            Notifications
+                        </CardTitle>
+                        <CardDescription>Control now playing notifications</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-medium">Now playing notifications</p>
+                                <p className="text-sm text-muted-foreground">Show a notification when a new song starts</p>
+                            </div>
+                            <Switch checked={notifyNowPlaying} onCheckedChange={handleNotifyToggle} />
+                        </div>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={handleTestNotification}>Test notification</Button>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 <Card className="mb-6 break-inside-avoid py-5">
                     <CardHeader>

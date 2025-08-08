@@ -13,6 +13,7 @@ import ThemeColorHandler from "./ThemeColorHandler";
 import { useViewportThemeColor } from "@/hooks/use-viewport-theme-color";
 import { LoginForm } from "./start-screen";
 import Image from "next/image";
+import PageTransition from "./PageTransition";
 
 // Service Worker registration
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -102,7 +103,7 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
             <NavidromeErrorBoundary>
               <AudioPlayerProvider>
                 <Ihateserverside>
-                  {children}
+                  <PageTransition>{children}</PageTransition>
                 </Ihateserverside>
                 <WhatsNewPopup />
               </AudioPlayerProvider>
