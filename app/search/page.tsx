@@ -199,7 +199,7 @@ export default function SearchPage() {
                       
                       {/* Song Cover */}
                       <div className="shrink-0">                        <Image
-                          src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 64) : '/default-user.jpg'}
+                          src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 300) : '/default-user.jpg'}
                           alt={song.album}
                           width={48}
                           height={48}
