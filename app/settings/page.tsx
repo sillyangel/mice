@@ -16,8 +16,9 @@ import { SidebarCustomization } from '@/app/components/SidebarCustomization';
 import { SettingsManagement } from '@/app/components/SettingsManagement';
 import { CacheManagement } from '@/app/components/CacheManagement';
 import { OfflineManagement } from '@/app/components/OfflineManagement';
-import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm, FaCog } from 'react-icons/fa';
-import { Settings, ExternalLink } from 'lucide-react';
+import { AutoTaggingSettings } from '@/app/components/AutoTaggingSettings';
+import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm, FaCog, FaTags } from 'react-icons/fa';
+import { Settings, ExternalLink, Tag } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 const SettingsPage = () => {
@@ -786,6 +787,11 @@ const SettingsPage = () => {
                 {/* Offline Library Management */}
                 <div className="break-inside-avoid mb-6">
                   <OfflineManagement />
+                </div>
+
+                {/* Auto-Tagging Settings */}
+                <div className="break-inside-avoid mb-6">
+                  <AutoTaggingSettings />
                 </div>
 
                 <Card className="mb-6 break-inside-avoid py-5">
