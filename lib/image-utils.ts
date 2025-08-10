@@ -123,3 +123,85 @@ export function useOptimalImageSize(
   const divisions = [60, 120, 240, 400, 600, 1200];
   return divisions.find(size => size >= optimalSize) || 1200;
 }
+
+/**
+ * Extract dominant color from an image
+ * @param imageUrl - URL of the image to analyze
+ * @returns Promise that resolves to CSS color string (rgb format)
+ */
+export async function extractDominantColor(imageUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      const img = document.createElement('img');
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve('rgb(25, 25, 25)'); // Fallback dark color
+            return;
+          }
+          
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          
+          // Simple dominant color extraction
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          let r = 0, g = 0, b = 0;
+          
+          // Sample points across the image (for performance, not using all pixels)
+          const sampleSize = Math.max(1, Math.floor(data.length / 4000)); 
+          let sampleCount = 0;
+          
+          for (let i = 0; i < data.length; i += 4 * sampleSize) {
+            r += data[i];
+            g += data[i + 1];
+            b += data[i + 2];
+            sampleCount++;
+          }
+          
+          r = Math.floor(r / sampleCount);
+          g = Math.floor(g / sampleCount);
+          b = Math.floor(b / sampleCount);
+          
+          // Adjust brightness to ensure readability
+          const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+          
+          // For very light colors, darken them
+          if (brightness > 200) {
+            const darkFactor = 0.7;
+            r = Math.floor(r * darkFactor);
+            g = Math.floor(g * darkFactor);
+            b = Math.floor(b * darkFactor);
+          }
+          
+          // For very dark colors, lighten them slightly
+          if (brightness < 50) {
+            const lightFactor = 1.3;
+            r = Math.min(255, Math.floor(r * lightFactor));
+            g = Math.min(255, Math.floor(g * lightFactor));
+            b = Math.min(255, Math.floor(b * lightFactor));
+          }
+          
+          resolve(`rgb(${r}, ${g}, ${b})`);
+        } catch (error) {
+          console.error('Error extracting color:', error);
+          resolve('rgb(25, 25, 25)'); // Fallback dark color
+        }
+      };
+      
+      img.onerror = () => {
+        resolve('rgb(25, 25, 25)'); // Fallback dark color
+      };
+      
+      img.src = imageUrl;
+    } catch (error) {
+      console.error('Error loading image for color extraction:', error);
+      resolve('rgb(25, 25, 25)'); // Fallback dark color
+    }
+  });
+}

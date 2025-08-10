@@ -215,12 +215,21 @@ class NavidromeAPI {
   }
 
   async getArtist(artistId: string): Promise<{ artist: Artist; albums: Album[] }> {
-    const response = await this.makeRequest('getArtist', { id: artistId });
-    const artistData = response.artist as Artist & { album?: Album[] };
-    return {
-      artist: artistData,
-      albums: artistData.album || []
-    };
+    try {
+      const response = await this.makeRequest('getArtist', { id: artistId });
+      // Check if artist data exists
+      if (!response.artist) {
+        throw new Error('Artist not found in response');
+      }
+      const artistData = response.artist as Artist & { album?: Album[] };
+      return {
+        artist: artistData,
+        albums: artistData.album || []
+      };
+    } catch (error) {
+      console.error('Navidrome API request failed:', error);
+      throw new Error('Artist not found');
+    }
   }
 
   async getAlbums(type?: 'newest' | 'recent' | 'frequent' | 'random' | 'alphabeticalByName' | 'alphabeticalByArtist' | 'starred' | 'highest', size: number = 500, offset: number = 0): Promise<Album[]> {
