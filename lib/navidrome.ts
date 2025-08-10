@@ -68,6 +68,7 @@ export interface Song {
   artistId: string;
   type: string;
   starred?: string;
+  replayGain?: number;
 }
 
 export interface Playlist {
