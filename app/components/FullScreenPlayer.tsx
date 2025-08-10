@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { lrcLibClient } from '@/lib/lrclib';
 import Link from 'next/link';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { AudioSettingsDialog } from './AudioSettingsDialog';
 import { 
   FaPlay, 
   FaPause, 
@@ -20,7 +21,8 @@ import {
   FaRepeat,
   FaXmark,
   FaQuoteLeft,
-  FaListUl
+  FaListUl,
+  FaSliders
 } from "react-icons/fa6";
 import { Heart } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -46,8 +48,11 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     shuffle, 
     toggleShuffle, 
     toggleCurrentTrackStar,
-    queue 
+    queue,
+    audioSettings,
+    updateAudioSettings
   } = useAudioPlayer();
+  const [showAudioSettings, setShowAudioSettings] = useState(false);
   
   const isMobile = useIsMobile();
   const router = useRouter();
@@ -441,8 +446,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
   if (!currentTrack) return null;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
+    <>
+      <AnimatePresence>
+        {isOpen && (
       <motion.div
         className="fixed inset-0 z-[70] bg-black overflow-hidden"
         initial={{ opacity: 0 }}
@@ -911,6 +917,14 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                       <FaQuoteLeft className="w-5 h-5" />
                     </button>
                   )}
+
+                  <button
+                    onClick={() => setShowAudioSettings(true)}
+                    className="p-2 hover:bg-gray-700/50 rounded-full transition-colors"
+                    title="Audio Settings"
+                  >
+                    <FaSliders className="w-5 h-5" />
+                  </button>
                   
                   {showVolumeSlider && (
                     <div 
@@ -987,5 +1001,10 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
   </motion.div>
   )}
     </AnimatePresence>
+    <AudioSettingsDialog 
+      isOpen={showAudioSettings}
+      onClose={() => setShowAudioSettings(false)}
+    />
+    </>
   );
 };

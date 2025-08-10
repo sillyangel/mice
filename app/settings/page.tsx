@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/app/components/ThemeProvider';
@@ -25,6 +26,7 @@ const SettingsPage = () => {
     const { toast } = useToast();
     const { isEnabled: isStandaloneLastFmEnabled, getCredentials, getAuthUrl, getSessionKey } = useStandaloneLastFm();
     const { shortcutType, updateShortcutType } = useSidebarShortcuts();
+    const audioPlayer = useAudioPlayer();
     
     const [formData, setFormData] = useState({
         serverUrl: '',
@@ -835,6 +837,87 @@ const SettingsPage = () => {
                 </Card>
 
                 {/* Theme Preview */}
+                <Card className="mb-6 break-inside-avoid py-5">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <FaCog className="w-5 h-5" />
+                            Audio Settings
+                        </CardTitle>
+                        <CardDescription>
+                            Configure playback and audio effects
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {/* Crossfade */}
+                        <div className="space-y-2">
+                            <Label htmlFor="crossfade-duration">Crossfade Duration</Label>
+                            <Select 
+                                value={String(audioPlayer.audioSettings.crossfadeDuration)}
+                                onValueChange={(value) => audioPlayer.updateAudioSettings({ crossfadeDuration: Number(value) })}
+                            >
+                                <SelectTrigger id="crossfade-duration">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="0">Off</SelectItem>
+                                    <SelectItem value="2">2 seconds</SelectItem>
+                                    <SelectItem value="3">3 seconds</SelectItem>
+                                    <SelectItem value="4">4 seconds</SelectItem>
+                                    <SelectItem value="5">5 seconds</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Equalizer Preset */}
+                        <div className="space-y-2">
+                            <Label htmlFor="equalizer-preset">Equalizer Preset</Label>
+                            <Select 
+                                value={audioPlayer.equalizerPreset} 
+                                onValueChange={audioPlayer.setEqualizerPreset}
+                            >
+                                <SelectTrigger id="equalizer-preset">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="normal">Normal</SelectItem>
+                                    <SelectItem value="bassBoost">Bass Boost</SelectItem>
+                                    <SelectItem value="trebleBoost">Treble Boost</SelectItem>
+                                    <SelectItem value="vocalBoost">Vocal Boost</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* ReplayGain */}
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label>ReplayGain</Label>
+                                <p className="text-sm text-muted-foreground">Normalize volume across tracks</p>
+                            </div>
+                            <Switch 
+                                checked={audioPlayer.audioSettings.replayGainEnabled}
+                                onCheckedChange={(checked) => audioPlayer.updateAudioSettings({ replayGainEnabled: checked })}
+                            />
+                        </div>
+
+                        {/* Gapless Playback */}
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label>Gapless Playback</Label>
+                                <p className="text-sm text-muted-foreground">Seamless transitions between tracks</p>
+                            </div>
+                            <Switch 
+                                checked={audioPlayer.audioSettings.gaplessPlayback}
+                                onCheckedChange={(checked) => audioPlayer.updateAudioSettings({ gaplessPlayback: checked })}
+                            />
+                        </div>                        <div className="text-sm text-muted-foreground space-y-2">
+                            <p><strong>Crossfade:</strong> Smooth fade between tracks (2-5 seconds)</p>
+                            <p><strong>Equalizer:</strong> Preset frequency adjustments for different music styles</p>
+                            <p><strong>ReplayGain:</strong> Consistent volume across all tracks in your library</p>
+                            <p><strong>Gapless:</strong> Perfect for live albums and continuous DJ mixes</p>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Card className="mb-6 break-inside-avoid py-5">
                     <CardHeader>
                         <CardTitle>Preview</CardTitle>

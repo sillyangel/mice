@@ -286,9 +286,9 @@ class DownloadManager {
                       quality === 'medium' ? 192 : 
                       quality === 'low' ? 128 : undefined;
     
-    const format = quality === 'low' ? 'mp3' : undefined; // Use mp3 for low quality, original otherwise
-    
-    return api.getStreamUrl(songId, { maxBitRate, format });
+    // Note: format parameter is not supported by the Navidrome API
+    // The server will automatically transcode based on maxBitRate
+    return api.getStreamUrl(songId, maxBitRate);
   }
   
   // LocalStorage fallback for browsers without service worker support

@@ -11,9 +11,25 @@ import { useToast } from '@/hooks/use-toast';
 import { useLastFmScrobbler } from '@/hooks/use-lastfm-scrobbler';
 import { useStandaloneLastFm } from '@/hooks/use-standalone-lastfm';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { DraggableMiniPlayer } from './DraggableMiniPlayer';
 
 export const AudioPlayer: React.FC = () => {
-  const { currentTrack, playPreviousTrack, addToQueue, playNextTrack, clearQueue, queue, toggleShuffle, shuffle, toggleCurrentTrackStar } = useAudioPlayer();
+  const { 
+    currentTrack, 
+    playPreviousTrack, 
+    addToQueue, 
+    playNextTrack, 
+    clearQueue, 
+    queue, 
+    toggleShuffle, 
+    shuffle, 
+    toggleCurrentTrackStar,
+    audioSettings,
+    updateAudioSettings,
+    equalizerPreset,
+    setEqualizerPreset,
+    audioEffects
+  } = useAudioPlayer();
   const router = useRouter();
   const isMobile = useIsMobile();
   
@@ -116,16 +132,18 @@ export const AudioPlayer: React.FC = () => {
   useEffect(() => {
     setIsClient(true);
     
-    // Load saved volume
-    const savedVolume = localStorage.getItem('navidrome-volume');
-    if (savedVolume) {
-      try {
-        const volumeValue = parseFloat(savedVolume);
-        if (volumeValue >= 0 && volumeValue <= 1) {
-          setVolume(volumeValue);
+    if (currentTrack) {
+      // Load saved volume
+      const savedVolume = localStorage.getItem('navidrome-volume');
+      if (savedVolume) {
+        try {
+          const volumeValue = parseFloat(savedVolume);
+          if (volumeValue >= 0 && volumeValue <= 1) {
+            setVolume(volumeValue);
+          }
+        } catch (error) {
+          console.error('Failed to parse saved volume:', error);
         }
-      } catch (error) {
-        console.error('Failed to parse saved volume:', error);
       }
     }
     
@@ -221,17 +239,22 @@ export const AudioPlayer: React.FC = () => {
       }
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
-  }, [isMobile, audioInitialized, volume]);
+  }, [isMobile, audioInitialized, volume, currentTrack]);
 
   // Apply volume to audio element when volume changes
   useEffect(() => {
     const audioCurrent = audioRef.current;
     if (audioCurrent) {
-      audioCurrent.volume = volume;
+      // Apply volume through audio effects chain if available
+      if (audioEffects) {
+        audioEffects.setVolume(volume);
+      } else {
+        audioCurrent.volume = volume;
+      }
     }
     // Save volume to localStorage
     localStorage.setItem('navidrome-volume', volume.toString());
-  }, [volume]);
+  }, [volume, audioEffects]);
 
   // Save position when component unmounts or track changes
   useEffect(() => {
@@ -245,6 +268,7 @@ export const AudioPlayer: React.FC = () => {
 
   useEffect(() => {
     const audioCurrent = audioRef.current;
+    const preloadAudioCurrent = preloadAudioRef.current;
     
     if (currentTrack && audioCurrent && audioCurrent.src !== currentTrack.url) {
       // Always clear current track time when changing tracks
@@ -256,6 +280,20 @@ export const AudioPlayer: React.FC = () => {
       if (!currentTrack.url || currentTrack.url === 'undefined' || currentTrack.url === '') {
         console.error('❌ Invalid audio URL:', currentTrack.url);
         return;
+      }
+
+      // If we have audio effects and ReplayGain is enabled, apply it
+      if (audioEffects && audioSettings.replayGainEnabled && currentTrack.replayGain) {
+        audioEffects.setReplayGain(currentTrack.replayGain);
+      }
+
+      // For gapless playback, start preloading the next track
+      if (audioSettings.gaplessPlayback && queue.length > 0) {
+        const nextTrack = queue[0];
+        if (preloadAudioCurrent && nextTrack) {
+          preloadAudioCurrent.src = nextTrack.url;
+          preloadAudioCurrent.load();
+        }
       }
       
       // Debug: Log current audio element state
@@ -370,7 +408,7 @@ export const AudioPlayer: React.FC = () => {
         setIsPlaying(false);
       }
     }
-  }, [currentTrack, onTrackStart, onTrackPlay, isMobile, audioInitialized]);
+  }, [currentTrack, onTrackStart, onTrackPlay, isMobile, audioInitialized, audioEffects, audioSettings.gaplessPlayback, audioSettings.replayGainEnabled, queue]);
 
   useEffect(() => {
     const audioCurrent = audioRef.current;
@@ -399,6 +437,12 @@ export const AudioPlayer: React.FC = () => {
         
         // Notify scrobbler about track end
         onTrackEnd(currentTrack, audioCurrent.currentTime, audioCurrent.duration);
+
+        // If crossfade is enabled and we have more tracks in queue
+        if (audioSettings.crossfadeDuration > 0 && queue.length > 0 && audioEffects) {
+          // Start fading out current track
+          audioEffects.setCrossfadeTime(audioSettings.crossfadeDuration);
+        }
       }
       playNextTrack();
     };
@@ -442,49 +486,50 @@ export const AudioPlayer: React.FC = () => {
         audioCurrent.removeEventListener('pause', handlePause);
       }
     };
-  }, [playNextTrack, currentTrack, onTrackProgress, onTrackEnd, onTrackPlay, onTrackPause]);
+  }, [playNextTrack, currentTrack, onTrackProgress, onTrackEnd, onTrackPlay, onTrackPause, audioEffects, audioSettings.crossfadeDuration, queue.length]);
 
   // Update document title and optionally show a notification when a new song starts
   useEffect(() => {
-    if (!isClient) return;
-    if (currentTrack) {
-      // Update favicon/title like Spotify
-      const baseTitle = `${currentTrack.name} • ${currentTrack.artist} – mice`;
-      document.title = isPlaying ? baseTitle : `(Paused) ${baseTitle}`;
-
-      // Notifications
-      const notifyEnabled = localStorage.getItem('playback-notifications-enabled') === 'true';
-      const canNotify = 'Notification' in window && Notification.permission !== 'denied';
-      if (notifyEnabled && canNotify && lastNotifiedTrackId !== currentTrack.id) {
-        try {
-          if (Notification.permission === 'default') {
-            Notification.requestPermission().then((perm) => {
-              if (perm === 'granted') {
-                new Notification('Now Playing', {
-                  body: `${currentTrack.name} — ${currentTrack.artist}`,
-                  icon: currentTrack.coverArt || '/icon-192.png',
-                  badge: '/icon-192.png',
-                });
-                setLastNotifiedTrackId(currentTrack.id);
-              }
-            });
-          } else if (Notification.permission === 'granted') {
-            new Notification('Now Playing', {
-              body: `${currentTrack.name} — ${currentTrack.artist}`,
-              icon: currentTrack.coverArt || '/icon-192.png',
-              badge: '/icon-192.png',
-            });
-            setLastNotifiedTrackId(currentTrack.id);
-          }
-        } catch (e) {
-          console.warn('Notification failed:', e);
-        }
+    if (!isClient || !currentTrack) {
+      if (!currentTrack) {
+        document.title = 'mice';
       }
-    } else {
-      // Reset title when no track
-      document.title = 'mice';
+      return;
     }
-  }, [currentTrack?.id, currentTrack?.name, currentTrack?.artist, currentTrack?.coverArt, isPlaying, isClient, lastNotifiedTrackId]);
+
+    // Update favicon/title like Spotify
+    const baseTitle = `${currentTrack.name} • ${currentTrack.artist} – mice`;
+    document.title = isPlaying ? baseTitle : `(Paused) ${baseTitle}`;
+
+    // Notifications
+    const notifyEnabled = localStorage.getItem('playback-notifications-enabled') === 'true';
+    const canNotify = 'Notification' in window && Notification.permission !== 'denied';
+    if (notifyEnabled && canNotify && lastNotifiedTrackId !== currentTrack.id) {
+      try {
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then((perm) => {
+            if (perm === 'granted') {
+              new Notification('Now Playing', {
+                body: `${currentTrack.name} — ${currentTrack.artist}`,
+                icon: currentTrack.coverArt || '/icon-192.png',
+                badge: '/icon-192.png',
+              });
+              setLastNotifiedTrackId(currentTrack.id);
+            }
+          });
+        } else if (Notification.permission === 'granted') {
+          new Notification('Now Playing', {
+            body: `${currentTrack.name} — ${currentTrack.artist}`,
+            icon: currentTrack.coverArt || '/icon-192.png',
+            badge: '/icon-192.png',
+          });
+          setLastNotifiedTrackId(currentTrack.id);
+        }
+      } catch (e) {
+        console.warn('Notification failed:', e);
+      }
+    }
+  }, [currentTrack, isPlaying, isClient, lastNotifiedTrackId]);
 
   // Media Session API integration - Enhanced for mobile
   useEffect(() => {
@@ -863,54 +908,7 @@ export const AudioPlayer: React.FC = () => {
   if (isMinimized) {
     return (
       <>
-        <div className="fixed bottom-4 left-4 z-50">
-          <div 
-            className="bg-background/95 backdrop-blur-xs border rounded-lg shadow-lg cursor-pointer hover:scale-[1.02] transition-transform w-80"
-            onClick={() => setIsMinimized(false)}
-          >
-            <div className="flex items-center p-3">
-              <Image 
-                src={currentTrack.coverArt || '/default-user.jpg'} 
-                alt={currentTrack.name} 
-                width={40} 
-                height={40} 
-                className="w-10 h-10 rounded-md shrink-0" 
-              />
-              <div className="flex-1 min-w-0 mx-3">
-                <div className="overflow-hidden">
-                  <p className="font-semibold text-sm whitespace-nowrap animate-infinite-scroll">
-                    {currentTrack.name}
-                  </p>
-                </div>
-                <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
-              </div>
-              {/* Heart icon for favoriting */}
-              <button 
-                className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors mr-2" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleCurrentTrackStar();
-                }}
-                title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
-              >
-                <Heart 
-                  className={`w-4 h-4 ${currentTrack.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
-                />
-              </button>
-              <div className="flex items-center justify-center space-x-2">
-            <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
-              <FaBackward className="w-3 h-3" />
-            </button>
-            <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
-              {isPlaying ? <FaPause className="w-4 h-4" /> : <FaPlay className="w-4 h-4" />}
-            </button>
-            <button className="p-1.5 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
-              <FaForward className="w-3 h-3" />
-            </button>
-          </div>
-            </div>
-          </div>
-        </div>
+        <DraggableMiniPlayer onExpand={() => setIsMinimized(false)} />
         
         {/* Single audio element - shared across all UI states */}
         <audio 
