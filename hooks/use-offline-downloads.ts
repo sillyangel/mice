@@ -7,9 +7,14 @@ export interface DownloadProgress {
   completed: number;
   total: number;
   failed: number;
-  status: 'idle' | 'starting' | 'downloading' | 'complete' | 'error';
+  status: 'idle' | 'starting' | 'downloading' | 'complete' | 'error' | 'paused';
   currentSong?: string;
+  currentArtist?: string;
+  currentAlbum?: string;
   error?: string;
+  downloadSpeed?: number; // In bytes per second
+  timeRemaining?: number; // In seconds
+  percentComplete?: number; // 0-100
 }
 
 export interface OfflineItem {
@@ -19,6 +24,10 @@ export interface OfflineItem {
   artist: string;
   downloadedAt: number;
   size?: number;
+  bitRate?: number;
+  duration?: number;
+  format?: string;
+  lastPlayed?: number;
 }
 
 export interface OfflineStats {
@@ -28,6 +37,13 @@ export interface OfflineStats {
   metaSize: number;
   downloadedAlbums: number;
   downloadedSongs: number;
+  lastDownload: number | null;
+  downloadErrors: number;
+  remainingStorage: number | null;
+  autoDownloadEnabled: boolean;
+  downloadQuality: 'original' | 'high' | 'medium' | 'low';
+  downloadOnWifiOnly: boolean;
+  priorityContent: string[]; // IDs of albums or playlists that should always be available offline
 }
 
 class DownloadManager {
@@ -121,30 +137,107 @@ class DownloadManager {
     });
   }
   
-  async downloadSong(song: Song): Promise<void> {
+  async downloadSong(
+    song: Song, 
+    options?: { quality?: 'original' | 'high' | 'medium' | 'low', priority?: boolean }
+  ): Promise<void> {
     const songWithUrl = {
       ...song,
-  streamUrl: this.getDownloadUrl(song.id),
+      streamUrl: this.getDownloadUrl(song.id, options?.quality),
       offlineUrl: `offline-song-${song.id}`,
       duration: song.duration,
-  bitRate: song.bitRate,
-  size: song.size
+      bitRate: song.bitRate,
+      size: song.size,
+      priority: options?.priority || false,
+      quality: options?.quality || 'original'
     };
     
     return this.sendMessage('DOWNLOAD_SONG', songWithUrl);
   }
 
-  async downloadQueue(songs: Song[]): Promise<void> {
-    const songsWithUrls = songs.map(song => ({
-      ...song,
-  streamUrl: this.getDownloadUrl(song.id),
-      offlineUrl: `offline-song-${song.id}`,
-      duration: song.duration,
-  bitRate: song.bitRate,
-  size: song.size
-    }));
+  async downloadQueue(
+    songs: Song[], 
+    options?: { 
+      quality?: 'original' | 'high' | 'medium' | 'low', 
+      priority?: boolean,
+      onProgressUpdate?: (progress: DownloadProgress) => void
+    }
+  ): Promise<void> {
+    if (!this.worker) {
+      throw new Error('Service Worker not available');
+    }
     
-    return this.sendMessage('DOWNLOAD_QUEUE', { songs: songsWithUrls });
+    return new Promise((resolve, reject) => {
+      const channel = new MessageChannel();
+      
+      channel.port1.onmessage = (event) => {
+        const { type, data } = event.data;
+        
+        switch (type) {
+          case 'DOWNLOAD_PROGRESS':
+            if (options?.onProgressUpdate) {
+              options.onProgressUpdate(data);
+            }
+            break;
+          case 'DOWNLOAD_COMPLETE':
+            resolve();
+            break;
+          case 'DOWNLOAD_ERROR':
+            reject(new Error(data.error));
+            break;
+        }
+      };
+
+      const songsWithUrls = songs.map(song => ({
+        ...song,
+        streamUrl: this.getDownloadUrl(song.id, options?.quality),
+        offlineUrl: `offline-song-${song.id}`,
+        duration: song.duration,
+        bitRate: song.bitRate,
+        size: song.size,
+        priority: options?.priority || false,
+        quality: options?.quality || 'original'
+      }));
+      
+      this.worker!.postMessage({
+        type: 'DOWNLOAD_QUEUE',
+        data: { songs: songsWithUrls }
+      }, [channel.port2]);
+    });
+  }
+  
+  async pauseDownloads(): Promise<void> {
+    return this.sendMessage('PAUSE_DOWNLOADS', {});
+  }
+  
+  async resumeDownloads(): Promise<void> {
+    return this.sendMessage('RESUME_DOWNLOADS', {});
+  }
+  
+  async cancelDownloads(): Promise<void> {
+    return this.sendMessage('CANCEL_DOWNLOADS', {});
+  }
+  
+  async setDownloadPreferences(preferences: {
+    quality: 'original' | 'high' | 'medium' | 'low',
+    wifiOnly: boolean,
+    autoDownloadRecent: boolean,
+    autoDownloadFavorites: boolean,
+    maxStoragePercent: number,
+    priorityContent?: string[] // IDs of albums or playlists
+  }): Promise<void> {
+    return this.sendMessage('SET_DOWNLOAD_PREFERENCES', preferences);
+  }
+  
+  async getDownloadPreferences(): Promise<{
+    quality: 'original' | 'high' | 'medium' | 'low',
+    wifiOnly: boolean,
+    autoDownloadRecent: boolean,
+    autoDownloadFavorites: boolean,
+    maxStoragePercent: number,
+    priorityContent: string[]
+  }> {
+    return this.sendMessage('GET_DOWNLOAD_PREFERENCES', {});
   }
 
   async enableOfflineMode(settings: {
@@ -177,15 +270,25 @@ class DownloadManager {
     return this.sendMessage('GET_OFFLINE_ITEMS', {});
   }
   
-  private getDownloadUrl(songId: string): string {
+  private getDownloadUrl(songId: string, quality?: 'original' | 'high' | 'medium' | 'low'): string {
     const api = getNavidromeAPI();
     if (!api) throw new Error('Navidrome server not configured');
-    // Use direct download to fetch original file; browser handles transcoding/decoding.
-    // Fall back to stream URL if the server does not allow downloads.
-    if (typeof (api as any).getDownloadUrl === 'function') {
-      return (api as any).getDownloadUrl(songId);
+    
+    // Use direct download to fetch original file by default
+    if (quality === 'original' || !quality) {
+      if (typeof (api as any).getDownloadUrl === 'function') {
+        return (api as any).getDownloadUrl(songId);
+      }
     }
-    return api.getStreamUrl(songId);
+    
+    // For other quality settings, use the stream URL with appropriate parameters
+    const maxBitRate = quality === 'high' ? 320 : 
+                      quality === 'medium' ? 192 : 
+                      quality === 'low' ? 128 : undefined;
+    
+    const format = quality === 'low' ? 'mp3' : undefined; // Use mp3 for low quality, original otherwise
+    
+    return api.getStreamUrl(songId, { maxBitRate, format });
   }
   
   // LocalStorage fallback for browsers without service worker support
@@ -309,7 +412,14 @@ export function useOfflineDownloads() {
     imageSize: 0,
     metaSize: 0,
     downloadedAlbums: 0,
-    downloadedSongs: 0
+    downloadedSongs: 0,
+    lastDownload: null,
+    downloadErrors: 0,
+    remainingStorage: null,
+    autoDownloadEnabled: false,
+    downloadQuality: 'original',
+    downloadOnWifiOnly: true,
+    priorityContent: []
   });
   
   useEffect(() => {

@@ -64,6 +64,22 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
   const [activeTab, setActiveTab] = useState<MobileTab>('player');
   const lyricsRef = useRef<HTMLDivElement>(null);
 
+  // Initialize volume from saved preference when fullscreen opens
+  useEffect(() => {
+    if (!isOpen) return;
+    try {
+      const savedVolume = localStorage.getItem('navidrome-volume');
+      if (savedVolume !== null) {
+        const vol = parseFloat(savedVolume);
+        if (!isNaN(vol) && vol >= 0 && vol <= 1) {
+          setVolume(vol);
+          const mainAudio = document.querySelector('audio') as HTMLAudioElement | null;
+          if (mainAudio) mainAudio.volume = vol;
+        }
+      }
+    } catch {}
+  }, [isOpen]);
+
   // Debug logging for component changes
   useEffect(() => {
     console.log('🔍 FullScreenPlayer state changed:', {
@@ -128,7 +144,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             const containerHeight = scrollContainer.clientHeight;
             const elementTop = currentLyricElement.offsetTop;
             const elementHeight = currentLyricElement.offsetHeight;
-            const targetScrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
+            // Position the active lyric higher on the screen (~25% from top)
+            const focusFraction = 0.25; // 0.5 would be center
+            const targetScrollTop = elementTop - (containerHeight * focusFraction) + (elementHeight / 2);
             
             scrollContainer.scrollTo({
               top: Math.max(0, targetScrollTop),
@@ -379,6 +397,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     
     mainAudio.currentTime = newTime;
     setCurrentTime(newTime);
+    try {
+      localStorage.setItem('navidrome-current-track-time', newTime.toString());
+    } catch {}
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -388,6 +409,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     const newVolume = parseInt(e.target.value) / 100;
     mainAudio.volume = newVolume;
     setVolume(newVolume);
+    try {
+      localStorage.setItem('navidrome-volume', newVolume.toString());
+    } catch {}
   };
 
   const handleLyricClick = (time: number) => {
@@ -396,6 +420,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
     mainAudio.currentTime = time;
     setCurrentTime(time);
+    try {
+      localStorage.setItem('navidrome-current-track-time', time.toString());
+    } catch {}
     
     // Update progress bar as well
     if (duration > 0) {
@@ -660,18 +687,18 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                       className="flex-1 overflow-y-auto"
                       ref={lyricsRef}
                     >
-                      <div className="space-y-3 py-4">
+            <div className="space-y-4 py-10">
                         {lyrics.map((line, index) => (
                           <motion.div
                             key={index}
                             data-lyric-index={index}
                             onClick={() => handleLyricClick(line.time)}
                             initial={false}
-                            animate={index === currentLyricIndex ? { scale: 1, opacity: 1 } : index < currentLyricIndex ? { scale: 0.995, opacity: 0.7 } : { scale: 0.99, opacity: 0.5 }}
+              animate={index === currentLyricIndex ? { scale: 1.06, opacity: 1 } : index < currentLyricIndex ? { scale: 0.985, opacity: 0.75 } : { scale: 0.98, opacity: 0.6 }}
                             transition={{ duration: 0.2 }}
-                            className={`text-base leading-relaxed transition-colors duration-200 break-words cursor-pointer hover:text-foreground px-2 ${
+              className={`text-2xl sm:text-3xl leading-relaxed transition-colors duration-200 break-words cursor-pointer hover:text-foreground px-2 ${
                               index === currentLyricIndex
-                                ? 'text-foreground font-bold text-xl'
+                ? 'text-foreground font-extrabold leading-tight text-5xl sm:text-6xl'
                                 : index < currentLyricIndex
                                 ? 'text-foreground/60'
                                 : 'text-foreground/40'
@@ -680,14 +707,18 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                               wordWrap: 'break-word',
                               overflowWrap: 'break-word',
                               hyphens: 'auto',
-                              paddingBottom: '4px'
+                              paddingBottom: '4px',
+                              // Subtle glow to make the current line feel elevated
+                              textShadow: index === currentLyricIndex 
+                                ? '0 4px 16px rgba(0,0,0,0.7), 0 0 24px rgba(255,255,255,0.16)'
+                                : undefined
                             }}
                             title={`Click to jump to ${formatTime(line.time)}`}
                           >
                             {line.text || '♪'}
                           </motion.div>
                         ))}
-                        <div style={{ height: '200px' }} />
+                        <div style={{ height: '260px' }} />
                       </div>
                     </div>
                   </motion.div>
@@ -727,8 +758,6 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 )}
                 </AnimatePresence>
               </div>
-
-              {/* Mobile Tab Bar */}
               <div className="flex-shrink-0 pb-safe">
                 <div className="flex justify-around py-4 mb-2">
                   <button
@@ -912,18 +941,18 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 >
                   <div className="h-full flex flex-col">
                     <ScrollArea className="flex-1 min-h-0">
-                      <div className="space-y-3 pl-4 pr-4 py-4">
+                      <div className="space-y-3 pl-4 pr-4 py-8">
                         {lyrics.map((line, index) => (
                           <motion.div
                             key={index}
                             data-lyric-index={index}
                             onClick={() => handleLyricClick(line.time)}
                             initial={false}
-                            animate={index === currentLyricIndex ? { scale: 1, opacity: 1 } : index < currentLyricIndex ? { scale: 0.995, opacity: 0.75 } : { scale: 0.99, opacity: 0.5 }}
+                            animate={index === currentLyricIndex ? { scale: 1.04, opacity: 1 } : index < currentLyricIndex ? { scale: 0.985, opacity: 0.75 } : { scale: 0.98, opacity: 0.5 }}
                             transition={{ duration: 0.2 }}
                             className={`text-base leading-relaxed transition-colors duration-200 break-words cursor-pointer hover:text-foreground ${
                               index === currentLyricIndex
-                                ? 'text-foreground font-bold text-2xl'
+                                ? 'text-foreground font-extrabold leading-tight text-5xl'
                                 : index < currentLyricIndex
                                 ? 'text-foreground/60'
                                 : 'text-foreground/40'
@@ -933,14 +962,18 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                               overflowWrap: 'break-word',
                               hyphens: 'auto',
                               paddingBottom: '4px',
-                              paddingLeft: '8px'
+                              paddingLeft: '8px',
+                              // Subtle glow to make the current line feel elevated
+                              textShadow: index === currentLyricIndex 
+                                ? '0 6px 18px rgba(0,0,0,0.7), 0 0 28px rgba(255,255,255,0.18)'
+                                : undefined
                             }}
                             title={`Click to jump to ${formatTime(line.time)}`}
                           >
                             {line.text || '♪'}
                           </motion.div>
                         ))}
-                        <div style={{ height: '200px' }} />
+                        <div style={{ height: '240px' }} />
                       </div>
                     </ScrollArea>
                   </div>

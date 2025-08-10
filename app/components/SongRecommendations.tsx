@@ -109,7 +109,7 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
     try {
       const api = getNavidromeAPI();
       const url = api ? api.getStreamUrl(song.id) : `offline-song-${song.id}`;
-      const coverArt = song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 64) : undefined;
+  const coverArt = song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 300) : undefined;
       const track = {
         id: song.id,
         name: song.title,
@@ -140,7 +140,7 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
       if (albumSongs.length > 0) {
         const first = albumSongs[0];
         const url = api ? api.getStreamUrl(first.id) : `offline-song-${first.id}`;
-        const coverArt = first.coverArt && api ? api.getCoverArtUrl(first.coverArt, 64) : undefined;
+  const coverArt = first.coverArt && api ? api.getCoverArtUrl(first.coverArt, 300) : undefined;
         const track = {
           id: first.id,
           name: first.title,

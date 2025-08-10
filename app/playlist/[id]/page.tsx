@@ -57,7 +57,7 @@ export default function PlaylistPage() {
       artist: song.artist,
       album: song.album,
       duration: song.duration,
-      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 64) : undefined,
+  coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred
@@ -77,7 +77,7 @@ export default function PlaylistPage() {
       artist: song.artist,
       album: song.album,
       duration: song.duration,
-      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 64) : undefined,
+  coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred
@@ -98,7 +98,7 @@ export default function PlaylistPage() {
       artist: song.artist,
       album: song.album,
       duration: song.duration,
-      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 64) : undefined,
+  coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred

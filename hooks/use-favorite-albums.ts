@@ -60,7 +60,7 @@ export function useFavoriteAlbums() {
           id: album.id,
           name: album.name,
           artist: album.artist,
-          coverArt: album.coverArt ? api.getCoverArtUrl(album.coverArt, 64) : undefined
+          coverArt: album.coverArt ? api.getCoverArtUrl(album.coverArt, 300) : undefined
         };
         addFavoriteAlbum(favoriteAlbum);
       }
