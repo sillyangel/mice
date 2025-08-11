@@ -86,7 +86,10 @@ export function useOfflineLibrarySync() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    setIsOnline(navigator.onLine);
+    // Check if navigator is available (client-side only)
+    if (typeof navigator !== 'undefined') {
+      setIsOnline(navigator.onLine);
+    }
 
     return () => {
       window.removeEventListener('online', handleOnline);
