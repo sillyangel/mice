@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { UserProfile } from './components/UserProfile';
 import { OfflineStatusIndicator } from './components/OfflineStatusIndicator';
+import CompactListeningStreak from './components/CompactListeningStreak';
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 
@@ -217,6 +218,11 @@ function MusicPageContent() {
       {/* Song Recommendations Section */}
       <div className="mb-8">
         <SongRecommendations userName={userName} />
+      </div>
+            
+      {/* Listening Streak Section - Only shown when 3+ days streak */}
+      <div className="mb-6">
+        <CompactListeningStreak />
       </div>
       
       <>
