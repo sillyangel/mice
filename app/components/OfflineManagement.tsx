@@ -125,7 +125,7 @@ export function OfflineManagement() {
 
   if (!isInitialized) {
     return (
-      <Card>
+      <Card className="mb-6 break-inside-avoid py-5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
@@ -150,7 +150,7 @@ export function OfflineManagement() {
   return (
     <div className="space-y-6">
       {/* Connection Status */}
-      <Card>
+      <Card className="mb-6 break-inside-avoid py-5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {isOnline ? (
@@ -185,7 +185,7 @@ export function OfflineManagement() {
       </Card>
 
       {/* Sync Status */}
-      <Card>
+      <Card className="mb-6 break-inside-avoid py-5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5" />
@@ -242,7 +242,7 @@ export function OfflineManagement() {
       </Card>
 
       {/* Library Statistics */}
-      <Card>
+      <Card className="mb-6 break-inside-avoid py-5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
@@ -310,9 +310,9 @@ export function OfflineManagement() {
       </Card>
 
       {/* Offline Features */}
-      <Card>
+      <Card className="mb-6 break-inside-avoid py-5">
         <CardHeader>
-          <CardTitle>Offline Features</CardTitle>
+          <CardTitle className='flex items-center gap-2'>Offline Features</CardTitle>
           <CardDescription>
             What works when you&apos;re offline
           </CardDescription>
@@ -363,9 +363,9 @@ export function OfflineManagement() {
       </Card>
 
       {/* Danger Zone */}
-      <Card className="border-red-200">
+      <Card className="mb-6 break-inside-avoid py-5 border-red-200">
         <CardHeader>
-          <CardTitle className="text-red-600">Danger Zone</CardTitle>
+          <CardTitle className="text-red-600 flex items-center gap-2">Danger Zone</CardTitle>
           <CardDescription>
             Permanently delete all offline data
           </CardDescription>
