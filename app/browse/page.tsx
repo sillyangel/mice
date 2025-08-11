@@ -1,90 +1,53 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { AlbumArtwork } from '@/app/components/album-artwork';
 import { ArtistIcon } from '@/app/components/artist-icon';
 import { useNavidrome } from '@/app/components/NavidromeContext';
-import { getNavidromeAPI, Album } from '@/lib/navidrome';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
-import { Shuffle } from 'lucide-react';
+import { useProgressiveAlbumLoading } from '@/hooks/use-progressive-album-loading';
+import { 
+  Shuffle, 
+  ArrowDown, 
+  RefreshCcw,
+  Loader2
+} from 'lucide-react';
 import Loading from '@/app/components/loading';
+import { useInView } from 'react-intersection-observer';
 
 export default function BrowsePage() {
   const { artists, isLoading: contextLoading } = useNavidrome();
   const { shuffleAllAlbums } = useAudioPlayer();
-  const [albums, setAlbums] = useState<Album[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [isLoadingAlbums, setIsLoadingAlbums] = useState(false);
-  const [hasMoreAlbums, setHasMoreAlbums] = useState(true);
-  const albumsPerPage = 84;
-
-  const api = getNavidromeAPI();
-  const loadAlbums = async (page: number, append: boolean = false) => {
-    if (!api) {
-      console.error('Navidrome API not available');
-      return;
-    }
-    
-    try {
-      setIsLoadingAlbums(true);
-      const offset = page * albumsPerPage;
-      
-      // Use alphabeticalByName to get all albums in alphabetical order
-      const newAlbums = await api.getAlbums('alphabeticalByName', albumsPerPage, offset);
-      
-      if (append) {
-        setAlbums(prev => [...prev, ...newAlbums]);
-      } else {
-        setAlbums(newAlbums);
-      }
-      
-      // If we got fewer albums than requested, we've reached the end
-      setHasMoreAlbums(newAlbums.length === albumsPerPage);
-    } catch (error) {
-      console.error('Failed to load albums:', error);
-    } finally {
-      setIsLoadingAlbums(false);
-    }
-  };
-
+  
+  // Use our progressive loading hook
+  const { 
+    albums, 
+    isLoading, 
+    hasMore, 
+    loadMoreAlbums, 
+    refreshAlbums
+  } = useProgressiveAlbumLoading('alphabeticalByName');
+  
+  // Infinite scroll with intersection observer
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+    triggerOnce: false
+  });
+  
+  // Load more albums when the load more sentinel comes into view
   useEffect(() => {
-    loadAlbums(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Infinite scroll handler
-  useEffect(() => {
-    const handleScroll = (e: Event) => {
-      const target = e.target as HTMLElement;
-      if (!target || isLoadingAlbums || !hasMoreAlbums) return;
-      
-      const { scrollTop, scrollHeight, clientHeight } = target;
-      const threshold = 200; // Load more when 200px from bottom
-      
-      if (scrollHeight - scrollTop - clientHeight < threshold) {
-        loadMore();
-      }
-    };
-
-    const scrollArea = document.querySelector('[data-radix-scroll-area-viewport]');
-    if (scrollArea) {
-      scrollArea.addEventListener('scroll', handleScroll);
-      return () => scrollArea.removeEventListener('scroll', handleScroll);
+    if (inView && hasMore && !isLoading) {
+      loadMoreAlbums();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoadingAlbums, hasMoreAlbums, currentPage]);
-
-  const loadMore = () => {
-    if (isLoadingAlbums || !hasMoreAlbums) return;
-    const nextPage = currentPage + 1;
-    setCurrentPage(nextPage);
-    loadAlbums(nextPage, true);
-  };
+  }, [inView, hasMore, isLoading, loadMoreAlbums]);
+  
+  // Pull-to-refresh simulation
+  const handleRefresh = useCallback(() => {
+    refreshAlbums();
+  }, [refreshAlbums]);
 
   if (contextLoading) {
     return <Loading />;
@@ -137,6 +100,10 @@ export default function BrowsePage() {
                 Browse the full collection of albums ({albums.length} loaded).
               </p>
             </div>
+            <Button onClick={handleRefresh} variant="outline" size="sm">
+              <RefreshCcw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
           </div>
           <Separator className="my-4" />
           <div className="relative grow">
@@ -154,22 +121,45 @@ export default function BrowsePage() {
                     />
                   ))}
                 </div>
-                {hasMoreAlbums && (
-                  <div className="flex justify-center p-4 pb-24">
+                {/* Load more sentinel */}
+                {hasMore && (
+                  <div 
+                    ref={ref} 
+                    className="flex justify-center p-4 pb-24"
+                  >
                     <Button 
-                      onClick={loadMore} 
-                      disabled={isLoadingAlbums}
-                      variant="outline"
+                      onClick={loadMoreAlbums} 
+                      disabled={isLoading}
+                      variant="ghost"
+                      className="flex flex-col items-center gap-2"
                     >
-                      {isLoadingAlbums ? 'Loading...' : `Load More Albums (${albumsPerPage} more)`}
+                      {isLoading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : (
+                        <ArrowDown className="h-6 w-6" />
+                      )}
+                      <span className="text-sm">
+                        {isLoading ? 'Loading...' : 'Load More Albums'}
+                      </span>
                     </Button>
                   </div>
                 )}
-                {!hasMoreAlbums && albums.length > 0 && (
+                
+                {!hasMore && albums.length > 0 && (
                   <div className="flex justify-center p-4 pb-24">
                     <p className="text-sm text-muted-foreground">
                       All albums loaded ({albums.length} total)
                     </p>
+                  </div>
+                )}
+                
+                {albums.length === 0 && !isLoading && (
+                  <div className="flex flex-col items-center justify-center p-12">
+                    <p className="text-lg font-medium mb-2">No albums found</p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Try refreshing or check your connection
+                    </p>
+                    <Button onClick={handleRefresh}>Refresh</Button>
                   </div>
                 )}
               </div>

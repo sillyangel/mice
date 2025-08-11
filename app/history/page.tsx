@@ -10,6 +10,7 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { getNavidromeAPI } from '@/lib/navidrome';
 import { Play, Plus, User, Disc, History, Trash2 } from 'lucide-react';
+import ListeningStreakCard from '@/app/components/ListeningStreakCard';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -78,6 +79,10 @@ export default function HistoryPage() {
 
   return (
     <div className="h-full px-4 py-6 lg:px-8">
+      <div className="mb-6">
+        <ListeningStreakCard />
+      </div>
+
       <Tabs defaultValue="music" className="h-full space-y-6">
         <TabsContent value="music" className="border-none p-0 outline-hidden">
           <div className="flex items-center justify-between">
