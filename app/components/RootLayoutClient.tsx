@@ -15,16 +15,18 @@ import { LoginForm } from "./start-screen";
 import Image from "next/image";
 import PageTransition from "./PageTransition";
 
-// Service Worker registration
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js')
-    .then((registration) => {
-      console.log('Service Worker registered successfully:', registration);
-    })
-    .catch((error) => {
-      console.error('Service Worker registration failed:', error);
-    });
-}
+// Service Worker registration - moved to useEffect to ensure it only runs client-side
+React.useEffect(() => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('Service Worker registered successfully:', registration);
+      })
+      .catch((error) => {
+        console.error('Service Worker registration failed:', error);
+      });
+  }
+}, []);
 
 function NavidromeErrorBoundary({ children }: { children: React.ReactNode }) {
   // For now, since we're switching to offline-first, we'll handle errors differently

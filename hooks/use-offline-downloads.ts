@@ -394,7 +394,95 @@ class DownloadManager {
   }
 }
 
-const downloadManager = new DownloadManager();
+// Create a singleton instance that will be initialized on the client side
+let downloadManagerInstance: DownloadManager | null = null;
+
+// Only create the download manager instance on the client side
+if (typeof window !== 'undefined') {
+  downloadManagerInstance = new DownloadManager();
+}
+
+// Create a safe wrapper around the download manager
+const downloadManager = {
+  initialize: async () => {
+    if (!downloadManagerInstance) return false;
+    return downloadManagerInstance.initialize();
+  },
+  getOfflineStats: async () => {
+    if (!downloadManagerInstance) return {
+      totalSize: 0,
+      audioSize: 0,
+      imageSize: 0,
+      metaSize: 0,
+      downloadedAlbums: 0,
+      downloadedSongs: 0,
+      lastDownload: null,
+      downloadErrors: 0,
+      remainingStorage: null,
+      autoDownloadEnabled: false,
+      downloadQuality: 'original' as const,
+      downloadOnWifiOnly: true,
+      priorityContent: []
+    };
+    return downloadManagerInstance.getOfflineStats();
+  },
+  downloadAlbum: async (album: Album, songs: Song[], progressCallback: (progress: DownloadProgress) => void) => {
+    if (!downloadManagerInstance) return;
+    return downloadManagerInstance.downloadAlbum(album, songs, progressCallback);
+  },
+  downloadAlbumFallback: async (album: Album, songs: Song[]) => {
+    if (!downloadManagerInstance) return;
+    return downloadManagerInstance.downloadAlbumFallback(album, songs);
+  },
+  downloadSong: async (song: Song) => {
+    if (!downloadManagerInstance) return;
+    return downloadManagerInstance.downloadSong(song);
+  },
+  getOfflineData: () => {
+    if (!downloadManagerInstance) return { albums: {}, songs: {} };
+    return downloadManagerInstance.getOfflineData();
+  },
+  saveOfflineData: (data: any) => {
+    if (!downloadManagerInstance) return;
+    return downloadManagerInstance.saveOfflineData(data);
+  },
+  checkOfflineStatus: async (id: string, type: 'album' | 'song') => {
+    if (!downloadManagerInstance) return false;
+    return downloadManagerInstance.checkOfflineStatus(id, type);
+  },
+  checkOfflineStatusFallback: (id: string, type: 'album' | 'song') => {
+    if (!downloadManagerInstance) return false;
+    return downloadManagerInstance.checkOfflineStatusFallback(id, type);
+  },
+  deleteOfflineContent: async (id: string, type: 'album' | 'song') => {
+    if (!downloadManagerInstance) return;
+    return downloadManagerInstance.deleteOfflineContent(id, type);
+  },
+  deleteOfflineContentFallback: async (id: string, type: 'album' | 'song') => {
+    if (!downloadManagerInstance) return;
+    return downloadManagerInstance.deleteOfflineContentFallback(id, type);
+  },
+  getOfflineItems: async () => {
+    if (!downloadManagerInstance) return { albums: [], songs: [] };
+    return downloadManagerInstance.getOfflineItems();
+  },
+  getOfflineAlbums: () => {
+    if (!downloadManagerInstance) return [];
+    return downloadManagerInstance.getOfflineAlbums();
+  },
+  getOfflineSongs: () => {
+    if (!downloadManagerInstance) return [];
+    return downloadManagerInstance.getOfflineSongs();
+  },
+  downloadQueue: async (songs: Song[]) => {
+    if (!downloadManagerInstance) return;
+    return downloadManagerInstance.downloadQueue(songs);
+  },
+  enableOfflineMode: async (settings: any) => {
+    if (!downloadManagerInstance) return;
+    return downloadManagerInstance.enableOfflineMode(settings);
+  }
+};
 
 export function useOfflineDownloads() {
   const [isSupported, setIsSupported] = useState(false);
@@ -424,6 +512,13 @@ export function useOfflineDownloads() {
   
   useEffect(() => {
     const initializeDownloadManager = async () => {
+      // Skip initialization on server-side
+      if (!downloadManager) {
+        setIsSupported(false);
+        setIsInitialized(true);
+        return;
+      }
+      
       const supported = await downloadManager.initialize();
       setIsSupported(supported);
       setIsInitialized(true);

@@ -19,9 +19,12 @@ export interface OfflineLibraryState {
 }
 
 export function useOfflineLibrary() {
+  // Check if we're on the client side
+  const isClient = typeof window !== 'undefined';
+  
   const [state, setState] = useState<OfflineLibraryState>({
     isInitialized: false,
-    isOnline: navigator.onLine,
+    isOnline: isClient ? navigator.onLine : true, // Default to true during SSR
     isSyncing: false,
     lastSync: null,
     stats: {
