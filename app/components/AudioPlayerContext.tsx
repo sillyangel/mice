@@ -33,12 +33,14 @@ interface AudioPlayerContextProps {
   playTrack: (track: Track, autoPlay?: boolean) => void;
   queue: Track[];
   addToQueue: (track: Track) => void;
+  insertAtBeginningOfQueue: (track: Track) => void;
   playNextTrack: () => void;
   clearQueue: () => void;
   addAlbumToQueue: (albumId: string) => Promise<void>;
   playAlbum: (albumId: string) => Promise<void>;
   playAlbumFromTrack: (albumId: string, startingSongId: string) => Promise<void>;
   removeTrackFromQueue: (index: number) => void;
+  reorderQueue: (oldIndex: number, newIndex: number) => void;
   skipToTrackInQueue: (index: number) => void;
   addArtistToQueue: (artistId: string) => Promise<void>;
   playPreviousTrack: () => void;
@@ -291,12 +293,25 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   }, [shuffle]);
 
+  const insertAtBeginningOfQueue = useCallback((track: Track) => {
+    setQueue((prevQueue) => [track, ...prevQueue]);
+  }, []);
+
   const clearQueue = useCallback(() => {
     setQueue([]);
   }, []);
 
   const removeTrackFromQueue = useCallback((index: number) => {
     setQueue((prevQueue) => prevQueue.filter((_, i) => i !== index));
+  }, []);
+
+  const reorderQueue = useCallback((oldIndex: number, newIndex: number) => {
+    setQueue((prevQueue) => {
+      const newQueue = [...prevQueue];
+      const [movedItem] = newQueue.splice(oldIndex, 1);
+      newQueue.splice(newIndex, 0, movedItem);
+      return newQueue;
+    });
   }, []);
 
   const playNextTrack = useCallback(() => {
@@ -736,10 +751,12 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     playTrack, 
     queue, 
     addToQueue, 
+    insertAtBeginningOfQueue,
     playNextTrack, 
     clearQueue, 
     addAlbumToQueue, 
     removeTrackFromQueue, 
+    reorderQueue,
     addArtistToQueue, 
     playPreviousTrack,
     isLoading,
@@ -835,10 +852,12 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     isLoading, 
     playTrack, 
     addToQueue, 
+    insertAtBeginningOfQueue,
     playNextTrack, 
     clearQueue, 
     addAlbumToQueue, 
     removeTrackFromQueue, 
+    reorderQueue,
     addArtistToQueue, 
     playPreviousTrack,
     playAlbum,

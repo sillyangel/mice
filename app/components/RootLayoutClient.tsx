@@ -14,6 +14,7 @@ import { useViewportThemeColor } from "@/hooks/use-viewport-theme-color";
 import { LoginForm } from "./start-screen";
 import Image from "next/image";
 import PageTransition from "./PageTransition";
+import { GlobalSearchProvider } from "./GlobalSearchProvider";
 
 // ServiceWorkerRegistration component to handle registration
 function ServiceWorkerRegistration() {
@@ -109,10 +110,12 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
           <OfflineNavidromeProvider>
             <NavidromeErrorBoundary>
               <AudioPlayerProvider>
-                <Ihateserverside>
-                  <PageTransition>{children}</PageTransition>
-                </Ihateserverside>
-                <WhatsNewPopup />
+                <GlobalSearchProvider>
+                  <Ihateserverside>
+                    <PageTransition>{children}</PageTransition>
+                  </Ihateserverside>
+                  <WhatsNewPopup />
+                </GlobalSearchProvider>
               </AudioPlayerProvider>
             </NavidromeErrorBoundary>
           </OfflineNavidromeProvider>
