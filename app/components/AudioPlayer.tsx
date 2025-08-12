@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useLastFmScrobbler } from '@/hooks/use-lastfm-scrobbler';
 import { useStandaloneLastFm } from '@/hooks/use-standalone-lastfm';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { useGlobalSearch } from './GlobalSearchProvider';
 import { DraggableMiniPlayer } from './DraggableMiniPlayer';
 
 export const AudioPlayer: React.FC = () => {
@@ -799,6 +801,34 @@ export const AudioPlayer: React.FC = () => {
       }
     }
   };
+
+  // Volume control functions for keyboard shortcuts
+  const handleVolumeUp = useCallback(() => {
+    setVolume(prevVolume => Math.min(1, prevVolume + 0.1));
+  }, []);
+
+  const handleVolumeDown = useCallback(() => {
+    setVolume(prevVolume => Math.max(0, prevVolume - 0.1));
+  }, []);
+
+  const handleToggleMute = useCallback(() => {
+    setVolume(prevVolume => prevVolume === 0 ? 1 : 0);
+  }, []);
+
+  const { openSpotlight } = useGlobalSearch();
+
+  // Set up keyboard shortcuts
+  useKeyboardShortcuts({
+    onPlayPause: togglePlayPause,
+    onNextTrack: playNextTrack,
+    onPreviousTrack: playPreviousTrack,
+    onVolumeUp: handleVolumeUp,
+    onVolumeDown: handleVolumeDown,
+    onToggleMute: handleToggleMute,
+    onSpotlightSearch: openSpotlight,
+    disabled: !currentTrack || isFullScreen // Disable if no track or in fullscreen (let FullScreenPlayer handle it)
+  });
+
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);

@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Home, Search, Disc, Users, Music, Heart, List, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useGlobalSearch } from './GlobalSearchProvider';
 
 interface NavItem {
   href: string;
@@ -21,9 +22,15 @@ const navigationItems: NavItem[] = [
 export function BottomNavigation() {
   const router = useRouter();
   const pathname = usePathname();
+  const { openSpotlight } = useGlobalSearch();
 
   const handleNavigation = (href: string) => {
-    router.push(href);
+    if (href === '/search') {
+      // Use spotlight search instead of navigating to search page
+      openSpotlight();
+    } else {
+      router.push(href);
+    }
   };
 
   const isActive = (href: string) => {

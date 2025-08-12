@@ -9,6 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { lrcLibClient } from '@/lib/lrclib';
 import Link from 'next/link';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { useGlobalSearch } from './GlobalSearchProvider';
 import { AudioSettingsDialog } from './AudioSettingsDialog';
 import { 
   FaPlay, 
@@ -418,6 +420,54 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       localStorage.setItem('navidrome-volume', newVolume.toString());
     } catch {}
   };
+
+  // Volume control functions for keyboard shortcuts
+  const handleVolumeUp = () => {
+    const mainAudio = document.querySelector('audio') as HTMLAudioElement;
+    if (!mainAudio) return;
+    const newVolume = Math.min(1, mainAudio.volume + 0.1);
+    mainAudio.volume = newVolume;
+    setVolume(newVolume);
+    try {
+      localStorage.setItem('navidrome-volume', newVolume.toString());
+    } catch {}
+  };
+
+  const handleVolumeDown = () => {
+    const mainAudio = document.querySelector('audio') as HTMLAudioElement;
+    if (!mainAudio) return;
+    const newVolume = Math.max(0, mainAudio.volume - 0.1);
+    mainAudio.volume = newVolume;
+    setVolume(newVolume);
+    try {
+      localStorage.setItem('navidrome-volume', newVolume.toString());
+    } catch {}
+  };
+
+  const handleToggleMute = () => {
+    const mainAudio = document.querySelector('audio') as HTMLAudioElement;
+    if (!mainAudio) return;
+    const newVolume = mainAudio.volume === 0 ? 1 : 0;
+    mainAudio.volume = newVolume;
+    setVolume(newVolume);
+    try {
+      localStorage.setItem('navidrome-volume', newVolume.toString());
+    } catch {}
+  };
+
+  const { openSpotlight } = useGlobalSearch();
+
+  // Set up keyboard shortcuts for fullscreen player
+  useKeyboardShortcuts({
+    onPlayPause: togglePlayPause,
+    onNextTrack: playNextTrack,
+    onPreviousTrack: playPreviousTrack,
+    onVolumeUp: handleVolumeUp,
+    onVolumeDown: handleVolumeDown,
+    onToggleMute: handleToggleMute,
+    onSpotlightSearch: openSpotlight,
+    disabled: !isOpen || !currentTrack // Only active when fullscreen is open
+  });
 
   const handleLyricClick = (time: number) => {
     const mainAudio = document.querySelector('audio') as HTMLAudioElement;
