@@ -56,56 +56,62 @@ function SortableQueueItem({ track, index, onPlay, onRemove, formatDuration }: S
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex items-center p-3 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors ${
+      className={`group flex items-center p-3 rounded-lg hover:bg-accent/50 transition-colors ${
         isDragging ? 'bg-accent' : ''
       }`}
-      onClick={onPlay}
     >
       {/* Drag Handle */}
       <div
-        className="mr-3 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+        className="mr-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 -m-1 hover:bg-accent rounded"
         {...attributes}
         {...listeners}
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         <GripVertical className="w-4 h-4 text-muted-foreground" />
       </div>
 
-      {/* Album Art with Play Indicator */}
-      <div className="w-12 h-12 mr-4 shrink-0 relative">
-        <Image
-          src={track.coverArt || '/default-user.jpg'}
-          alt={track.album}
-          width={48}
-          height={48}
-          className="w-full h-full object-cover rounded-md"
-        />
-        <div className="absolute inset-0 bg-black/50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <Play className="w-5 h-5 text-white" />
-        </div>
-      </div>
-
-      {/* Song Info */}
-      <div className="flex-1 min-w-0 mr-4">
-        <div className="flex items-center gap-2 mb-1">
-          <p className="font-semibold truncate">{track.name}</p>
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground space-x-4">
-          <div className="flex items-center gap-1">
-            <Link 
-              href={`/artist/${track.artistId}`} 
-              className="truncate hover:text-primary hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {track.artist}
-            </Link>
+      {/* Clickable content area for play */}
+      <div 
+        className="flex items-center flex-1 cursor-pointer"
+        onClick={onPlay}
+      >
+        {/* Album Art with Play Indicator */}
+        <div className="w-12 h-12 mr-4 shrink-0 relative">
+          <Image
+            src={track.coverArt || '/default-user.jpg'}
+            alt={track.album}
+            width={48}
+            height={48}
+            className="w-full h-full object-cover rounded-md"
+          />
+          <div className="absolute inset-0 bg-black/50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <Play className="w-5 h-5 text-white" />
           </div>
         </div>
-      </div>
 
-      {/* Duration */}
-      <div className="flex items-center text-sm text-muted-foreground mr-4">
-        {formatDuration(track.duration)}
+        {/* Song Info */}
+        <div className="flex-1 min-w-0 mr-4">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="font-semibold truncate">{track.name}</p>
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground space-x-4">
+            <div className="flex items-center gap-1">
+              <Link 
+                href={`/artist/${track.artistId}`} 
+                className="truncate hover:text-primary hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {track.artist}
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Duration */}
+        <div className="flex items-center text-sm text-muted-foreground mr-4">
+          {formatDuration(track.duration)}
+        </div>
       </div>
 
       {/* Actions */}
@@ -130,7 +136,11 @@ const QueuePage: React.FC = () => {
   const { queue, currentTrack, removeTrackFromQueue, clearQueue, skipToTrackInQueue, reorderQueue } = useAudioPlayer();
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px of movement before starting drag
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
