@@ -36,6 +36,7 @@ export function LoginForm({
   });
 
   const [isTesting, setIsTesting] = useState(false);
+  const [hasError, setHasError] = useState(false);
   
   // Settings for step 2
   const [scrobblingEnabled, setScrobblingEnabled] = useState(() => {
@@ -45,21 +46,7 @@ export function LoginForm({
     return true;
   });
 
-  // Sidebar shortcuts setting - default to 'playlists'
-  const [sidebarShortcuts, setSidebarShortcuts] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('sidebar-layout-settings');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          return parsed.shortcuts || 'playlists';
-        } catch (e) {
-          return 'playlists';
-        }
-      }
-    }
-    return 'playlists';
-  });
+  // New settings - removed sidebar and standalone lastfm options
 
   // Check if Navidrome is configured via environment variables
   const hasEnvConfig = React.useMemo(() => {
@@ -133,6 +120,7 @@ export function LoginForm({
     e.preventDefault();
     
     if (!formData.serverUrl || !formData.username || !formData.password) {
+      setHasError(true);
       toast({
         title: "Missing Information",
         description: "Please fill in all fields before proceeding.",
@@ -142,6 +130,7 @@ export function LoginForm({
     }
 
     setIsTesting(true);
+    setHasError(false);
     try {
       // Strip trailing slash from server URL before testing
       const cleanServerUrl = formData.serverUrl.replace(/\/+$/, '');
@@ -168,6 +157,7 @@ export function LoginForm({
         // Move to settings step
         setStep('settings');
       } else {
+        setHasError(true);
         toast({
           title: "Connection Failed",
           description: "Could not connect to the server. Please check your settings.",
@@ -175,6 +165,7 @@ export function LoginForm({
         });
       }
     } catch (error) {
+      setHasError(true);
       toast({
         title: "Connection Error",
         description: "An error occurred while testing the connection.",
@@ -188,23 +179,6 @@ export function LoginForm({
   const handleFinishSetup = () => {
     // Save all settings
     localStorage.setItem('lastfm-scrobbling-enabled', scrobblingEnabled.toString());
-    
-    // Save sidebar settings with default items
-    const defaultItems = [
-      {"id":"home","label":"Home","visible":true,"icon":"home","href":"/"},
-      {"id":"queue","label":"Queue","visible":true,"icon":"queue","href":"/queue"},
-      {"id":"artists","label":"Artists","visible":true,"icon":"artists","href":"/library/artists"},
-      {"id":"albums","label":"Albums","visible":true,"icon":"albums","href":"/library/albums"},
-      {"id":"playlists","label":"Playlists","visible":true,"icon":"playlists","href":"/library/playlists"},
-      {"id":"favorites","label":"Favorites","visible":true,"icon":"favorites","href":"/favorites"},
-      {"id":"settings","label":"Settings","visible":true,"icon":"settings","href":"/settings"}
-    ];
-    
-    localStorage.setItem('sidebar-layout-settings', JSON.stringify({
-      items: defaultItems,
-      shortcuts: sidebarShortcuts,
-      showIcons: true
-    }));
     
     // Mark onboarding as complete
     localStorage.setItem('onboarding-completed', '1.1.0');
@@ -286,11 +260,12 @@ export function LoginForm({
                 <span>
                   <Label htmlFor="theme">Theme</Label>
                 </span>
-                <Select value={theme || "blue"} onValueChange={setTheme}>
+                <Select value={theme} onValueChange={setTheme}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a theme" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="default">Default</SelectItem>
                     <SelectItem value="blue">Blue</SelectItem>
                     <SelectItem value="violet">Violet</SelectItem>
                     <SelectItem value="red">Red</SelectItem>
@@ -324,28 +299,6 @@ export function LoginForm({
                   {scrobblingEnabled 
                     ? "Tracks will be scrobbled to Last.fm via Navidrome" 
                     : "Last.fm scrobbling will be disabled"}
-                </p>
-              </div>
-
-              {/* Sidebar Shortcuts Selection */}
-              <div className="grid gap-3">
-                <Label htmlFor="sidebar-shortcuts">Sidebar Shortcuts</Label>
-                <Select value={sidebarShortcuts} onValueChange={setSidebarShortcuts}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="playlists">Playlists Only</SelectItem>
-                    <SelectItem value="both">Playlists + Artists</SelectItem>
-                    <SelectItem value="none">None</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  {sidebarShortcuts === 'playlists' 
-                    ? "Show only playlist shortcuts in the sidebar" 
-                    : sidebarShortcuts === 'both'
-                    ? "Show both playlist and artist shortcuts in the sidebar"
-                    : "Hide all shortcuts from the sidebar"}
                 </p>
               </div>
 
@@ -402,6 +355,7 @@ export function LoginForm({
                   placeholder="https://your-navidrome-server.com"
                   value={formData.serverUrl}
                   onChange={(e) => handleInputChange('serverUrl', e.target.value)}
+                  className={hasError ? "border-destructive focus-visible:ring-destructive" : ""}
                   required
                 />
               </div>
@@ -416,6 +370,7 @@ export function LoginForm({
                   placeholder="your-username"
                   value={formData.username}
                   onChange={(e) => handleInputChange('username', e.target.value)}
+                  className={hasError ? "border-destructive focus-visible:ring-destructive" : ""}
                   required
                 />
               </div>
@@ -429,6 +384,7 @@ export function LoginForm({
                   type="password" 
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
+                  className={hasError ? "border-destructive focus-visible:ring-destructive" : ""}
                   required 
                 />
               </div>
