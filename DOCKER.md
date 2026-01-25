@@ -65,8 +65,6 @@ When running with Docker, use these variable names (without the `NEXT_PUBLIC_` p
 - `NAVIDROME_PASSWORD`: Navidrome password (optional - app will prompt if not set)
 - `PORT`: Port for the application to listen on (default: `3000`)
 - `HOST_PORT`: Host port to map to container port (docker-compose only, default: `3000`)
-- `POSTHOG_KEY`: PostHog analytics key (optional)
-- `POSTHOG_HOST`: PostHog analytics host (optional)
 
 ### Development Environment Variables
 
@@ -75,8 +73,6 @@ For local development (non-Docker), use these variable names:
 - `NEXT_PUBLIC_NAVIDROME_URL`: URL of your Navidrome server
 - `NEXT_PUBLIC_NAVIDROME_USERNAME`: Navidrome username
 - `NEXT_PUBLIC_NAVIDROME_PASSWORD`: Navidrome password
-- `NEXT_PUBLIC_POSTHOG_KEY`: PostHog analytics key (optional)
-- `NEXT_PUBLIC_POSTHOG_HOST`: PostHog analytics host (optional)
 
 **Note**: Docker deployment uses a runtime replacement mechanism to inject environment variables, while development uses Next.js's built-in `NEXT_PUBLIC_` variables.
 

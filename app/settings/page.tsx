@@ -14,7 +14,6 @@ import { useStandaloneLastFm } from '@/hooks/use-standalone-lastfm';
 import { useSidebarShortcuts, SidebarShortcutType } from '@/hooks/use-sidebar-shortcuts';
 import { SidebarCustomization } from '@/app/components/SidebarCustomization';
 import { SettingsManagement } from '@/app/components/SettingsManagement';
-import { CacheManagement } from '@/app/components/CacheManagement';
 import EnhancedOfflineManager from '@/app/components/EnhancedOfflineManager';
 import { AutoTaggingSettings } from '@/app/components/AutoTaggingSettings';
 import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm, FaCog, FaTags } from 'react-icons/fa';
@@ -777,11 +776,6 @@ const SettingsPage = () => {
                 {/* Settings Management */}
                 <div className="break-inside-avoid mb-6">
                   <SettingsManagement />
-                </div>
-
-                {/* Cache Management */}
-                <div className="break-inside-avoid mb-6">
-                  <CacheManagement />
                 </div>
 
                 {/* Offline Library Management */}

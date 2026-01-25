@@ -47,7 +47,6 @@ const CHANGELOG = [
       'Enhanced Home page layout and content',
       'Themes updated to use OKLCH (from HSL)',
       'All themes updated (light themes look similar)',
-      'Caching system added (incomplete)',
       'Skeleton loading added across all pages'
     ],
     fixes: [

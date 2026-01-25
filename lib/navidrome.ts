@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import { albumCache, artistCache, songCache, imageCache, PersistentCache } from './cache';
 
 export interface NavidromeConfig {
   serverUrl: string;
