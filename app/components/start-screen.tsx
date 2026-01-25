@@ -45,7 +45,21 @@ export function LoginForm({
     return true;
   });
 
-  // New settings - removed sidebar and standalone lastfm options
+  // Sidebar shortcuts setting - default to 'playlists'
+  const [sidebarShortcuts, setSidebarShortcuts] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebar-layout-settings');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return parsed.shortcuts || 'playlists';
+        } catch (e) {
+          return 'playlists';
+        }
+      }
+    }
+    return 'playlists';
+  });
 
   // Check if Navidrome is configured via environment variables
   const hasEnvConfig = React.useMemo(() => {
@@ -175,6 +189,23 @@ export function LoginForm({
     // Save all settings
     localStorage.setItem('lastfm-scrobbling-enabled', scrobblingEnabled.toString());
     
+    // Save sidebar settings with default items
+    const defaultItems = [
+      {"id":"home","label":"Home","visible":true,"icon":"home","href":"/"},
+      {"id":"queue","label":"Queue","visible":true,"icon":"queue","href":"/queue"},
+      {"id":"artists","label":"Artists","visible":true,"icon":"artists","href":"/library/artists"},
+      {"id":"albums","label":"Albums","visible":true,"icon":"albums","href":"/library/albums"},
+      {"id":"playlists","label":"Playlists","visible":true,"icon":"playlists","href":"/library/playlists"},
+      {"id":"favorites","label":"Favorites","visible":true,"icon":"favorites","href":"/favorites"},
+      {"id":"settings","label":"Settings","visible":true,"icon":"settings","href":"/settings"}
+    ];
+    
+    localStorage.setItem('sidebar-layout-settings', JSON.stringify({
+      items: defaultItems,
+      shortcuts: sidebarShortcuts,
+      showIcons: true
+    }));
+    
     // Mark onboarding as complete
     localStorage.setItem('onboarding-completed', '1.1.0');
     
@@ -293,6 +324,28 @@ export function LoginForm({
                   {scrobblingEnabled 
                     ? "Tracks will be scrobbled to Last.fm via Navidrome" 
                     : "Last.fm scrobbling will be disabled"}
+                </p>
+              </div>
+
+              {/* Sidebar Shortcuts Selection */}
+              <div className="grid gap-3">
+                <Label htmlFor="sidebar-shortcuts">Sidebar Shortcuts</Label>
+                <Select value={sidebarShortcuts} onValueChange={setSidebarShortcuts}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="playlists">Playlists Only</SelectItem>
+                    <SelectItem value="both">Playlists + Artists</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  {sidebarShortcuts === 'playlists' 
+                    ? "Show only playlist shortcuts in the sidebar" 
+                    : sidebarShortcuts === 'both'
+                    ? "Show both playlist and artist shortcuts in the sidebar"
+                    : "Hide all shortcuts from the sidebar"}
                 </p>
               </div>
 
