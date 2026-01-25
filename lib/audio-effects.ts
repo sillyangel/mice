@@ -126,6 +126,7 @@ export class AudioEffects {
   public setCrossfadeTime(seconds: number) {
     if (this.crossfadeGainNode) {
       const now = this.context.currentTime;
+      this.crossfadeGainNode.gain.cancelScheduledValues(now);
       this.crossfadeGainNode.gain.setValueAtTime(1, now);
       this.crossfadeGainNode.gain.linearRampToValueAtTime(0, now + seconds);
     }
@@ -133,7 +134,10 @@ export class AudioEffects {
 
   public startCrossfade() {
     if (this.crossfadeGainNode) {
-      this.crossfadeGainNode.gain.value = 1;
+      const now = this.context.currentTime;
+      this.crossfadeGainNode.gain.cancelScheduledValues(now);
+      this.crossfadeGainNode.gain.setValueAtTime(0, now);
+      this.crossfadeGainNode.gain.linearRampToValueAtTime(1, now + 0.5); // Fast fade in
     }
   }
 

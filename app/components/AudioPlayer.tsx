@@ -388,6 +388,11 @@ export const AudioPlayer: React.FC = () => {
       
       // Auto-play only if the track has the autoPlay flag and audio is initialized
       if (currentTrack.autoPlay && (!isMobile || audioInitialized)) {
+        // Start crossfade fade-in if enabled
+        if (audioSettings.crossfadeDuration > 0 && audioEffects) {
+          audioEffects.startCrossfade();
+        }
+        
         // Add a small delay for iOS compatibility
         const playPromise = isMobile ? 
           new Promise(resolve => setTimeout(resolve, 100)).then(() => audioCurrent.play()) :
@@ -410,7 +415,7 @@ export const AudioPlayer: React.FC = () => {
         setIsPlaying(false);
       }
     }
-  }, [currentTrack, onTrackStart, onTrackPlay, isMobile, audioInitialized, audioEffects, audioSettings.gaplessPlayback, audioSettings.replayGainEnabled, queue]);
+  }, [currentTrack, onTrackStart, onTrackPlay, isMobile, audioInitialized, audioEffects, audioSettings.gaplessPlayback, audioSettings.replayGainEnabled, audioSettings.crossfadeDuration, queue]);
 
   useEffect(() => {
     const audioCurrent = audioRef.current;
