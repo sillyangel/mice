@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Album, Song } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
-import { Play, Heart } from 'lucide-react';
+import { Play, Heart, Shuffle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext'
@@ -111,6 +111,19 @@ export default function AlbumPage() {
     }
   };
 
+  const handleShuffleAlbum = async (): Promise<void> => {
+    if (!album || !tracklist.length) return;
+    
+    try {
+      // Shuffle the tracklist
+      const shuffled = [...tracklist].sort(() => Math.random() - 0.5);
+      // Play the first shuffled track
+      await playAlbumFromTrack(album.id, shuffled[0].id);
+    } catch (error) {
+      console.error('Failed to shuffle album:', error);
+    }
+  };
+
   const isCurrentlyPlaying = (song: Song): boolean => {
     return currentTrack?.id === song.id;
   };
@@ -173,6 +186,14 @@ export default function AlbumPage() {
                 >
                   <Play className="w-6 h-6" />
                 </Button>
+                <Button 
+                  variant="outline"
+                  className="w-12 h-12 rounded-full p-0" 
+                  onClick={handleShuffleAlbum}
+                  title="Shuffle Album"
+                >
+                  <Shuffle className="w-5 h-5" />
+                </Button>
               </div>
             </div>
           </div>
@@ -200,7 +221,12 @@ export default function AlbumPage() {
               {/* Controls row */}
               <div className="flex items-center gap-3">
                 <Button className="px-5" onClick={() => playAlbum(album.id)}>
+                  <Play className="w-4 h-4 mr-2" />
                   Play
+                </Button>
+                <Button variant="outline" className="px-5" onClick={handleShuffleAlbum}>
+                  <Shuffle className="w-4 h-4 mr-2" />
+                  Shuffle
                 </Button>
               </div>
               
