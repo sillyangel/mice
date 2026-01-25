@@ -18,6 +18,7 @@ import { useNavidromeConfig } from '@/app/components/NavidromeConfigContext';
 import { useTheme } from '@/app/components/ThemeProvider';
 import { useToast } from '@/hooks/use-toast';
 import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaPalette, FaLastfm } from 'react-icons/fa';
+import type { SidebarItem, SidebarLayoutSettings } from '@/hooks/use-sidebar-layout';
 
 export function LoginForm({
   className,
@@ -46,7 +47,8 @@ export function LoginForm({
     return true;
   });
 
-  // New settings - removed sidebar and standalone lastfm options
+  // Sidebar settings with new defaults
+  const [sidebarShortcuts, setSidebarShortcuts] = useState<'albums' | 'playlists' | 'both'>('playlists');
 
   // Check if Navidrome is configured via environment variables
   const hasEnvConfig = React.useMemo(() => {
@@ -180,6 +182,30 @@ export function LoginForm({
     // Save all settings
     localStorage.setItem('lastfm-scrobbling-enabled', scrobblingEnabled.toString());
     
+    // Save sidebar settings with new defaults
+    const defaultSidebarItems: SidebarItem[] = [
+      { id: 'home', label: 'Home', visible: true, icon: 'home', href: '/' },
+      { id: 'queue', label: 'Queue', visible: true, icon: 'queue', href: '/queue' },
+      { id: 'artists', label: 'Artists', visible: true, icon: 'artists', href: '/library/artists' },
+      { id: 'albums', label: 'Albums', visible: true, icon: 'albums', href: '/library/albums' },
+      { id: 'playlists', label: 'Playlists', visible: true, icon: 'playlists', href: '/library/playlists' },
+      { id: 'favorites', label: 'Favorites', visible: true, icon: 'favorites', href: '/favorites' },
+      { id: 'settings', label: 'Settings', visible: true, icon: 'settings', href: '/settings' },
+      // Hidden by default
+      { id: 'search', label: 'Search', visible: false, icon: 'search', href: '/search' },
+      { id: 'radio', label: 'Radio', visible: false, icon: 'radio', href: '/radio' },
+      { id: 'browse', label: 'Browse', visible: false, icon: 'browse', href: '/browse' },
+      { id: 'songs', label: 'Songs', visible: false, icon: 'songs', href: '/library/songs' },
+      { id: 'history', label: 'History', visible: false, icon: 'history', href: '/history' },
+    ];
+
+    const sidebarSettings: SidebarLayoutSettings = {
+      items: defaultSidebarItems,
+      shortcuts: sidebarShortcuts,
+      showIcons: true,
+    };
+    localStorage.setItem('sidebar-layout-settings', JSON.stringify(sidebarSettings));
+    
     // Mark onboarding as complete
     localStorage.setItem('onboarding-completed', '1.1.0');
     
@@ -299,6 +325,24 @@ export function LoginForm({
                   {scrobblingEnabled 
                     ? "Tracks will be scrobbled to Last.fm via Navidrome" 
                     : "Last.fm scrobbling will be disabled"}
+                </p>
+              </div>
+
+              {/* Sidebar Shortcuts */}
+              <div className="grid gap-3">
+                <Label>Sidebar Shortcuts</Label>
+                <Select value={sidebarShortcuts} onValueChange={(value: 'albums' | 'playlists' | 'both') => setSidebarShortcuts(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="playlists">Playlists Only</SelectItem>
+                    <SelectItem value="albums">Albums Only</SelectItem>
+                    <SelectItem value="both">Both</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  Choose what shortcuts appear in your sidebar
                 </p>
               </div>
 
