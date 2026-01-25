@@ -94,9 +94,9 @@ export function UserProfile({ variant = 'desktop' }: UserProfileProps) {
                 }}
               />
             ) : (
-              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-primary" />
-              </div>
+                <div className="w-4 h-4 bg-primary/10 rounded-full flex items-center justify-center">
+                <User className="w-2 h-2 text-primary" />
+                </div>
             )}
           </Button>
         </DropdownMenuTrigger>
@@ -106,8 +106,8 @@ export function UserProfile({ variant = 'desktop' }: UserProfileProps) {
               <Image
                 src={gravatarUrl}
                 alt={`${userInfo.username}'s avatar`}
-                width={16}
-                height={16}
+                width={32}
+                height={32}
                 className="rounded-full"
               />
             ) : (
@@ -207,3 +207,4 @@ export function UserProfile({ variant = 'desktop' }: UserProfileProps) {
     );
   }
 }
+

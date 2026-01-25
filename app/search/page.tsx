@@ -11,6 +11,7 @@ import { ArtistIcon } from '@/app/components/artist-icon';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { getNavidromeAPI, Artist, Album, Song } from '@/lib/navidrome';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
+import { TrackContextMenu, AlbumContextMenu, ArtistContextMenu } from '@/app/components/ContextMenus';
 import { Search, Play, Plus } from 'lucide-react';
 
 export default function SearchPage() {
@@ -34,7 +35,12 @@ export default function SearchPage() {
     try {
       setIsSearching(true);
       const results = await search2(query);
-      setSearchResults(results);
+      // Limit results to 5 of each type
+      setSearchResults({
+        artists: results.artists.slice(0, 5),
+        albums: results.albums.slice(0, 5),
+        songs: results.songs.slice(0, 5)
+      });
     } catch (error) {
       console.error('Search failed:', error);
       setSearchResults({ artists: [], albums: [], songs: [] });
@@ -51,6 +57,31 @@ export default function SearchPage() {
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
+
+  // Focus search input when component mounts (for keyboard shortcut navigation)
+  useEffect(() => {
+    const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.focus();
+    }
+  }, []);
+  const createTrackFromSong = (song: Song) => {
+    if (!api) return null;
+    
+    return {
+      id: song.id,
+      name: song.title,
+      url: api.getStreamUrl(song.id),
+      artist: song.artist,
+      album: song.album,
+      duration: song.duration,
+      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
+      albumId: song.albumId,
+      artistId: song.artistId,
+      starred: !!song.starred
+    };
+  };
+
   const handlePlaySong = (song: Song) => {
     if (!api) {
       console.error('Navidrome API not available');
@@ -136,25 +167,29 @@ export default function SearchPage() {
             )}
 
             {/* Artists */}
-            {/* {searchResults.artists.length > 0 && (
+            {searchResults.artists.length > 0 && (
               <div>
                 <h2 className="text-2xl font-bold mb-4">Artists</h2>
                 <ScrollArea className="w-full">
                   <div className="flex space-x-4 pb-4">
                     {searchResults.artists.map((artist) => (
+                      <ArtistContextMenu 
+                        key={artist.id}
+                        artistId={artist.id}
+                        artistName={artist.name}
+                      >
                         <ArtistIcon
-                          key={artist.id}
                           artist={artist}
                           className="shrink-0 overflow-hidden"
                           size={190}
                         />
+                      </ArtistContextMenu>
                     ))}
                   </div>
                   <ScrollBar orientation="horizontal" />
                 </ScrollArea>
               </div>
-            )} */}
-            {/* broken for now */}
+            )}
 
             {/* Albums */}
             {searchResults.albums.length > 0 && (
@@ -163,14 +198,19 @@ export default function SearchPage() {
                 <ScrollArea className="w-full">
                   <div className="flex space-x-4 pb-4">
                     {searchResults.albums.map((album) => (
-                      <AlbumArtwork 
-                        key={album.id} 
-                        album={album} 
-                        className="shrink-0 w-48" 
-                        aspectRatio="square"
-                        width={192}
-                        height={192}
-                      />
+                      <AlbumContextMenu 
+                        key={album.id}
+                        albumId={album.id}
+                        albumName={album.name}
+                      >
+                        <AlbumArtwork 
+                          album={album} 
+                          className="shrink-0 w-48" 
+                          aspectRatio="square"
+                          width={192}
+                          height={192}
+                        />
+                      </AlbumContextMenu>
                     ))}
                   </div>
                   <ScrollBar orientation="horizontal" />
@@ -183,54 +223,62 @@ export default function SearchPage() {
               <div>
                 <h2 className="text-2xl font-bold mb-4">Songs</h2>
                 <div className="space-y-2">
-                  {searchResults.songs.slice(0, 10).map((song, index) => (
-                    <div key={song.id} className="group flex items-center space-x-3 p-3 hover:bg-accent rounded-lg transition-colors">
-                      <div className="w-8 text-center text-sm text-muted-foreground">
-                        <span className="group-hover:hidden">{index + 1}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handlePlaySong(song)}
-                          className="hidden group-hover:flex h-8 w-8 p-0"
-                        >
-                          <Play className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      
-                      {/* Song Cover */}
-                      <div className="shrink-0">                        <Image
-                          src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 64) : '/default-user.jpg'}
-                          alt={song.album}
-                          width={48}
-                          height={48}
-                          className="w-12 h-12 rounded-md object-cover"
-                        />
-                      </div>
-                      
-                      {/* Song Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{song.title}</p>
-                        <p className="text-sm text-muted-foreground truncate">{song.artist} • {song.album}</p>
-                      </div>
-                      
-                      {/* Duration */}
-                      <div className="text-sm text-muted-foreground">
-                        {formatDuration(song.duration)}
-                      </div>
-                      
-                      {/* Actions */}
-                      <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAddToQueue(song)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                  {searchResults.songs.slice(0, 10).map((song, index) => {
+                    const track = createTrackFromSong(song);
+                    if (!track) return null;
+
+                    return (
+                      <TrackContextMenu key={song.id} track={track}>
+                        <div className="group flex items-center space-x-3 p-3 hover:bg-accent rounded-lg transition-colors cursor-pointer">
+                          <div className="w-8 text-center text-sm text-muted-foreground">
+                            <span className="group-hover:hidden">{index + 1}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handlePlaySong(song)}
+                              className="hidden group-hover:flex h-8 w-8 p-0"
+                            >
+                              <Play className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          
+                          {/* Song Cover */}
+                          <div className="shrink-0">
+                            <Image
+                              src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 300) : '/default-user.jpg'}
+                              alt={song.album}
+                              width={48}
+                              height={48}
+                              className="w-12 h-12 rounded-md object-cover"
+                            />
+                          </div>
+                          
+                          {/* Song Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{song.title}</p>
+                            <p className="text-sm text-muted-foreground truncate">{song.artist} • {song.album}</p>
+                          </div>
+                          
+                          {/* Duration */}
+                          <div className="text-sm text-muted-foreground">
+                            {formatDuration(song.duration)}
+                          </div>
+                          
+                          {/* Actions */}
+                          <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleAddToQueue(song)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </TrackContextMenu>
+                    );
+                  })}
                   
                   {searchResults.songs.length > 10 && (
                     <div className="text-center pt-4">

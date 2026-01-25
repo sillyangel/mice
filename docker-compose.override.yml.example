@@ -14,8 +14,6 @@ services:
       - NEXT_PUBLIC_NAVIDROME_URL=http://localhost:4533
       - NEXT_PUBLIC_NAVIDROME_USERNAME=admin
       - NEXT_PUBLIC_NAVIDROME_PASSWORD=admin
-      - NEXT_PUBLIC_POSTHOG_KEY=${POSTHOG_KEY:-}
-      - NEXT_PUBLIC_POSTHOG_HOST=${POSTHOG_HOST:-}
       - PORT=${PORT:-3000}
     
     # Mount source code for development (optional)

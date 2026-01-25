@@ -124,13 +124,13 @@ export default function AlbumPage() {
   // Dynamic cover art URLs based on image size
   const getMobileCoverArtUrl = () => {
     return album.coverArt && api
-      ? api.getCoverArtUrl(album.coverArt, 280)
+      ? api.getCoverArtUrl(album.coverArt, 600)
       : '/default-user.jpg';
   };
 
   const getDesktopCoverArtUrl = () => {
     return album.coverArt && api
-      ? api.getCoverArtUrl(album.coverArt, 300)
+      ? api.getCoverArtUrl(album.coverArt, 600)
       : '/default-user.jpg';
   };
 
@@ -146,8 +146,8 @@ export default function AlbumPage() {
               <Image 
                 src={getMobileCoverArtUrl()} 
                 alt={album.name} 
-                width={280} 
-                height={280}
+                width={600} 
+                height={600}
                 className="rounded-md shadow-lg"
               />
             </div>
@@ -182,8 +182,8 @@ export default function AlbumPage() {
             <Image 
               src={getDesktopCoverArtUrl()} 
               alt={album.name} 
-              width={300} 
-              height={300}
+              width={600} 
+              height={600}
               className="rounded-md"
             />
             <div className="space-y-2">
@@ -196,9 +196,15 @@ export default function AlbumPage() {
               <Link href={`/artist/${album.artistId}`}>
                 <p className="text-xl text-primary mt-0 mb-4 underline">{album.artist}</p>
               </Link>
-              <Button className="px-5" onClick={() => playAlbum(album.id)}>
-                Play
-              </Button>
+              
+              {/* Controls row */}
+              <div className="flex items-center gap-3">
+                <Button className="px-5" onClick={() => playAlbum(album.id)}>
+                  Play
+                </Button>
+              </div>
+              
+              {/* Album info */}
               <div className="text-sm text-muted-foreground">
                 <p>{album.genre} • {album.year}</p>
                 <p>{album.songCount} songs, {formatDuration(album.duration)}</p>

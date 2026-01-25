@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import Image from "next/image";
 import { Github, Mail, Menu as MenuIcon, X } from "lucide-react"
 import { UserProfile } from "@/app/components/UserProfile";
+import { useGlobalSearch } from "./GlobalSearchProvider";
 import {
     Menubar,
     MenubarCheckboxItem,
@@ -75,6 +76,7 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
     const [isClient, setIsClient] = useState(false);
     const [navidromeUrl, setNavidromeUrl] = useState<string | null>(null);
     const isMobile = useIsMobile();
+    const { openSpotlight } = useGlobalSearch();
 
     // Navigation items for mobile menu
     const navigationItems = [
@@ -189,11 +191,8 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           <MenubarMenu>
         <MenubarTrigger className="relative">File</MenubarTrigger>
         <MenubarContent>
-          <MenubarSub>
-            <MenubarSubTrigger>New</MenubarSubTrigger>
-            <MenubarSubContent className="w-[230px]">
-          <MenubarItem>
-            Playlist <MenubarShortcut>⌘N</MenubarShortcut>
+          <MenubarItem onClick={() => router.push('/library/playlists')}>
+            View Playlists
           </MenubarItem>
           <MenubarItem disabled>
             Playlist from Selection <MenubarShortcut>⇧⌘N</MenubarShortcut>
@@ -203,8 +202,6 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           </MenubarItem>
           <MenubarItem>Playlist Folder</MenubarItem>
           <MenubarItem disabled>Genius Playlist</MenubarItem>
-            </MenubarSubContent>
-          </MenubarSub>
           <MenubarItem>
             Open Stream URL <MenubarShortcut>⌘U</MenubarShortcut>
           </MenubarItem>
@@ -333,9 +330,19 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
         </Menubar>
         )}
         
-        {/* User Profile - Desktop only */}
+        {/* User Profile and Search - Desktop only */}
         {!isMobile && (
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={openSpotlight}
+              className="flex items-center space-x-2"
+              title="Search (/ or ⌘K)"
+            >
+              <Search className="w-4 h-4" />
+              <span className="hidden lg:inline">Search</span>
+            </Button>
             <UserProfile variant="desktop" />
           </div>
         )}
@@ -374,7 +381,7 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
               ) : navidromeUrl ? (
                 navidromeUrl
               ) : (
-                <span className="italic text-gray-400">Not set</span>
+                <span className="italic text-gray-400">Auto-configured</span>
               )}
             </span>
           </div>

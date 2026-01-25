@@ -3,6 +3,8 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { Home, Search, Disc, Users, Music, Heart, List, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useGlobalSearch } from './GlobalSearchProvider';
 
 interface NavItem {
   href: string;
@@ -20,9 +22,15 @@ const navigationItems: NavItem[] = [
 export function BottomNavigation() {
   const router = useRouter();
   const pathname = usePathname();
+  const { openSpotlight } = useGlobalSearch();
 
   const handleNavigation = (href: string) => {
-    router.push(href);
+    if (href === '/search') {
+      // Use spotlight search instead of navigating to search page
+      openSpotlight();
+    } else {
+      router.push(href);
+    }
   };
 
   const isActive = (href: string) => {
@@ -40,7 +48,7 @@ export function BottomNavigation() {
           const Icon = item.icon;
           
           return (
-            <button
+            <motion.button
               key={item.href}
               onClick={() => handleNavigation(item.href)}
               className={cn(
@@ -50,6 +58,8 @@ export function BottomNavigation() {
                   ? "text-primary bg-primary/10" 
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ y: -1 }}
             >
               <Icon className={cn("w-5 h-5 mb-1", isItemActive && "text-primary")} />
               <span className={cn(
@@ -58,7 +68,19 @@ export function BottomNavigation() {
               )}>
                 {item.label}
               </span>
-            </button>
+              <AnimatePresence>
+                {isItemActive && (
+                  <motion.div
+                    layoutId="bottom-nav-underline"
+                    className="h-0.5 w-6 bg-primary mt-1 rounded"
+                    initial={{ opacity: 0, scaleX: 0.6 }}
+                    animate={{ opacity: 1, scaleX: 1 }}
+                    exit={{ opacity: 0, scaleX: 0.6 }}
+                    transition={{ duration: 0.2 }}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.button>
           );
         })}
       </div>

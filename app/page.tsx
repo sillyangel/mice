@@ -6,7 +6,7 @@ import { Tabs, TabsContent } from '../components/ui/tabs';
 import { AlbumArtwork } from './components/album-artwork';
 import { useNavidrome } from './components/NavidromeContext';
 import { useEffect, useState, Suspense } from 'react';
-import { Album } from '@/lib/navidrome';
+import { Album, Song, getNavidromeAPI } from '@/lib/navidrome';
 import { useNavidromeConfig } from './components/NavidromeConfigContext';
 import { useSearchParams } from 'next/navigation';
 import { useAudioPlayer } from './components/AudioPlayerContext';
@@ -18,48 +18,71 @@ import { UserProfile } from './components/UserProfile';
 type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 
 function MusicPageContent() {
-  const { albums, isLoading, api, isConnected } = useNavidrome();
+  const { api } = useNavidrome();
   const { playAlbum, playTrack, shuffle, toggleShuffle, addToQueue } = useAudioPlayer();
   const searchParams = useSearchParams();
+  const [allAlbums, setAllAlbums] = useState<Album[]>([]);
   const [recentAlbums, setRecentAlbums] = useState<Album[]>([]);
   const [newestAlbums, setNewestAlbums] = useState<Album[]>([]);
   const [favoriteAlbums, setFavoriteAlbums] = useState<Album[]>([]);
+  const [albumsLoading, setAlbumsLoading] = useState(true);
   const [favoritesLoading, setFavoritesLoading] = useState(true);
   const [shortcutProcessed, setShortcutProcessed] = useState(false);
   const isMobile = useIsMobile();
 
+  // Load albums
   useEffect(() => {
-    if (albums.length > 0) {
-      // Split albums into recent and newest for display
-      const recent = albums.slice(0, Math.ceil(albums.length / 2));
-      const newest = albums.slice(Math.ceil(albums.length / 2));
-      setRecentAlbums(recent);
-      setNewestAlbums(newest);
-    }
-  }, [albums]);
-
-  useEffect(() => {
-    const loadFavoriteAlbums = async () => {
-      if (!api || !isConnected) return;
-      
-      setFavoritesLoading(true);
+    let mounted = true;
+    const load = async () => {
+      if (!api) return;
+      setAlbumsLoading(true);
       try {
-        const starredAlbums = await api.getAlbums('starred', 20); // Limit to 20 for homepage
-        setFavoriteAlbums(starredAlbums);
-      } catch (error) {
-        console.error('Failed to load favorite albums:', error);
+        const list = await api.getAlbums('newest', 500);
+        if (!mounted) return;
+        setAllAlbums(list || []);
+        // Split albums into two sections
+        const recent = list.slice(0, Math.ceil(list.length / 2));
+        const newest = list.slice(Math.ceil(list.length / 2));
+        setRecentAlbums(recent);
+        setNewestAlbums(newest);
+      } catch (e) {
+        console.error('Failed to load albums:', e);
+        if (mounted) {
+          setAllAlbums([]);
+          setRecentAlbums([]);
+          setNewestAlbums([]);
+        }
       } finally {
-        setFavoritesLoading(false);
+        if (mounted) setAlbumsLoading(false);
       }
     };
+    load();
+    return () => { mounted = false; };
+  }, [api]);
 
+  useEffect(() => {
+    let mounted = true;
+    const loadFavoriteAlbums = async () => {
+      if (!api) return;
+      setFavoritesLoading(true);
+      try {
+        const starred = await api.getAlbums('starred', 20);
+        if (mounted) setFavoriteAlbums(starred || []);
+      } catch (error) {
+        console.error('Failed to load favorite albums:', error);
+        if (mounted) setFavoriteAlbums([]);
+      } finally {
+        if (mounted) setFavoritesLoading(false);
+      }
+    };
     loadFavoriteAlbums();
-  }, [api, isConnected]);
+    return () => { mounted = false; };
+  }, [api]);
 
   // Handle PWA shortcuts
   useEffect(() => {
     const action = searchParams.get('action');
-    if (!action || shortcutProcessed || !api || !isConnected) return;
+    if (!action || shortcutProcessed) return;
 
     const handleShortcuts = async () => {
       try {
@@ -91,18 +114,20 @@ function MusicPageContent() {
               await playAlbum(shuffledAlbums[0].id);
               
               // Add remaining albums to queue
-              for (let i = 1; i < shuffledAlbums.length; i++) {
-                try {
-                  const albumSongs = await api.getAlbumSongs(shuffledAlbums[i].id);
-                  albumSongs.forEach(song => {
-                    addToQueue({
-                      id: song.id,
-                      name: song.title,
-                      url: api.getStreamUrl(song.id),
-                      artist: song.artist || 'Unknown Artist',
-                      artistId: song.artistId || '',
-                      album: song.album || 'Unknown Album',
-                      albumId: song.parent,
+              const navidromeApi = getNavidromeAPI();
+              if (navidromeApi) {
+                for (let i = 1; i < shuffledAlbums.length; i++) {
+                  try {
+                    const songs = await navidromeApi.getAlbumSongs(shuffledAlbums[i].id);
+                    songs.forEach((song: Song) => {
+                      addToQueue({
+                        id: song.id,
+                        name: song.title,
+                        url: navidromeApi.getStreamUrl(song.id),
+                        artist: song.artist || 'Unknown Artist',
+                        artistId: song.artistId || '',
+                        album: song.album || 'Unknown Album',
+                        albumId: song.parent,
                       duration: song.duration || 0,
                       coverArt: song.coverArt,
                       starred: !!song.starred
@@ -112,6 +137,7 @@ function MusicPageContent() {
                   console.error('Failed to load album tracks:', error);
                 }
               }
+            }
             }
             break;
 
@@ -129,18 +155,20 @@ function MusicPageContent() {
               await playAlbum(shuffledFavorites[0].id);
               
               // Add remaining albums to queue
-              for (let i = 1; i < shuffledFavorites.length; i++) {
-                try {
-                  const albumSongs = await api.getAlbumSongs(shuffledFavorites[i].id);
-                  albumSongs.forEach(song => {
-                    addToQueue({
-                      id: song.id,
-                      name: song.title,
-                      url: api.getStreamUrl(song.id),
-                      artist: song.artist || 'Unknown Artist',
-                      artistId: song.artistId || '',
-                      album: song.album || 'Unknown Album',
-                      albumId: song.parent,
+              const navidromeApiFav = getNavidromeAPI();
+              if (navidromeApiFav) {
+                for (let i = 1; i < shuffledFavorites.length; i++) {
+                  try {
+                    const songs = await navidromeApiFav.getAlbumSongs(shuffledFavorites[i].id);
+                    songs.forEach((song: Song) => {
+                      addToQueue({
+                        id: song.id,
+                        name: song.title,
+                        url: navidromeApiFav.getStreamUrl(song.id),
+                        artist: song.artist || 'Unknown Artist',
+                        artistId: song.artistId || '',
+                        album: song.album || 'Unknown Album',
+                        albumId: song.parent,
                       duration: song.duration || 0,
                       coverArt: song.coverArt,
                       starred: !!song.starred
@@ -150,6 +178,7 @@ function MusicPageContent() {
                   console.error('Failed to load album tracks:', error);
                 }
               }
+            }
             }
             break;
         }
@@ -162,7 +191,7 @@ function MusicPageContent() {
     // Delay to ensure data is loaded
     const timeout = setTimeout(handleShortcuts, 1000);
     return () => clearTimeout(timeout);
-  }, [searchParams, api, isConnected, recentAlbums, favoriteAlbums, shortcutProcessed, playAlbum, playTrack, shuffle, toggleShuffle, addToQueue]);
+  }, [searchParams, recentAlbums, favoriteAlbums, shortcutProcessed, playAlbum, playTrack, shuffle, toggleShuffle, addToQueue]);
 
   // Try to get user name from navidrome context, fallback to 'user'
   let userName = '';
@@ -197,7 +226,7 @@ function MusicPageContent() {
           <div className="relative">
             <ScrollArea>
               <div className="flex space-x-4 pb-4">
-                {isLoading ? (
+                {albumsLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
                     <div key={i} className="w-[220px] shrink-0 space-y-3">
@@ -284,7 +313,7 @@ function MusicPageContent() {
           <div className="relative">
             <ScrollArea>
             <div className="flex space-x-4 pb-4">
-            {isLoading ? (
+            {albumsLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
                     <div key={i} className="w-[220px] shrink-0 space-y-3">

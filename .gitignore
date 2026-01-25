@@ -70,6 +70,11 @@ next-env.d.ts
 # database
 still-database/
 
+# Debug related files
+scripts/sleep-debug.js
+.vscode/launch.json
+source-map-support/
+
 .next/
 certificates
 .vercel

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/app/components/ThemeProvider';
@@ -13,9 +14,10 @@ import { useStandaloneLastFm } from '@/hooks/use-standalone-lastfm';
 import { useSidebarShortcuts, SidebarShortcutType } from '@/hooks/use-sidebar-shortcuts';
 import { SidebarCustomization } from '@/app/components/SidebarCustomization';
 import { SettingsManagement } from '@/app/components/SettingsManagement';
-import { CacheManagement } from '@/app/components/CacheManagement';
-import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm, FaCog } from 'react-icons/fa';
-import { Settings, ExternalLink } from 'lucide-react';
+import { AutoTaggingSettings } from '@/app/components/AutoTaggingSettings';
+import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm, FaCog, FaTags } from 'react-icons/fa';
+import { Settings, ExternalLink, Tag } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 const SettingsPage = () => {
     const { theme, setTheme, mode, setMode } = useTheme();
@@ -23,6 +25,7 @@ const SettingsPage = () => {
     const { toast } = useToast();
     const { isEnabled: isStandaloneLastFmEnabled, getCredentials, getAuthUrl, getSessionKey } = useStandaloneLastFm();
     const { shortcutType, updateShortcutType } = useSidebarShortcuts();
+    const audioPlayer = useAudioPlayer();
     
     const [formData, setFormData] = useState({
         serverUrl: '',
@@ -58,6 +61,7 @@ const SettingsPage = () => {
     // Sidebar settings
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [sidebarVisible, setSidebarVisible] = useState(true);
+    const [notifyNowPlaying, setNotifyNowPlaying] = useState(false);
 
     // Initialize client-side state after hydration
     useEffect(() => {
@@ -91,6 +95,12 @@ const SettingsPage = () => {
             setSidebarVisible(savedSidebarVisible === 'true');
         } else {
             setSidebarVisible(true); // Default to visible
+        }
+
+        // Notifications preference
+        const savedNotify = localStorage.getItem('playback-notifications-enabled');
+        if (savedNotify !== null) {
+            setNotifyNowPlaying(savedNotify === 'true');
         }
 
         // Load Last.fm credentials
@@ -260,6 +270,43 @@ const SettingsPage = () => {
         // Trigger a custom event to notify the sidebar component
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('sidebar-visibility-toggle', { detail: { visible } }));
+        }
+    };
+
+    const handleNotifyToggle = async (enabled: boolean) => {
+        setNotifyNowPlaying(enabled);
+        if (isClient) {
+            localStorage.setItem('playback-notifications-enabled', enabled.toString());
+        }
+        if (enabled && typeof window !== 'undefined' && 'Notification' in window) {
+            try {
+                if (Notification.permission === 'default') {
+                    await Notification.requestPermission();
+                }
+            } catch {}
+        }
+        toast({
+            title: enabled ? 'Notifications Enabled' : 'Notifications Disabled',
+            description: enabled ? 'You will be notified when a new song starts.' : 'Now playing notifications are off.',
+        });
+    };
+
+    const handleTestNotification = () => {
+        if (typeof window === 'undefined') return;
+        if (!('Notification' in window)) {
+            toast({ title: 'Not supported', description: 'Browser does not support notifications.', variant: 'destructive' });
+            return;
+        }
+        if (Notification.permission === 'denied') {
+            toast({ title: 'Permission denied', description: 'Enable notifications in your browser settings.', variant: 'destructive' });
+            return;
+        }
+        const title = 'mice – Test Notification';
+        const body = 'This is how a now playing notification will look.';
+        try {
+            new Notification(title, { body, icon: '/icon-192.png', badge: '/icon-192.png' });
+        } catch {
+            toast({ title: 'Test Notification', description: body });
         }
     };
 
@@ -468,6 +515,29 @@ const SettingsPage = () => {
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Notifications */}
+                <Card className="mb-6 break-inside-avoid py-5">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Settings className="w-5 h-5" />
+                            Notifications
+                        </CardTitle>
+                        <CardDescription>Control now playing notifications</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-medium">Now playing notifications</p>
+                                <p className="text-sm text-muted-foreground">Show a notification when a new song starts</p>
+                            </div>
+                            <Switch checked={notifyNowPlaying} onCheckedChange={handleNotifyToggle} />
+                        </div>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={handleTestNotification}>Test notification</Button>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 <Card className="mb-6 break-inside-avoid py-5">
                     <CardHeader>
@@ -707,9 +777,9 @@ const SettingsPage = () => {
                   <SettingsManagement />
                 </div>
 
-                {/* Cache Management */}
+                {/* Auto-Tagging Settings */}
                 <div className="break-inside-avoid mb-6">
-                  <CacheManagement />
+                  <AutoTaggingSettings />
                 </div>
 
                 <Card className="mb-6 break-inside-avoid py-5">
@@ -761,6 +831,87 @@ const SettingsPage = () => {
                 </Card>
 
                 {/* Theme Preview */}
+                <Card className="mb-6 break-inside-avoid py-5">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <FaCog className="w-5 h-5" />
+                            Audio Settings
+                        </CardTitle>
+                        <CardDescription>
+                            Configure playback and audio effects
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {/* Crossfade */}
+                        <div className="space-y-2">
+                            <Label htmlFor="crossfade-duration">Crossfade Duration</Label>
+                            <Select 
+                                value={String(audioPlayer.audioSettings.crossfadeDuration)}
+                                onValueChange={(value) => audioPlayer.updateAudioSettings({ crossfadeDuration: Number(value) })}
+                            >
+                                <SelectTrigger id="crossfade-duration">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="0">Off</SelectItem>
+                                    <SelectItem value="2">2 seconds</SelectItem>
+                                    <SelectItem value="3">3 seconds</SelectItem>
+                                    <SelectItem value="4">4 seconds</SelectItem>
+                                    <SelectItem value="5">5 seconds</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Equalizer Preset */}
+                        <div className="space-y-2">
+                            <Label htmlFor="equalizer-preset">Equalizer Preset</Label>
+                            <Select 
+                                value={audioPlayer.equalizerPreset} 
+                                onValueChange={audioPlayer.setEqualizerPreset}
+                            >
+                                <SelectTrigger id="equalizer-preset">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="normal">Normal</SelectItem>
+                                    <SelectItem value="bassBoost">Bass Boost</SelectItem>
+                                    <SelectItem value="trebleBoost">Treble Boost</SelectItem>
+                                    <SelectItem value="vocalBoost">Vocal Boost</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* ReplayGain */}
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label>ReplayGain</Label>
+                                <p className="text-sm text-muted-foreground">Normalize volume across tracks</p>
+                            </div>
+                            <Switch 
+                                checked={audioPlayer.audioSettings.replayGainEnabled}
+                                onCheckedChange={(checked) => audioPlayer.updateAudioSettings({ replayGainEnabled: checked })}
+                            />
+                        </div>
+
+                        {/* Gapless Playback */}
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label>Gapless Playback</Label>
+                                <p className="text-sm text-muted-foreground">Seamless transitions between tracks</p>
+                            </div>
+                            <Switch 
+                                checked={audioPlayer.audioSettings.gaplessPlayback}
+                                onCheckedChange={(checked) => audioPlayer.updateAudioSettings({ gaplessPlayback: checked })}
+                            />
+                        </div>                        <div className="text-sm text-muted-foreground space-y-2">
+                            <p><strong>Crossfade:</strong> Smooth fade between tracks (2-5 seconds)</p>
+                            <p><strong>Equalizer:</strong> Preset frequency adjustments for different music styles</p>
+                            <p><strong>ReplayGain:</strong> Consistent volume across all tracks in your library</p>
+                            <p><strong>Gapless:</strong> Perfect for live albums and continuous DJ mixes</p>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Card className="mb-6 break-inside-avoid py-5">
                     <CardHeader>
                         <CardTitle>Preview</CardTitle>

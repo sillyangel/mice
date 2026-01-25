@@ -1,11 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { AudioPlayerProvider } from "../components/AudioPlayerContext";
 import { NavidromeProvider, useNavidrome } from "../components/NavidromeContext";
 import { NavidromeConfigProvider } from "../components/NavidromeConfigContext";
 import { ThemeProvider } from "../components/ThemeProvider";
-import { PostHogProvider } from "../components/PostHogProvider";
 import { WhatsNewPopup } from "../components/WhatsNewPopup";
 import Ihateserverside from "./ihateserverside";
 import DynamicViewportTheme from "./DynamicViewportTheme";
@@ -13,9 +12,29 @@ import ThemeColorHandler from "./ThemeColorHandler";
 import { useViewportThemeColor } from "@/hooks/use-viewport-theme-color";
 import { LoginForm } from "./start-screen";
 import Image from "next/image";
+import PageTransition from "./PageTransition";
+import { GlobalSearchProvider } from "./GlobalSearchProvider";
+
+// ServiceWorkerRegistration component to handle registration
+function ServiceWorkerRegistration() {
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('Service Worker registered successfully:', registration);
+        })
+        .catch((error) => {
+          console.error('Service Worker registration failed:', error);
+        });
+    }
+  }, []);
+  
+  return null;
+}
 
 function NavidromeErrorBoundary({ children }: { children: React.ReactNode }) {
-  const { error } = useNavidrome();
+  // For now, since we're switching to offline-first, we'll handle errors differently
+  // The offline provider will handle connectivity issues automatically
   const [isClient, setIsClient] = React.useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = React.useState(true); // Default to true to prevent flash
   
@@ -58,10 +77,9 @@ function NavidromeErrorBoundary({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
   
-  // Show start screen ONLY if:
-  // 1. First-time user (no onboarding completed), OR
-  // 2. User has completed onboarding BUT there's an error AND no config exists
-  const shouldShowStartScreen = !hasCompletedOnboarding || (hasCompletedOnboarding && error && !hasAnyConfig);
+  // Show start screen ONLY if first-time user (no onboarding completed)
+  // In offline-first mode, we don't need to check for errors since the app works offline
+  const shouldShowStartScreen = !hasCompletedOnboarding;
   
   if (shouldShowStartScreen) {
     return (
@@ -82,23 +100,24 @@ function NavidromeErrorBoundary({ children }: { children: React.ReactNode }) {
 
 export default function RootLayoutClient({ children }: { children: React.ReactNode }) {
   return (
-    <PostHogProvider>
-      <ThemeProvider>
-        <DynamicViewportTheme />
-        <ThemeColorHandler />
-        <NavidromeConfigProvider>
-          <NavidromeProvider>
-            <NavidromeErrorBoundary>
-              <AudioPlayerProvider>
+    <ThemeProvider>
+      <DynamicViewportTheme />
+      <ThemeColorHandler />
+      <ServiceWorkerRegistration />
+      <NavidromeConfigProvider>
+        <NavidromeProvider>
+          <NavidromeErrorBoundary>
+            <AudioPlayerProvider>
+              <GlobalSearchProvider>
                 <Ihateserverside>
-                  {children}
+                  <PageTransition>{children}</PageTransition>
                 </Ihateserverside>
                 <WhatsNewPopup />
-              </AudioPlayerProvider>
-            </NavidromeErrorBoundary>
-          </NavidromeProvider>
-        </NavidromeConfigProvider>
-      </ThemeProvider>
-    </PostHogProvider>
+              </GlobalSearchProvider>
+            </AudioPlayerProvider>
+          </NavidromeErrorBoundary>
+        </NavidromeProvider>
+      </NavidromeConfigProvider>
+    </ThemeProvider>
   );
 }

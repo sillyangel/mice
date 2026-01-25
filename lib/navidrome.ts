@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import { albumCache, artistCache, songCache, imageCache, PersistentCache } from './cache';
 
 export interface NavidromeConfig {
   serverUrl: string;
@@ -68,6 +67,7 @@ export interface Song {
   artistId: string;
   type: string;
   starred?: string;
+  replayGain?: number;
 }
 
 export interface Playlist {
@@ -214,12 +214,21 @@ class NavidromeAPI {
   }
 
   async getArtist(artistId: string): Promise<{ artist: Artist; albums: Album[] }> {
-    const response = await this.makeRequest('getArtist', { id: artistId });
-    const artistData = response.artist as Artist & { album?: Album[] };
-    return {
-      artist: artistData,
-      albums: artistData.album || []
-    };
+    try {
+      const response = await this.makeRequest('getArtist', { id: artistId });
+      // Check if artist data exists
+      if (!response.artist) {
+        throw new Error('Artist not found in response');
+      }
+      const artistData = response.artist as Artist & { album?: Album[] };
+      return {
+        artist: artistData,
+        albums: artistData.album || []
+      };
+    } catch (error) {
+      console.error('Navidrome API request failed:', error);
+      throw new Error('Artist not found');
+    }
   }
 
   async getAlbums(type?: 'newest' | 'recent' | 'frequent' | 'random' | 'alphabeticalByName' | 'alphabeticalByArtist' | 'starred' | 'highest', size: number = 500, offset: number = 0): Promise<Album[]> {
@@ -328,6 +337,23 @@ class NavidromeAPI {
     }
 
     return `${this.config.serverUrl}/rest/stream?${params.toString()}`;
+  }
+
+  // Direct download URL (original file). Useful for offline caching where the browser can handle transcoding.
+  getDownloadUrl(songId: string): string {
+    const salt = this.generateSalt();
+    const token = this.generateToken(this.config.password, salt);
+
+    const params = new URLSearchParams({
+      u: this.config.username,
+      t: token,
+      s: salt,
+      v: this.version,
+      c: this.clientName,
+      id: songId
+    });
+
+    return `${this.config.serverUrl}/rest/download?${params.toString()}`;
   }
 
   getCoverArtUrl(coverArtId: string, size?: number): string {

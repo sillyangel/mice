@@ -22,3 +22,18 @@ build
 .turbo
 .github
 4xnored.png
+
+# Documentation and non-runtime files
+docs/
+CHANGELOG.md
+cliff.toml
+*.md
+!README.md
+
+# Docker compose files
+docker-compose*.yml
+Dockerfile
+
+# Git and backup files
+.git*
+backup-*

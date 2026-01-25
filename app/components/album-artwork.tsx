@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { PlusCircledIcon } from "@radix-ui/react-icons"
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 
 import { cn } from "@/lib/utils"
 import {
@@ -24,14 +25,18 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArtistIcon } from "@/app/components/artist-icon";
-import { Heart, Music, Disc, Mic, Play } from "lucide-react";
+import { Heart, Music, Disc, Mic, Play, Download } from "lucide-react";
 import { Album, Artist, Song } from "@/lib/navidrome";
 
-interface AlbumArtworkProps extends React.HTMLAttributes<HTMLDivElement> {
+interface AlbumArtworkProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  'onDrag' | 'onDragStart' | 'onDragEnd' | 'onDragOver' | 'onDragEnter' | 'onDragLeave' | 'onDrop'
+> {
   album: Album
   aspectRatio?: "portrait" | "square"
   width?: number
   height?: number
+  loading?: 'eager' | 'lazy'
 }
 
 export function AlbumArtwork({
@@ -39,6 +44,7 @@ export function AlbumArtwork({
   aspectRatio = "portrait",
   width,
   height,
+  loading = 'lazy',
   className,
   ...props
 }: AlbumArtworkProps) {
@@ -67,6 +73,17 @@ export function AlbumArtwork({
 
   const handleClick = () => {
     router.push(`/album/${album.id}`);
+  };
+
+  const handlePrefetch = () => {
+    try {
+      // Next.js App Router will prefetch on hover when using Link with prefetch
+      // but we also call router.prefetch to ensure programmatic prefetch when present.
+      const r = router as unknown as { prefetch?: (href: string) => Promise<void> | void };
+      if (r && typeof r.prefetch === 'function') {
+        r.prefetch(`/album/${album.id}`);
+      }
+    } catch {}
   };
 
   const handleAddToQueue = () => {
@@ -124,9 +141,16 @@ export function AlbumArtwork({
     
   return (
     <div className={cn("space-y-3", className)} {...props}>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.15 }}
+        transition={{ duration: 0.2 }}
+        whileHover={{ y: -2 }}
+      >
       <ContextMenu>
         <ContextMenuTrigger>
-          <Card key={album.id} className="overflow-hidden cursor-pointer px-0 py-0 gap-0" onClick={() => handleClick()}>
+          <Card key={album.id} className="overflow-hidden cursor-pointer px-0 py-0 gap-0" onClick={() => handleClick()} onMouseEnter={handlePrefetch} onFocus={handlePrefetch}>
             <div className="aspect-square relative group">
               {album.coverArt && api ? (
                 <Image
@@ -138,7 +162,7 @@ export function AlbumArtwork({
                   onLoad={handleImageLoad}
                   onError={handleImageError}
                   priority={false}
-                  loading="lazy"
+                  loading={loading}
                 />
               ) : (
                 <div className="w-full h-full bg-muted rounded flex items-center justify-center">
@@ -150,7 +174,9 @@ export function AlbumArtwork({
               </div>
             </div>
             <CardContent className="p-4">
-              <h3 className="font-semibold truncate">{album.name}</h3>
+              <h3 className="font-semibold truncate">
+                <Link href={`/album/${album.id}`} prefetch>{album.name}</Link>
+              </h3>
               <p className="text-sm text-muted-foreground truncate " onClick={() => router.push(album.artistId)}>{album.artist}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {album.songCount} songs • {Math.floor(album.duration / 60)} min
@@ -213,6 +239,7 @@ export function AlbumArtwork({
           <ContextMenuItem>Share</ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+      </motion.div>
     </div>
   )
 }

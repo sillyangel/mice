@@ -10,12 +10,14 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Play, Plus, User, Disc } from 'lucide-react';
+import { Search, Play, Plus, User, Disc, ChevronLeft, ChevronRight } from 'lucide-react';
 import Loading from '@/app/components/loading';
 import { getNavidromeAPI } from '@/lib/navidrome';
 
 type SortOption = 'title' | 'artist' | 'album' | 'year' | 'duration' | 'track';
 type SortDirection = 'asc' | 'desc';
+
+const ITEMS_PER_PAGE = 50;
 
 export default function SongsPage() {
   const { getAllSongs } = useNavidrome();
@@ -26,6 +28,7 @@ export default function SongsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('title');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
   const api = getNavidromeAPI();
 
   useEffect(() => {
@@ -100,6 +103,7 @@ export default function SongsPage() {
     });
 
     setFilteredSongs(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [songs, searchQuery, sortBy, sortDirection]);
     const handlePlayClick = (song: Song) => {
     if (!api) {
@@ -114,7 +118,7 @@ export default function SongsPage() {
       artist: song.artist,
       album: song.album,
       duration: song.duration,
-      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 64) : undefined,
+  coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred
@@ -135,7 +139,7 @@ export default function SongsPage() {
       artist: song.artist,
       album: song.album,
       duration: song.duration,
-      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 64) : undefined,
+  coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred
@@ -154,6 +158,24 @@ export default function SongsPage() {
     return currentTrack?.id === song.id;
   };
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredSongs.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedSongs = filteredSongs.slice(startIndex, endIndex);
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
   if (loading) {
     return <Loading />;
   }
@@ -165,7 +187,8 @@ export default function SongsPage() {
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">Songs</h1>
           <p className="text-sm text-muted-foreground">
-            {filteredSongs.length} of {songs.length} songs
+            Showing {startIndex + 1}-{Math.min(endIndex, filteredSongs.length)} of {filteredSongs.length} songs
+            {searchQuery && ` (filtered from ${songs.length} total)`}
           </p>
         </div>
 
@@ -216,7 +239,7 @@ export default function SongsPage() {
             </div>
           ) : (
             <div className="space-y-1">
-              {filteredSongs.map((song, index) => (
+              {paginatedSongs.map((song, index) => (
                 <div
                   key={song.id}
                   className={`group flex items-center p-3 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors ${
@@ -232,7 +255,7 @@ export default function SongsPage() {
                       </div>
                     ) : (
                       <>
-                        <span className="group-hover:hidden">{index + 1}</span>
+                        <span className="group-hover:hidden">{startIndex + index + 1}</span>
                         <Play className="w-4 h-4 mx-auto hidden group-hover:block" />
                       </>
                     )}
@@ -298,6 +321,35 @@ export default function SongsPage() {
             </div>
           )}
         </ScrollArea>
+
+        {/* Pagination Controls */}
+        {filteredSongs.length > ITEMS_PER_PAGE && (
+          <div className="flex items-center justify-between pt-4">
+            <p className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

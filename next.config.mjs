@@ -12,6 +12,8 @@ const nextConfig = {
         hostname: "**",
       }
     ],
+    minimumCacheTTL: 60,
+    // unoptimized: true,
   },
   async headers() {
     return [
@@ -45,30 +47,12 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self'",
+            value: "default-src 'self' *; connect-src 'self' *; script-src 'self'",
           },
         ],
       },
     ];
   },
-  async rewrites() {
-    return [
-      {
-        source: '/ingest/static/:path*',
-        destination: 'https://us-assets.i.posthog.com/static/:path*',
-      },
-      {
-        source: '/ingest/:path*',
-        destination: 'https://us.i.posthog.com/:path*',
-      },
-      {
-        source: '/ingest/decide',
-        destination: 'https://us.i.posthog.com/decide',
-      },
-    ];
-  },
-  // This is required to support PostHog trailing slash API requests
-  skipTrailingSlashRedirect: true,
 };
 
 export default nextConfig;

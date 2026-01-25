@@ -5,10 +5,34 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 // Current app version from package.json
-const APP_VERSION = '2025.07.31';
+const APP_VERSION = '2026.01.24';
 
 // Changelog data - add new versions at the top
 const CHANGELOG = [
+  {
+    version: '2026.01.24',
+    title: 'January 2026 Update',
+    changes: [
+      'Improved SortableQueueItem component with enhanced click handling and styling',
+      'Added keyboard shortcuts and queue management features',
+      'Added ListeningStreakCard component for tracking listening streaks',
+      'Moved service worker registration to dedicated component for improved client-side handling',
+      'Implemented Auto-Tagging Settings and MusicBrainz integration',
+      'Enhanced audio settings with ReplayGain, crossfade, and equalizer presets',
+      'Added AudioSettingsDialog component',
+      'Updated cover art retrieval to use higher resolution images',
+      'Enhanced UI with Framer Motion animations for album artwork and artist icons',
+      'Added page transition animations and notification settings for audio playback',
+      'Updated all npm subdependencies to latest minor versions',
+    ],
+    fixes: [
+      'Updated README formatting and improved content clarity',
+    ],
+    breaking: [
+      'Removed PostHog analytics tracking',
+      'Removed all offline download and caching functionality',
+    ]
+  },
   {
     version: '2025.07.31',
     title: 'July End of Month Update',
@@ -47,7 +71,6 @@ const CHANGELOG = [
       'Enhanced Home page layout and content',
       'Themes updated to use OKLCH (from HSL)',
       'All themes updated (light themes look similar)',
-      'Caching system added (incomplete)',
       'Skeleton loading added across all pages'
     ],
     fixes: [

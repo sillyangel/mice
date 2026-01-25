@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Song, Album } from '@/lib/navidrome';
+import { Song, Album, getNavidromeAPI } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -17,7 +17,7 @@ interface SongRecommendationsProps {
 }
 
 export function SongRecommendations({ userName }: SongRecommendationsProps) {
-  const { api, isConnected } = useNavidrome();
+  const { api } = useNavidrome();
   const { playTrack, shuffle, toggleShuffle } = useAudioPlayer();
   const isMobile = useIsMobile();
   const [recommendedSongs, setRecommendedSongs] = useState<Song[]>([]);
@@ -42,66 +42,62 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
 
   useEffect(() => {
     const loadRecommendations = async () => {
-      if (!api || !isConnected) return;
-      
       setLoading(true);
       try {
-        // Get random albums for both mobile album view and desktop song extraction
-        const randomAlbums = await api.getAlbums('random', 10);
+        const api = getNavidromeAPI();
         
-        if (isMobile) {
-          // For mobile: show 6 random albums
-          setRecommendedAlbums(randomAlbums.slice(0, 6));
-        } else {
-          // For desktop: extract songs from albums (original behavior)
-          const allSongs: Song[] = [];
-          
-          // Get songs from first few albums
-          for (let i = 0; i < Math.min(3, randomAlbums.length); i++) {
-            try {
-              const albumSongs = await api.getAlbumSongs(randomAlbums[i].id);
-              allSongs.push(...albumSongs);
-            } catch (error) {
-              console.error('Failed to get album songs:', error);
+        if (api) {
+          // Use server-side recommendations
+          const randomAlbums = await api.getAlbums('random', 10);
+          if (isMobile) {
+            setRecommendedAlbums(randomAlbums.slice(0, 6));
+          } else {
+            const allSongs: Song[] = [];
+            for (let i = 0; i < Math.min(3, randomAlbums.length); i++) {
+              try {
+                const albumSongs = await api.getAlbumSongs(randomAlbums[i].id);
+                allSongs.push(...albumSongs);
+              } catch (error) {
+                console.error('Failed to get album songs:', error);
+              }
             }
+            const shuffled = allSongs.sort(() => Math.random() - 0.5);
+            const recommendations = shuffled.slice(0, 6);
+            setRecommendedSongs(recommendations);
+            const states: Record<string, boolean> = {};
+            recommendations.forEach((song: Song) => { states[song.id] = !!song.starred; });
+            setSongStates(states);
           }
-          
-          // Shuffle and limit to 6 songs
-          const shuffled = allSongs.sort(() => Math.random() - 0.5);
-          const recommendations = shuffled.slice(0, 6);
-          setRecommendedSongs(recommendations);
-          
-          // Initialize starred states for songs
-          const states: Record<string, boolean> = {};
-          recommendations.forEach((song: Song) => {
-            states[song.id] = !!song.starred;
-          });
-          setSongStates(states);
         }
       } catch (error) {
         console.error('Failed to load recommendations:', error);
+        setRecommendedAlbums([]);
+        setRecommendedSongs([]);
       } finally {
         setLoading(false);
       }
     };
 
     loadRecommendations();
-  }, [api, isConnected, isMobile]);
+  }, [isMobile]);
 
   const handlePlaySong = async (song: Song) => {
-    if (!api) return;
-    
     try {
+      const api = getNavidromeAPI();
+      if (!api) return;
+      
+      const url = api.getStreamUrl(song.id);
+      const coverArt = song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined;
       const track = {
         id: song.id,
         name: song.title,
-        url: api.getStreamUrl(song.id),
+        url,
         artist: song.artist || 'Unknown Artist',
         artistId: song.artistId || '',
         album: song.album || 'Unknown Album',
         albumId: song.albumId || '',
         duration: song.duration || 0,
-        coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 64) : undefined,
+        coverArt,
         starred: !!song.starred
       };
       await playTrack(track, true);
@@ -111,23 +107,26 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
   };
 
   const handlePlayAlbum = async (album: Album) => {
-    if (!api) return;
-    
     try {
-      // Get album songs and play the first one
+      const api = getNavidromeAPI();
+      if (!api) return;
+      
       const albumSongs = await api.getAlbumSongs(album.id);
       if (albumSongs.length > 0) {
+        const first = albumSongs[0];
+        const url = api.getStreamUrl(first.id);
+        const coverArt = first.coverArt ? api.getCoverArtUrl(first.coverArt, 300) : undefined;
         const track = {
-          id: albumSongs[0].id,
-          name: albumSongs[0].title,
-          url: api.getStreamUrl(albumSongs[0].id),
-          artist: albumSongs[0].artist || 'Unknown Artist',
-          artistId: albumSongs[0].artistId || '',
-          album: albumSongs[0].album || 'Unknown Album',
-          albumId: albumSongs[0].albumId || '',
-          duration: albumSongs[0].duration || 0,
-          coverArt: albumSongs[0].coverArt ? api.getCoverArtUrl(albumSongs[0].coverArt, 64) : undefined,
-          starred: !!albumSongs[0].starred
+          id: first.id,
+          name: first.title,
+          url,
+          artist: first.artist || 'Unknown Artist',
+          artistId: first.artistId || '',
+          album: first.album || 'Unknown Album',
+          albumId: first.albumId || '',
+          duration: first.duration || 0,
+          coverArt,
+          starred: !!first.starred
         };
         await playTrack(track, true);
       }
@@ -222,9 +221,9 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
                   className="group cursor-pointer block"
                 >
                   <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                    {album.coverArt && api ? (
+                    {album.coverArt && getNavidromeAPI() ? (
                       <Image
-                        src={api.getCoverArtUrl(album.coverArt, 300)}
+            src={getNavidromeAPI()!.getCoverArtUrl(album.coverArt, 300)}
                         alt={album.name}
                         width={600}
                         height={600}
@@ -281,10 +280,10 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
                 <CardContent className="px-2">
                   <div className="flex items-center gap-3">
                     <div className="relative w-12 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
-                      {song.coverArt && api ? (
+                      {song.coverArt && getNavidromeAPI() ? (
                         <>
                           <Image
-                            src={api.getCoverArtUrl(song.coverArt, 48)}
+            src={getNavidromeAPI()!.getCoverArtUrl(song.coverArt, 48)}
                             alt={song.title}
                             fill
                             className="object-cover"

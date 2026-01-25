@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { Song, Album, Artist } from '@/lib/navidrome';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Song } from '@/lib/navidrome';
 import { getNavidromeAPI } from '@/lib/navidrome';
 import { useToast } from "@/hooks/use-toast";
+import { AudioEffects } from '@/lib/audio-effects';
 
 export interface Track {
   id: string;
@@ -15,8 +16,16 @@ export interface Track {
   coverArt?: string;
   albumId: string;
   artistId: string;
-  autoPlay?: boolean; // Flag to control auto-play
-  starred?: boolean; // Flag for starred/favorited tracks
+  autoPlay?: boolean;
+  starred?: boolean;
+  replayGain?: number; // Added ReplayGain field
+}
+
+interface AudioSettings {
+  crossfadeDuration: number;
+  equalizer: string;
+  replayGainEnabled: boolean;
+  gaplessPlayback: boolean;
 }
 
 interface AudioPlayerContextProps {
@@ -24,12 +33,14 @@ interface AudioPlayerContextProps {
   playTrack: (track: Track, autoPlay?: boolean) => void;
   queue: Track[];
   addToQueue: (track: Track) => void;
+  insertAtBeginningOfQueue: (track: Track) => void;
   playNextTrack: () => void;
   clearQueue: () => void;
   addAlbumToQueue: (albumId: string) => Promise<void>;
   playAlbum: (albumId: string) => Promise<void>;
   playAlbumFromTrack: (albumId: string, startingSongId: string) => Promise<void>;
   removeTrackFromQueue: (index: number) => void;
+  reorderQueue: (oldIndex: number, newIndex: number) => void;
   skipToTrackInQueue: (index: number) => void;
   addArtistToQueue: (artistId: string) => Promise<void>;
   playPreviousTrack: () => void;
@@ -42,9 +53,26 @@ interface AudioPlayerContextProps {
   clearHistory: () => void;
   toggleCurrentTrackStar: () => Promise<void>;
   updateTrackStarred: (trackId: string, starred: boolean) => void;
+  // Audio settings
+  audioSettings: AudioSettings;
+  updateAudioSettings: (settings: Partial<AudioSettings>) => void;
+  equalizerPreset: string;
+  setEqualizerPreset: (preset: string) => void;
+  audioEffects: AudioEffects | null;
+  // Playback state
+  isPlaying: boolean;
+  togglePlayPause: () => Promise<void>;
 }
 
 const AudioPlayerContext = createContext<AudioPlayerContextProps | undefined>(undefined);
+
+export // Default audio settings
+const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
+  crossfadeDuration: 3,
+  equalizer: 'normal',
+  replayGainEnabled: true,
+  gaplessPlayback: true
+};
 
 export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
@@ -52,6 +80,10 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [playedTracks, setPlayedTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [shuffle, setShuffle] = useState(false);
+  const [audioSettings, setAudioSettings] = useState<AudioSettings>(DEFAULT_AUDIO_SETTINGS);
+  const [equalizerPreset, setEqualizerPreset] = useState('normal');
+  const [audioEffects, setAudioEffects] = useState<AudioEffects | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
   const api = useMemo(() => {
     const navidromeApi = getNavidromeAPI();
@@ -83,8 +115,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (savedCurrentTrack) {
       try {
         const track = JSON.parse(savedCurrentTrack);
-        // Clear autoPlay flag when loading from localStorage to prevent auto-play on refresh
-        track.autoPlay = false;
+        // Check if there's a saved playback position - if so, user was likely playing
+        const savedTime = localStorage.getItem('navidrome-current-track-time');
+        track.autoPlay = savedTime !== null && parseFloat(savedTime) > 0;
         setCurrentTrack(track);
       } catch (error) {
         console.error('Failed to parse saved current track:', error);
@@ -101,6 +134,73 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       localStorage.removeItem('navidrome-currentTrack');
     }
   }, [currentTrack]);
+
+  // Initialize audio effects when audio element is available
+  useEffect(() => {
+    const audioElement = audioRef.current;
+    if (audioElement && !audioEffects) {
+      const effects = new AudioEffects(audioElement);
+      setAudioEffects(effects);
+
+      // Load saved audio settings
+      const savedSettings = localStorage.getItem('navidrome-audio-settings');
+      if (savedSettings) {
+        try {
+          const settings = JSON.parse(savedSettings);
+          setAudioSettings(settings);
+          effects.setPreset(settings.equalizer);
+          setEqualizerPreset(settings.equalizer);
+        } catch (error) {
+          console.error('Failed to load audio settings:', error);
+        }
+      }
+
+      return () => {
+        effects.disconnect();
+      };
+    }
+  }, [audioEffects]);
+
+  // Save all audio-related settings
+  const saveSettings = useCallback(() => {
+    try {
+      // Save audio settings
+      localStorage.setItem('navidrome-audio-settings', JSON.stringify(audioSettings));
+      // Save equalizer preset
+      localStorage.setItem('navidrome-equalizer-preset', equalizerPreset);
+      // Save other playback settings
+      const playbackSettings = {
+        replayGainEnabled: audioSettings.replayGainEnabled,
+        gaplessPlayback: audioSettings.gaplessPlayback,
+        crossfadeDuration: audioSettings.crossfadeDuration,
+        volume: audioRef.current?.volume || 1,
+        lastPosition: audioRef.current?.currentTime || 0
+      };
+      localStorage.setItem('navidrome-playback-settings', JSON.stringify(playbackSettings));
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+    }
+  }, [audioSettings, equalizerPreset]);
+
+  // Save settings whenever they change
+  useEffect(() => {
+    saveSettings();
+  }, [audioSettings, equalizerPreset, saveSettings]);
+
+  // Update equalizer when preset changes
+  useEffect(() => {
+    if (audioEffects) {
+      audioEffects.setPreset(equalizerPreset);
+    }
+  }, [equalizerPreset, audioEffects]);
+
+  const updateAudioSettings = useCallback((settings: Partial<AudioSettings>) => {
+    setAudioSettings(prev => {
+      const newSettings = { ...prev, ...settings };
+      localStorage.setItem('navidrome-audio-settings', JSON.stringify(newSettings));
+      return newSettings;
+    });
+  }, []);
 
   const songToTrack = useMemo(() => (song: Song): Track => {
     if (!api) {
@@ -120,7 +220,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 512) : undefined,
       albumId: song.albumId,
       artistId: song.artistId,
-      starred: !!song.starred
+      starred: !!song.starred,
+      replayGain: song.replayGain || 0 // Add ReplayGain support
     };
   }, [api]);
 
@@ -159,12 +260,25 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   }, [shuffle]);
 
+  const insertAtBeginningOfQueue = useCallback((track: Track) => {
+    setQueue((prevQueue) => [track, ...prevQueue]);
+  }, []);
+
   const clearQueue = useCallback(() => {
     setQueue([]);
   }, []);
 
   const removeTrackFromQueue = useCallback((index: number) => {
     setQueue((prevQueue) => prevQueue.filter((_, i) => i !== index));
+  }, []);
+
+  const reorderQueue = useCallback((oldIndex: number, newIndex: number) => {
+    setQueue((prevQueue) => {
+      const newQueue = [...prevQueue];
+      const [movedItem] = newQueue.splice(oldIndex, 1);
+      newQueue.splice(newIndex, 0, movedItem);
+      return newQueue;
+    });
   }, []);
 
   const playNextTrack = useCallback(() => {
@@ -573,15 +687,43 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     }
   }, []);
+  // Track playback state
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Shared playback control function
+  const togglePlayPause = useCallback(async () => {
+    const audioElement = audioRef.current;
+    if (!audioElement || !currentTrack) return;
+
+    try {
+      if (isPlaying) {
+        audioElement.pause();
+        setIsPlaying(false);
+      } else {
+        await audioElement.play();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error('Failed to toggle playback:', error);
+      toast({
+        variant: "destructive",
+        title: "Playback Error",
+        description: "Failed to control playback. Please try again.",
+      });
+    }
+  }, [currentTrack, isPlaying, toast]);
+
   const contextValue = useMemo(() => ({
     currentTrack, 
     playTrack, 
     queue, 
     addToQueue, 
+    insertAtBeginningOfQueue,
     playNextTrack, 
     clearQueue, 
     addAlbumToQueue, 
     removeTrackFromQueue, 
+    reorderQueue,
     addArtistToQueue, 
     playPreviousTrack,
     isLoading,
@@ -594,6 +736,15 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     playArtist,
     playedTracks,
     clearHistory,
+    // Audio settings
+    audioSettings,
+    updateAudioSettings,
+    equalizerPreset,
+    setEqualizerPreset,
+    audioEffects,
+    // Playback state
+    isPlaying,
+    togglePlayPause,
     toggleCurrentTrackStar: async () => {
       if (!currentTrack || !api) {
         toast({
@@ -668,10 +819,12 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     isLoading, 
     playTrack, 
     addToQueue, 
+    insertAtBeginningOfQueue,
     playNextTrack, 
     clearQueue, 
     addAlbumToQueue, 
     removeTrackFromQueue, 
+    reorderQueue,
     addArtistToQueue, 
     playPreviousTrack,
     playAlbum,
@@ -684,7 +837,14 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     playedTracks,
     clearHistory,
     api,
-    toast
+    toast,
+    audioEffects,
+    audioSettings,
+    equalizerPreset,
+    updateAudioSettings,
+    setEqualizerPreset,
+    isPlaying,
+    togglePlayPause
   ]);
 
   return (

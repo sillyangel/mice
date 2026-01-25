@@ -14,7 +14,7 @@ export function getGravatarUrl(
 ): string {
   // Normalize email: trim whitespace and convert to lowercase
   const normalizedEmail = email.trim().toLowerCase();
-  
+  // i love md5 hash (no i dont)
   // Generate MD5 hash of the email
   const hash = crypto.createHash('md5').update(normalizedEmail).digest('hex');
   

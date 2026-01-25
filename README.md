@@ -18,8 +18,7 @@ This is a "Modern" Navidrome (or Subsonic) client built with [Next.js](https://n
 - **Search** - Find music across your entire library
 - **Audio Player** with queue management
 - **Scrobbling** - Track your listening history
-- **Playlist Management** - Create and manage playlists
-- **Caching** - Cache/Offline save your server
+<!-- - **Playlist Management** - Create and manage playlists -->
 
 ### Preview
 ![preview](https://github.com/sillyangel/mice/blob/main/public/home-preview.png?raw=true)
@@ -57,8 +56,6 @@ Next, open the new `.env` file and update it with your Navidrome server credenti
 NEXT_PUBLIC_NAVIDROME_URL=http://localhost:4533
 NEXT_PUBLIC_NAVIDROME_USERNAME=your_username
 NEXT_PUBLIC_NAVIDROME_PASSWORD=your_password
-NEXT_PUBLIC_POSTHOG_KEY=phc_XXXXXXXXXXXXXXXXXX
-NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 ```
 
 > **Tip:** If you don’t have your own Navidrome server yet, you can use the public demo credentials:  

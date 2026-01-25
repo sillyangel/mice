@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import React, { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
@@ -8,6 +9,9 @@ import { Progress } from '@/components/ui/progress';
 import { lrcLibClient } from '@/lib/lrclib';
 import Link from 'next/link';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { useGlobalSearch } from './GlobalSearchProvider';
+import { AudioSettingsDialog } from './AudioSettingsDialog';
 import { 
   FaPlay, 
   FaPause, 
@@ -19,7 +23,8 @@ import {
   FaRepeat,
   FaXmark,
   FaQuoteLeft,
-  FaListUl
+  FaListUl,
+  FaSliders
 } from "react-icons/fa6";
 import { Heart } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -45,8 +50,11 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     shuffle, 
     toggleShuffle, 
     toggleCurrentTrackStar,
-    queue 
+    queue,
+    audioSettings,
+    updateAudioSettings
   } = useAudioPlayer();
+  const [showAudioSettings, setShowAudioSettings] = useState(false);
   
   const isMobile = useIsMobile();
   const router = useRouter();
@@ -62,6 +70,22 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
   const [showLyrics, setShowLyrics] = useState(true);
   const [activeTab, setActiveTab] = useState<MobileTab>('player');
   const lyricsRef = useRef<HTMLDivElement>(null);
+
+  // Initialize volume from saved preference when fullscreen opens
+  useEffect(() => {
+    if (!isOpen) return;
+    try {
+      const savedVolume = localStorage.getItem('navidrome-volume');
+      if (savedVolume !== null) {
+        const vol = parseFloat(savedVolume);
+        if (!isNaN(vol) && vol >= 0 && vol <= 1) {
+          setVolume(vol);
+          const mainAudio = document.querySelector('audio') as HTMLAudioElement | null;
+          if (mainAudio) mainAudio.volume = vol;
+        }
+      }
+    } catch {}
+  }, [isOpen]);
 
   // Debug logging for component changes
   useEffect(() => {
@@ -127,7 +151,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             const containerHeight = scrollContainer.clientHeight;
             const elementTop = currentLyricElement.offsetTop;
             const elementHeight = currentLyricElement.offsetHeight;
-            const targetScrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
+            // Position the active lyric higher on the screen (~25% from top)
+            const focusFraction = 0.25; // 0.5 would be center
+            const targetScrollTop = elementTop - (containerHeight * focusFraction) + (elementHeight / 2);
             
             scrollContainer.scrollTo({
               top: Math.max(0, targetScrollTop),
@@ -378,6 +404,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     
     mainAudio.currentTime = newTime;
     setCurrentTime(newTime);
+    try {
+      localStorage.setItem('navidrome-current-track-time', newTime.toString());
+    } catch {}
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -387,7 +416,58 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     const newVolume = parseInt(e.target.value) / 100;
     mainAudio.volume = newVolume;
     setVolume(newVolume);
+    try {
+      localStorage.setItem('navidrome-volume', newVolume.toString());
+    } catch {}
   };
+
+  // Volume control functions for keyboard shortcuts
+  const handleVolumeUp = () => {
+    const mainAudio = document.querySelector('audio') as HTMLAudioElement;
+    if (!mainAudio) return;
+    const newVolume = Math.min(1, mainAudio.volume + 0.1);
+    mainAudio.volume = newVolume;
+    setVolume(newVolume);
+    try {
+      localStorage.setItem('navidrome-volume', newVolume.toString());
+    } catch {}
+  };
+
+  const handleVolumeDown = () => {
+    const mainAudio = document.querySelector('audio') as HTMLAudioElement;
+    if (!mainAudio) return;
+    const newVolume = Math.max(0, mainAudio.volume - 0.1);
+    mainAudio.volume = newVolume;
+    setVolume(newVolume);
+    try {
+      localStorage.setItem('navidrome-volume', newVolume.toString());
+    } catch {}
+  };
+
+  const handleToggleMute = () => {
+    const mainAudio = document.querySelector('audio') as HTMLAudioElement;
+    if (!mainAudio) return;
+    const newVolume = mainAudio.volume === 0 ? 1 : 0;
+    mainAudio.volume = newVolume;
+    setVolume(newVolume);
+    try {
+      localStorage.setItem('navidrome-volume', newVolume.toString());
+    } catch {}
+  };
+
+  const { openSpotlight } = useGlobalSearch();
+
+  // Set up keyboard shortcuts for fullscreen player
+  useKeyboardShortcuts({
+    onPlayPause: togglePlayPause,
+    onNextTrack: playNextTrack,
+    onPreviousTrack: playPreviousTrack,
+    onVolumeUp: handleVolumeUp,
+    onVolumeDown: handleVolumeDown,
+    onToggleMute: handleToggleMute,
+    onSpotlightSearch: openSpotlight,
+    disabled: !isOpen || !currentTrack // Only active when fullscreen is open
+  });
 
   const handleLyricClick = (time: number) => {
     const mainAudio = document.querySelector('audio') as HTMLAudioElement;
@@ -395,6 +475,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
     mainAudio.currentTime = time;
     setCurrentTime(time);
+    try {
+      localStorage.setItem('navidrome-current-track-time', time.toString());
+    } catch {}
     
     // Update progress bar as well
     if (duration > 0) {
@@ -410,15 +493,24 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (!isOpen || !currentTrack) return null;
+  if (!currentTrack) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black overflow-hidden">
+    <>
+      <AnimatePresence>
+        {isOpen && (
+      <motion.div
+        className="fixed inset-0 z-[70] bg-black overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2, ease: 'easeInOut' }}
+      >
       {/* Enhanced Blurred background image */}
       {currentTrack.coverArt && (
-        <div className="absolute inset-0 w-full h-full">
+        <motion.div className="absolute inset-0 w-full h-full" initial={{ scale: 1.02 }} animate={{ scale: 1.08 }} transition={{ duration: 10, ease: 'linear' }}>
           {/* Main background */}
-          <div 
+          <motion.div 
             className="absolute inset-0 w-full h-full"
             style={{
               backgroundImage: `url(${currentTrack.coverArt})`,
@@ -428,9 +520,12 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               filter: 'blur(20px) brightness(0.3)',
               transform: 'scale(1.1)',
             }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
           />
           {/* Top gradient blur for mobile */}
-          <div 
+          <motion.div 
             className="absolute top-0 left-0 right-0 h-32"
             style={{
               background: `linear-gradient(to bottom, 
@@ -439,9 +534,12 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 transparent 100%)`,
               backdropFilter: 'blur(10px)',
             }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25 }}
           />
           {/* Bottom gradient blur for mobile */}
-          <div 
+          <motion.div 
             className="absolute bottom-0 left-0 right-0 h-32"
             style={{
               background: `linear-gradient(to top, 
@@ -450,31 +548,34 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 transparent 100%)`,
               backdropFilter: 'blur(10px)',
             }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25 }}
           />
-        </div>
+        </motion.div>
       )}
       
       {/* Overlay for better contrast */}
-      <div className="absolute inset-0 bg-black/30" />
+      <motion.div className="absolute inset-0 bg-black/30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
       
-      <div className="relative h-full w-full flex flex-col">
+      <motion.div className="relative h-full w-full flex flex-col" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 10, opacity: 0 }} transition={{ duration: 0.2, ease: 'easeOut' }}>
         
         {/* Mobile Close Handle */}
         {isMobile && (
-          <div className="flex justify-center py-4 px-4">
+          <motion.div className="flex justify-center py-4 px-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
             <div 
               onClick={onClose}
               className="cursor-pointer px-8 py-3 -mx-8 -my-3"
               style={{ touchAction: 'manipulation' }}
             >
-              <div className="w-8 h-1 bg-gray-300 rounded-full opacity-60" />
+              <motion.div className="w-8 h-1 bg-gray-300 rounded-full opacity-60" initial={{ scaleX: 0.9 }} animate={{ scaleX: 1 }} transition={{ duration: 0.3 }} />
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Desktop Header */}
         {!isMobile && (
-          <div className="absolute top-0 right-0 z-10 p-4 lg:p-6">
+          <motion.div className="absolute top-0 right-0 z-10 p-4 lg:p-6" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
             <div className="flex items-center gap-2">
               {onOpenQueue && (
                 <button 
@@ -493,7 +594,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 <FaXmark className="w-5 h-5" />
               </button>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Main Content */}
@@ -502,20 +603,32 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             /* Mobile Tab Content */
             <div className="h-full flex flex-col">
               <div className="flex-1 overflow-hidden">
+                <AnimatePresence mode="wait" initial={false}>
                 {activeTab === 'player' && (
-                  <div className="h-full flex flex-col justify-center items-center px-8 py-4">
-                    {/* Mobile Album Art */}
-                    <div className="relative mb-6 shrink-0">
-                      <Image
-                        src={currentTrack.coverArt || '/default-album.png'}
-                        alt={currentTrack.album}
-                        width={260}
-                        height={260}
-                        className={`rounded-lg shadow-2xl object-cover transition-all duration-300 ${
-                          !isPlaying ? 'w-52 h-52 opacity-70 scale-95' : 'w-64 h-64'
-                        }`}
-                        priority
-                      />
+                  <motion.div key="tab-player" className="h-full flex flex-col justify-center items-center px-8 py-4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} transition={{ duration: 0.2 }}>
+                    {/* Mobile Album Art (crossfade on track change) */}
+                    <div className="relative mb-6 shrink-0 flex items-center justify-center" style={{ minHeight: 208 }}>
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.div
+                          key={currentTrack.id}
+                          initial={{ opacity: 0, scale: 0.98 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 1.02, position: 'absolute' as const }}
+                          transition={{ duration: 0.25 }}
+                          className="flex items-center justify-center"
+                        >
+                          <Image
+                            src={currentTrack.coverArt || '/default-album.png'}
+                            alt={currentTrack.album}
+                            width={260}
+                            height={260}
+                            className={`rounded-lg shadow-2xl object-cover transition-all duration-300 ${
+                              !isPlaying ? 'w-52 h-52 opacity-70 scale-95' : 'w-64 h-64'
+                            }`}
+                            priority
+                          />
+                        </motion.div>
+                      </AnimatePresence>
                     </div>
 
                     {/* Track Info - Left Aligned and Heart on Same Line */}
@@ -621,24 +734,27 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                         />
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 )}
 
                 {activeTab === 'lyrics' && lyrics.length > 0 && (
-                  <div className="h-full flex flex-col px-4">
+                  <motion.div key="tab-lyrics" className="h-full flex flex-col px-4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} transition={{ duration: 0.2 }}>
                     <div 
                       className="flex-1 overflow-y-auto"
                       ref={lyricsRef}
                     >
-                      <div className="space-y-3 py-4">
+            <div className="space-y-4 py-10">
                         {lyrics.map((line, index) => (
-                          <div
+                          <motion.div
                             key={index}
                             data-lyric-index={index}
                             onClick={() => handleLyricClick(line.time)}
-                            className={`text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground px-2 ${
+                            initial={false}
+              animate={index === currentLyricIndex ? { scale: 1.06, opacity: 1 } : index < currentLyricIndex ? { scale: 0.985, opacity: 0.75 } : { scale: 0.98, opacity: 0.6 }}
+                            transition={{ duration: 0.2 }}
+              className={`text-2xl sm:text-3xl leading-relaxed transition-colors duration-200 break-words cursor-pointer hover:text-foreground px-2 ${
                               index === currentLyricIndex
-                                ? 'text-foreground font-bold text-xl'
+                ? 'text-foreground font-extrabold leading-tight text-5xl sm:text-6xl'
                                 : index < currentLyricIndex
                                 ? 'text-foreground/60'
                                 : 'text-foreground/40'
@@ -647,21 +763,25 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                               wordWrap: 'break-word',
                               overflowWrap: 'break-word',
                               hyphens: 'auto',
-                              paddingBottom: '4px'
+                              paddingBottom: '4px',
+                              // Subtle glow to make the current line feel elevated
+                              textShadow: index === currentLyricIndex 
+                                ? '0 4px 16px rgba(0,0,0,0.7), 0 0 24px rgba(255,255,255,0.16)'
+                                : undefined
                             }}
                             title={`Click to jump to ${formatTime(line.time)}`}
                           >
                             {line.text || '♪'}
-                          </div>
+                          </motion.div>
                         ))}
-                        <div style={{ height: '200px' }} />
+                        <div style={{ height: '260px' }} />
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
 
                 {activeTab === 'queue' && (
-                  <div className="h-full flex flex-col px-4">
+                  <motion.div key="tab-queue" className="h-full flex flex-col px-4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} transition={{ duration: 0.2 }}>
                     <ScrollArea className="flex-1">
                       <div className="space-y-2 py-4">
                         {queue.map((track, index) => (
@@ -690,11 +810,10 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                         ))}
                       </div>
                     </ScrollArea>
-                  </div>
+                  </motion.div>
                 )}
+                </AnimatePresence>
               </div>
-
-              {/* Mobile Tab Bar */}
               <div className="flex-shrink-0 pb-safe">
                 <div className="flex justify-around py-4 mb-2">
                   <button
@@ -733,16 +852,27 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             <div className="h-full flex flex-row gap-8 p-6 overflow-hidden">
               {/* Left Side - Album Art and Controls */}
               <div className="flex flex-col items-center justify-center min-h-0 flex-1 min-w-0">
-                {/* Album Art */}
-                <div className="relative mb-6 shrink-0">
-                  <Image
-                    src={currentTrack.coverArt || '/default-album.png'}
-                    alt={currentTrack.album}
-                    width={320}
-                    height={320}
-                    className="w-80 h-80 rounded-lg shadow-2xl object-cover"
-                    priority
-                  />
+                {/* Album Art (crossfade on track change) */}
+                <div className="relative mb-6 shrink-0 w-80 h-80">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={currentTrack.id}
+                      className="absolute inset-0"
+                      initial={{ opacity: 0, scale: 0.985 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.02 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <Image
+                        src={currentTrack.coverArt || '/default-album.png'}
+                        alt={currentTrack.album}
+                        width={320}
+                        height={320}
+                        className="w-80 h-80 rounded-lg shadow-2xl object-cover"
+                        priority
+                      />
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
 
                 {/* Track Info */}
@@ -837,6 +967,14 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                       <FaQuoteLeft className="w-5 h-5" />
                     </button>
                   )}
+
+                  <button
+                    onClick={() => setShowAudioSettings(true)}
+                    className="p-2 hover:bg-gray-700/50 rounded-full transition-colors"
+                    title="Audio Settings"
+                  >
+                    <FaSliders className="w-5 h-5" />
+                  </button>
                   
                   {showVolumeSlider && (
                     <div 
@@ -857,19 +995,28 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               </div>
 
               {/* Right Side - Lyrics (Desktop Only) */}
+              <AnimatePresence initial={false}>
               {showLyrics && lyrics.length > 0 && (
-                <div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}>
+                <motion.div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}
+                  initial={{ x: 30, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: 30, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
                   <div className="h-full flex flex-col">
                     <ScrollArea className="flex-1 min-h-0">
-                      <div className="space-y-3 pl-4 pr-4 py-4">
+                      <div className="space-y-3 pl-4 pr-4 py-8">
                         {lyrics.map((line, index) => (
-                          <div
+                          <motion.div
                             key={index}
                             data-lyric-index={index}
                             onClick={() => handleLyricClick(line.time)}
-                            className={`text-base leading-relaxed transition-all duration-300 break-words cursor-pointer hover:text-foreground ${
+                            initial={false}
+                            animate={index === currentLyricIndex ? { scale: 1.04, opacity: 1 } : index < currentLyricIndex ? { scale: 0.985, opacity: 0.75 } : { scale: 0.98, opacity: 0.5 }}
+                            transition={{ duration: 0.2 }}
+                            className={`text-base leading-relaxed transition-colors duration-200 break-words cursor-pointer hover:text-foreground ${
                               index === currentLyricIndex
-                                ? 'text-foreground font-bold text-2xl'
+                                ? 'text-foreground font-extrabold leading-tight text-5xl'
                                 : index < currentLyricIndex
                                 ? 'text-foreground/60'
                                 : 'text-foreground/40'
@@ -879,23 +1026,35 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                               overflowWrap: 'break-word',
                               hyphens: 'auto',
                               paddingBottom: '4px',
-                              paddingLeft: '8px'
+                              paddingLeft: '8px',
+                              // Subtle glow to make the current line feel elevated
+                              textShadow: index === currentLyricIndex 
+                                ? '0 6px 18px rgba(0,0,0,0.7), 0 0 28px rgba(255,255,255,0.18)'
+                                : undefined
                             }}
                             title={`Click to jump to ${formatTime(line.time)}`}
                           >
                             {line.text || '♪'}
-                          </div>
+                          </motion.div>
                         ))}
-                        <div style={{ height: '200px' }} />
+                        <div style={{ height: '240px' }} />
                       </div>
                     </ScrollArea>
                   </div>
-                </div>
+                </motion.div>
               )}
+              </AnimatePresence>
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+  </motion.div>
+  )}
+    </AnimatePresence>
+    <AudioSettingsDialog 
+      isOpen={showAudioSettings}
+      onClose={() => setShowAudioSettings(false)}
+    />
+    </>
   );
 };
