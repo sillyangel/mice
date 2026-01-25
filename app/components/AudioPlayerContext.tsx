@@ -115,8 +115,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (savedCurrentTrack) {
       try {
         const track = JSON.parse(savedCurrentTrack);
-        // Clear autoPlay flag when loading from localStorage to prevent auto-play on refresh
-        track.autoPlay = false;
+        // Check if there's a saved playback position - if so, user was likely playing
+        const savedTime = localStorage.getItem('navidrome-current-track-time');
+        track.autoPlay = savedTime !== null && parseFloat(savedTime) > 0;
         setCurrentTrack(track);
       } catch (error) {
         console.error('Failed to parse saved current track:', error);
@@ -230,40 +231,6 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     
     if (currentTrack) {
       setPlayedTracks((prev) => [...prev, currentTrack]);
-      
-      // Record the play for listening streak
-      // This will store timestamp with the track play
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        const streakData = localStorage.getItem('navidrome-streak-data');
-        
-        if (streakData) {
-          const parsedData = JSON.parse(streakData);
-          const todayData = parsedData[today] || {
-            date: today,
-            tracks: 0,
-            uniqueArtists: [],
-            uniqueAlbums: [],
-            totalListeningTime: 0
-          };
-          
-          // Update today's listening data
-          todayData.tracks += 1;
-          if (!todayData.uniqueArtists.includes(currentTrack.artistId)) {
-            todayData.uniqueArtists.push(currentTrack.artistId);
-          }
-          if (!todayData.uniqueAlbums.includes(currentTrack.albumId)) {
-            todayData.uniqueAlbums.push(currentTrack.albumId);
-          }
-          todayData.totalListeningTime += currentTrack.duration;
-          
-          // Save updated data
-          parsedData[today] = todayData;
-          localStorage.setItem('navidrome-streak-data', JSON.stringify(parsedData));
-        }
-      } catch (error) {
-        console.error('Failed to update listening streak data:', error);
-      }
     }
     
     // Set autoPlay flag on the track
