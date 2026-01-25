@@ -19,7 +19,9 @@ import Loading from '@/app/components/loading';
 import { useInView } from 'react-intersection-observer';
 
 export default function BrowsePage() {
-  const { artists, isLoading: contextLoading } = useNavidrome();
+  const { artists: allArtists, isLoading: contextLoading } = useNavidrome();
+  // Filter to only show album artists (artists with at least one album)
+  const artists = allArtists.filter(artist => artist.albumCount && artist.albumCount > 0);
   const { shuffleAllAlbums } = useAudioPlayer();
   
   // Use our progressive loading hook
@@ -78,12 +80,13 @@ export default function BrowsePage() {
             <div className="relative">
             <ScrollArea>
             <div className="flex space-x-4 pb-4">
-            {artists.map((artist) => (
+            {artists.map((artist, index) => (
                   <ArtistIcon
                     key={artist.id}
                     artist={artist}
                     className="shrink-0 overflow-hidden"
                     size={190}
+                    loading={index < 10 ? 'eager' : 'lazy'}
                   />
                 ))}
               </div>
@@ -110,7 +113,7 @@ export default function BrowsePage() {
             <ScrollArea className="h-full">
               <div className="h-full overflow-y-auto">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4 p-4 pb-8">
-                  {albums.map((album) => (
+                  {albums.map((album, index) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}
@@ -118,6 +121,7 @@ export default function BrowsePage() {
                       aspectRatio="square"
                       width={200}
                       height={200}
+                      loading={index < 20 ? 'eager' : 'lazy'}
                     />
                   ))}
                 </div>

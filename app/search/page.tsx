@@ -35,7 +35,12 @@ export default function SearchPage() {
     try {
       setIsSearching(true);
       const results = await search2(query);
-      setSearchResults(results);
+      // Limit results to 5 of each type
+      setSearchResults({
+        artists: results.artists.slice(0, 5),
+        albums: results.albums.slice(0, 5),
+        songs: results.songs.slice(0, 5)
+      });
     } catch (error) {
       console.error('Search failed:', error);
       setSearchResults({ artists: [], albums: [], songs: [] });

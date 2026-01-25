@@ -191,11 +191,8 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           <MenubarMenu>
         <MenubarTrigger className="relative">File</MenubarTrigger>
         <MenubarContent>
-          <MenubarSub>
-            <MenubarSubTrigger>New</MenubarSubTrigger>
-            <MenubarSubContent className="w-[230px]">
-          <MenubarItem>
-            Playlist <MenubarShortcut>⌘N</MenubarShortcut>
+          <MenubarItem onClick={() => router.push('/library/playlists')}>
+            View Playlists
           </MenubarItem>
           <MenubarItem disabled>
             Playlist from Selection <MenubarShortcut>⇧⌘N</MenubarShortcut>
@@ -205,8 +202,6 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           </MenubarItem>
           <MenubarItem>Playlist Folder</MenubarItem>
           <MenubarItem disabled>Genius Playlist</MenubarItem>
-            </MenubarSubContent>
-          </MenubarSub>
           <MenubarItem>
             Open Stream URL <MenubarShortcut>⌘U</MenubarShortcut>
           </MenubarItem>
@@ -386,7 +381,7 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
               ) : navidromeUrl ? (
                 navidromeUrl
               ) : (
-                <span className="italic text-gray-400">Not set</span>
+                <span className="italic text-gray-400">Auto-configured</span>
               )}
             </span>
           </div>
