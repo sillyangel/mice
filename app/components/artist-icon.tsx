@@ -27,6 +27,7 @@ interface ArtistIconProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: number
   imageOnly?: boolean
   responsive?: boolean
+  loading?: 'eager' | 'lazy'
 }
 
 export function ArtistIcon({
@@ -34,6 +35,7 @@ export function ArtistIcon({
   size = 150,
   imageOnly = false,
   responsive = false,
+  loading = 'lazy',
   className,
   ...props
 }: ArtistIconProps) {
@@ -77,6 +79,7 @@ export function ArtistIcon({
           width={size}
           height={size}
           className="w-full h-full object-cover transition-all hover:scale-105"
+          loading={loading}
         />
       </div>
     );
@@ -116,6 +119,7 @@ export function ArtistIcon({
                       }
                   )}
                   className={isResponsive ? "object-cover" : "object-cover w-full h-full"}
+                  loading={loading}
                 />
               </div>
             </div>

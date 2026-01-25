@@ -36,6 +36,7 @@ interface AlbumArtworkProps extends Omit<
   aspectRatio?: "portrait" | "square"
   width?: number
   height?: number
+  loading?: 'eager' | 'lazy'
 }
 
 export function AlbumArtwork({
@@ -43,6 +44,7 @@ export function AlbumArtwork({
   aspectRatio = "portrait",
   width,
   height,
+  loading = 'lazy',
   className,
   ...props
 }: AlbumArtworkProps) {
@@ -160,7 +162,7 @@ export function AlbumArtwork({
                   onLoad={handleImageLoad}
                   onError={handleImageError}
                   priority={false}
-                  loading="lazy"
+                  loading={loading}
                 />
               ) : (
                 <div className="w-full h-full bg-muted rounded flex items-center justify-center">
