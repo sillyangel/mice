@@ -5,7 +5,6 @@ import { AudioPlayerProvider } from "../components/AudioPlayerContext";
 import { OfflineNavidromeProvider, useOfflineNavidrome } from "../components/OfflineNavidromeProvider";
 import { NavidromeConfigProvider } from "../components/NavidromeConfigContext";
 import { ThemeProvider } from "../components/ThemeProvider";
-import { PostHogProvider } from "../components/PostHogProvider";
 import { WhatsNewPopup } from "../components/WhatsNewPopup";
 import Ihateserverside from "./ihateserverside";
 import DynamicViewportTheme from "./DynamicViewportTheme";
@@ -101,26 +100,24 @@ function NavidromeErrorBoundary({ children }: { children: React.ReactNode }) {
 
 export default function RootLayoutClient({ children }: { children: React.ReactNode }) {
   return (
-    <PostHogProvider>
-      <ThemeProvider>
-        <DynamicViewportTheme />
-        <ThemeColorHandler />
-        <ServiceWorkerRegistration />
-        <NavidromeConfigProvider>
-          <OfflineNavidromeProvider>
-            <NavidromeErrorBoundary>
-              <AudioPlayerProvider>
-                <GlobalSearchProvider>
-                  <Ihateserverside>
-                    <PageTransition>{children}</PageTransition>
-                  </Ihateserverside>
-                  <WhatsNewPopup />
-                </GlobalSearchProvider>
-              </AudioPlayerProvider>
-            </NavidromeErrorBoundary>
-          </OfflineNavidromeProvider>
-        </NavidromeConfigProvider>
-      </ThemeProvider>
-    </PostHogProvider>
+    <ThemeProvider>
+      <DynamicViewportTheme />
+      <ThemeColorHandler />
+      <ServiceWorkerRegistration />
+      <NavidromeConfigProvider>
+        <OfflineNavidromeProvider>
+          <NavidromeErrorBoundary>
+            <AudioPlayerProvider>
+              <GlobalSearchProvider>
+                <Ihateserverside>
+                  <PageTransition>{children}</PageTransition>
+                </Ihateserverside>
+                <WhatsNewPopup />
+              </GlobalSearchProvider>
+            </AudioPlayerProvider>
+          </NavidromeErrorBoundary>
+        </OfflineNavidromeProvider>
+      </NavidromeConfigProvider>
+    </ThemeProvider>
   );
 }

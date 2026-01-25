@@ -19,7 +19,6 @@ This is a "Modern" Navidrome (or Subsonic) client built with [Next.js](https://n
 - **Audio Player** with queue management
 - **Scrobbling** - Track your listening history
 - **Playlist Management** - Create and manage playlists
-- **Caching** - Cache/Offline save your server
 
 ### Preview
 ![preview](https://github.com/sillyangel/mice/blob/main/public/home-preview.png?raw=true)

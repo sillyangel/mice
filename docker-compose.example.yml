@@ -12,10 +12,6 @@ services:
       # - NAVIDROME_USERNAME=user
       # - NAVIDROME_PASSWORD=password
 
-      # # PostHog Analytics
-      # - POSTHOG_KEY=phc_Sa39J7754MwaHrPxYiWnWETVSD3g1cU4nOplMGczRE9
-      # - POSTHOG_HOST=https://us.i.posthog.com
-
       # Application Port
       - PORT=40625
     
