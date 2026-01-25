@@ -137,13 +137,13 @@ export default function AlbumPage() {
   // Dynamic cover art URLs based on image size
   const getMobileCoverArtUrl = () => {
     return album.coverArt && api
-      ? api.getCoverArtUrl(album.coverArt, 600)
+      ? api.getCoverArtUrl(album.coverArt, 300)
       : '/default-user.jpg';
   };
 
   const getDesktopCoverArtUrl = () => {
     return album.coverArt && api
-      ? api.getCoverArtUrl(album.coverArt, 600)
+      ? api.getCoverArtUrl(album.coverArt, 300)
       : '/default-user.jpg';
   };
 
@@ -159,8 +159,8 @@ export default function AlbumPage() {
               <Image 
                 src={getMobileCoverArtUrl()} 
                 alt={album.name} 
-                width={600} 
-                height={600}
+                width={300} 
+                height={300}
                 className="rounded-md shadow-lg"
               />
             </div>
@@ -203,8 +203,8 @@ export default function AlbumPage() {
             <Image 
               src={getDesktopCoverArtUrl()} 
               alt={album.name} 
-              width={600} 
-              height={600}
+              width={300} 
+              height={300}
               className="rounded-md"
             />
             <div className="space-y-2">
