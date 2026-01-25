@@ -1,13 +1,9 @@
-name: Development Docker Image (Nightly)
+name: Docker Image (Nightly)
 
 on:
   schedule:
     # Run every night at 5:00 UTC
     - cron: '0 5 * * *'
-  push:
-    branches:
-      - dev
-  workflow_dispatch: # Allow manual triggering
 
 env:
   REGISTRY: docker.io
@@ -89,7 +85,6 @@ jobs:
           tags: |
             type=raw,value=nightly
             type=raw,value=dev-latest
-            type=sha,prefix=dev-
           labels: |
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
             org.opencontainers.image.licenses=MIT
