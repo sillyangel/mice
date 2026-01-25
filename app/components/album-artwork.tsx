@@ -18,7 +18,6 @@ import {
 } from "../../components/ui/context-menu"
 
 import { useNavidrome } from "./NavidromeContext"
-import { useOfflineNavidrome } from "./OfflineNavidromeProvider"
 import Link from "next/link";
 import { useAudioPlayer, Track } from "@/app/components/AudioPlayerContext";
 import { getNavidromeAPI } from "@/lib/navidrome";
@@ -28,7 +27,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ArtistIcon } from "@/app/components/artist-icon";
 import { Heart, Music, Disc, Mic, Play, Download } from "lucide-react";
 import { Album, Artist, Song } from "@/lib/navidrome";
-import { OfflineIndicator } from "@/app/components/OfflineIndicator";
 
 interface AlbumArtworkProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
@@ -49,7 +47,6 @@ export function AlbumArtwork({
   ...props
 }: AlbumArtworkProps) {
   const { api, isConnected } = useNavidrome();
-  const offline = useOfflineNavidrome();
   const router = useRouter();
   const { addAlbumToQueue, playTrack, addToQueue } = useAudioPlayer();
   const { playlists, starItem, unstarItem } = useNavidrome();
@@ -153,7 +150,7 @@ export function AlbumArtwork({
         <ContextMenuTrigger>
           <Card key={album.id} className="overflow-hidden cursor-pointer px-0 py-0 gap-0" onClick={() => handleClick()} onMouseEnter={handlePrefetch} onFocus={handlePrefetch}>
             <div className="aspect-square relative group">
-              {album.coverArt && api && !offline.isOfflineMode ? (
+              {album.coverArt && api ? (
                 <Image
                   src={coverArtUrl}
                   alt={album.name}
@@ -172,16 +169,6 @@ export function AlbumArtwork({
               )}
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                 <Play className="w-6 h-6 mx-auto hidden group-hover:block" onClick={() => handlePlayAlbum(album)}/>
-              </div>
-              
-              {/* Offline indicator in top-right corner */}
-              <div className="absolute top-2 right-2">
-                <OfflineIndicator 
-                  id={album.id} 
-                  type="album" 
-                  size="sm"
-                  className="bg-black/60 text-white rounded-full p-1"
-                />
               </div>
             </div>
             <CardContent className="p-4">
