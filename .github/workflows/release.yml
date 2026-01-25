@@ -3,6 +3,7 @@ name: Release Docker Image
 on:
   push:
     tags:
+      - '[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9][0-9]'
 
 env:
   REGISTRY: docker.io
@@ -67,7 +68,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags || 'latest' }}
           labels: |
             ${{ steps.meta.outputs.labels }}
             org.opencontainers.image.description=$(cat README.md | head -20 | tr '\n' ' ')
