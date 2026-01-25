@@ -15,3 +15,7 @@ printenv | grep NEXT_PUBLIC_ | while read -r line ; do
 done
 
 echo "✅ Environment variable replacement complete"
+echo "🚀 Starting Next.js application..."
+
+# Execute the command passed as arguments
+exec "$@"
