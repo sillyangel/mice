@@ -3,7 +3,6 @@ name: Release Docker Image
 on:
   push:
     tags:
-      - '[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9][0-9]'
 
 env:
   REGISTRY: docker.io
@@ -81,10 +80,3 @@ jobs:
           cache-to: |
             type=gha,mode=max,scope=deps-only
 
-
-      - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v4
-        with:
-          username: sillyangel
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: sillyangel/mice
