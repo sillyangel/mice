@@ -34,8 +34,8 @@ This is a "Modern" Navidrome (or Subsonic) client built with [Next.js](https://n
 1. **Clone and install the required dependencies**
 
 ```bash
-git clone https://github.com/sillyangel/project-still.git
-cd project-still/
+git clone https://github.com/sillyangel/mice.git
+cd mice/
 pnpm install
 
 # or npm
@@ -113,7 +113,7 @@ docker run -p 3000:3000 \
   sillyangel/mice:latest
 ```
 
- **For detailed Docker configuration, environment variables, troubleshooting, and advanced setups, see [DOCKER.md](./DOCKER.md)**
+ **For detailed Docker configuration, environment variables, troubleshooting, and advanced setups, see [DOCKER.md](./docs/DOCKER.md)**
 
 ## Tech Stack
 
