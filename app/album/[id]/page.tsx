@@ -13,9 +13,6 @@ import { Separator } from '@/components/ui/separator';
 import { getNavidromeAPI } from '@/lib/navidrome';
 import { useFavoriteAlbums } from '@/hooks/use-favorite-albums';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { OfflineIndicator, DownloadButton } from '@/app/components/OfflineIndicator';
-import { useOfflineDownloads } from '@/hooks/use-offline-downloads';
-import { useToast } from '@/hooks/use-toast';
 
 export default function AlbumPage() {
   const { id } = useParams();
@@ -29,8 +26,6 @@ export default function AlbumPage() {
   const { isFavoriteAlbum, toggleFavoriteAlbum } = useFavoriteAlbums();
   const isMobile = useIsMobile();
   const api = getNavidromeAPI();
-  const { downloadAlbum, isSupported: isOfflineSupported } = useOfflineDownloads();
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchAlbum = async () => {
@@ -126,31 +121,6 @@ export default function AlbumPage() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handleDownloadAlbum = async () => {
-    if (!album || !tracklist.length) return;
-
-    try {
-      toast({
-        title: "Download Started",
-        description: `Starting download of "${album.name}" by ${album.artist}`,
-      });
-
-      await downloadAlbum(album, tracklist);
-
-      toast({
-        title: "Download Complete",
-        description: `"${album.name}" has been downloaded for offline listening`,
-      });
-    } catch (error) {
-      console.error('Failed to download album:', error);
-      toast({
-        title: "Download Failed",
-        description: `Failed to download "${album.name}". Please try again.`,
-        variant: "destructive"
-      });
-    }
-  };
-
   // Dynamic cover art URLs based on image size
   const getMobileCoverArtUrl = () => {
     return album.coverArt && api
@@ -192,15 +162,6 @@ export default function AlbumPage() {
                 </Link>
                 <p className="text-sm text-muted-foreground text-left">{album.genre} • {album.year}</p>
                 <p className="text-sm text-muted-foreground text-left">{album.songCount} songs, {formatDuration(album.duration)}</p>
-                
-                {/* Offline indicator for mobile */}
-                <OfflineIndicator 
-                  id={album.id} 
-                  type="album" 
-                  showLabel 
-                  size="sm"
-                  className="mt-2"
-                />
               </div>
               
               {/* Right side - Controls */}
@@ -212,18 +173,6 @@ export default function AlbumPage() {
                 >
                   <Play className="w-6 h-6" />
                 </Button>
-                
-                {/* Download button for mobile */}
-                {isOfflineSupported && (
-                  <DownloadButton
-                    id={album.id}
-                    type="album"
-                    onDownload={handleDownloadAlbum}
-                    size="sm"
-                    variant="outline"
-                    className="text-xs px-2 py-1 h-8"
-                  />
-                )}
               </div>
             </div>
           </div>
@@ -253,30 +202,12 @@ export default function AlbumPage() {
                 <Button className="px-5" onClick={() => playAlbum(album.id)}>
                   Play
                 </Button>
-                
-                {/* Download button for desktop */}
-                {isOfflineSupported && (
-                  <DownloadButton
-                    id={album.id}
-                    type="album"
-                    onDownload={handleDownloadAlbum}
-                    variant="outline"
-                  />
-                )}
               </div>
               
               {/* Album info */}
               <div className="text-sm text-muted-foreground">
                 <p>{album.genre} • {album.year}</p>
                 <p>{album.songCount} songs, {formatDuration(album.duration)}</p>
-                
-                {/* Offline indicator for desktop */}
-                <OfflineIndicator 
-                  id={album.id} 
-                  type="album" 
-                  showLabel 
-                  className="mt-2"
-                />
               </div>
             </div>
           </div>
@@ -312,12 +243,6 @@ export default function AlbumPage() {
                       }`}>
                         {song.title}
                       </p>
-                      {/* Song offline indicator */}
-                      <OfflineIndicator 
-                        id={song.id} 
-                        type="song" 
-                        size="sm"
-                      />
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">

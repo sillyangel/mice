@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Song, Album, getNavidromeAPI } from '@/lib/navidrome';
-import { useOfflineNavidrome } from '@/app/components/OfflineNavidromeProvider';
+import { useNavidrome } from '@/app/components/NavidromeContext';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ interface SongRecommendationsProps {
 }
 
 export function SongRecommendations({ userName }: SongRecommendationsProps) {
-  const offline = useOfflineNavidrome();
+  const { api } = useNavidrome();
   const { playTrack, shuffle, toggleShuffle } = useAudioPlayer();
   const isMobile = useIsMobile();
   const [recommendedSongs, setRecommendedSongs] = useState<Song[]>([]);
@@ -45,10 +45,9 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
       setLoading(true);
       try {
         const api = getNavidromeAPI();
-        const isOnline = !offline.isOfflineMode && !!api;
         
-        if (isOnline && api) {
-          // Online: use server-side recommendations
+        if (api) {
+          // Use server-side recommendations
           const randomAlbums = await api.getAlbums('random', 10);
           if (isMobile) {
             setRecommendedAlbums(randomAlbums.slice(0, 6));
@@ -69,29 +68,6 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
             recommendations.forEach((song: Song) => { states[song.id] = !!song.starred; });
             setSongStates(states);
           }
-        } else {
-          // Offline: use cached library
-          const albums = await offline.getAlbums(false);
-          const shuffledAlbums = [...(albums || [])].sort(() => Math.random() - 0.5);
-          if (isMobile) {
-            setRecommendedAlbums(shuffledAlbums.slice(0, 6));
-          } else {
-            const pick = shuffledAlbums.slice(0, 3);
-            const allSongs: Song[] = [];
-            for (const a of pick) {
-              try {
-                const songs = await offline.getSongs(a.id);
-                allSongs.push(...songs);
-              } catch (e) {
-                // ignore per-album errors
-              }
-            }
-            const recommendations = allSongs.sort(() => Math.random() - 0.5).slice(0, 6);
-            setRecommendedSongs(recommendations);
-            const states: Record<string, boolean> = {};
-            recommendations.forEach((song: Song) => { states[song.id] = !!song.starred; });
-            setSongStates(states);
-          }
         }
       } catch (error) {
         console.error('Failed to load recommendations:', error);
@@ -103,13 +79,15 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
     };
 
     loadRecommendations();
-  }, [offline, isMobile]);
+  }, [isMobile]);
 
   const handlePlaySong = async (song: Song) => {
     try {
       const api = getNavidromeAPI();
-      const url = api ? api.getStreamUrl(song.id) : `offline-song-${song.id}`;
-  const coverArt = song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 300) : undefined;
+      if (!api) return;
+      
+      const url = api.getStreamUrl(song.id);
+      const coverArt = song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined;
       const track = {
         id: song.id,
         name: song.title,
@@ -131,16 +109,13 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
   const handlePlayAlbum = async (album: Album) => {
     try {
       const api = getNavidromeAPI();
-      let albumSongs: Song[] = [];
-      if (api) {
-        albumSongs = await api.getAlbumSongs(album.id);
-      } else {
-        albumSongs = await offline.getSongs(album.id);
-      }
+      if (!api) return;
+      
+      const albumSongs = await api.getAlbumSongs(album.id);
       if (albumSongs.length > 0) {
         const first = albumSongs[0];
-        const url = api ? api.getStreamUrl(first.id) : `offline-song-${first.id}`;
-  const coverArt = first.coverArt && api ? api.getCoverArtUrl(first.coverArt, 300) : undefined;
+        const url = api.getStreamUrl(first.id);
+        const coverArt = first.coverArt ? api.getCoverArtUrl(first.coverArt, 300) : undefined;
         const track = {
           id: first.id,
           name: first.title,
@@ -246,7 +221,7 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
                   className="group cursor-pointer block"
                 >
                   <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                    {album.coverArt && !offline.isOfflineMode && getNavidromeAPI() ? (
+                    {album.coverArt && getNavidromeAPI() ? (
                       <Image
             src={getNavidromeAPI()!.getCoverArtUrl(album.coverArt, 300)}
                         alt={album.name}
@@ -305,7 +280,7 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
                 <CardContent className="px-2">
                   <div className="flex items-center gap-3">
                     <div className="relative w-12 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
-                      {song.coverArt && !offline.isOfflineMode && getNavidromeAPI() ? (
+                      {song.coverArt && getNavidromeAPI() ? (
                         <>
                           <Image
             src={getNavidromeAPI()!.getCoverArtUrl(song.coverArt, 48)}

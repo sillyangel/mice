@@ -4,7 +4,7 @@ import { ScrollArea, ScrollBar } from '../components/ui/scroll-area';
 import { Separator } from '../components/ui/separator';
 import { Tabs, TabsContent } from '../components/ui/tabs';
 import { AlbumArtwork } from './components/album-artwork';
-import { useOfflineNavidrome } from './components/OfflineNavidromeProvider';
+import { useNavidrome } from './components/NavidromeContext';
 import { useEffect, useState, Suspense } from 'react';
 import { Album, Song, getNavidromeAPI } from '@/lib/navidrome';
 import { useNavidromeConfig } from './components/NavidromeConfigContext';
@@ -14,14 +14,12 @@ import { SongRecommendations } from './components/SongRecommendations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { UserProfile } from './components/UserProfile';
-import { OfflineStatusIndicator } from './components/OfflineStatusIndicator';
 import CompactListeningStreak from './components/CompactListeningStreak';
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 
 function MusicPageContent() {
-  // Offline-first provider (falls back to offline data when not connected)
-  const offline = useOfflineNavidrome();
+  const { api } = useNavidrome();
   const { playAlbum, playTrack, shuffle, toggleShuffle, addToQueue } = useAudioPlayer();
   const searchParams = useSearchParams();
   const [allAlbums, setAllAlbums] = useState<Album[]>([]);
@@ -33,13 +31,14 @@ function MusicPageContent() {
   const [shortcutProcessed, setShortcutProcessed] = useState(false);
   const isMobile = useIsMobile();
 
-  // Load albums (offline-first)
+  // Load albums
   useEffect(() => {
     let mounted = true;
     const load = async () => {
+      if (!api) return;
       setAlbumsLoading(true);
       try {
-        const list = await offline.getAlbums(false);
+        const list = await api.getAlbums('newest', 500);
         if (!mounted) return;
         setAllAlbums(list || []);
         // Split albums into two sections
@@ -48,7 +47,7 @@ function MusicPageContent() {
         setRecentAlbums(recent);
         setNewestAlbums(newest);
       } catch (e) {
-        console.error('Failed to load albums (offline-first):', e);
+        console.error('Failed to load albums:', e);
         if (mounted) {
           setAllAlbums([]);
           setRecentAlbums([]);
@@ -60,17 +59,18 @@ function MusicPageContent() {
     };
     load();
     return () => { mounted = false; };
-  }, [offline]);
+  }, [api]);
 
   useEffect(() => {
     let mounted = true;
     const loadFavoriteAlbums = async () => {
+      if (!api) return;
       setFavoritesLoading(true);
       try {
-        const starred = await offline.getAlbums(true);
-        if (mounted) setFavoriteAlbums((starred || []).slice(0, 20));
+        const starred = await api.getAlbums('starred', 20);
+        if (mounted) setFavoriteAlbums(starred || []);
       } catch (error) {
-        console.error('Failed to load favorite albums (offline-first):', error);
+        console.error('Failed to load favorite albums:', error);
         if (mounted) setFavoriteAlbums([]);
       } finally {
         if (mounted) setFavoritesLoading(false);
@@ -78,7 +78,7 @@ function MusicPageContent() {
     };
     loadFavoriteAlbums();
     return () => { mounted = false; };
-  }, [offline]);
+  }, [api]);
 
   // Handle PWA shortcuts
   useEffect(() => {
@@ -115,28 +115,30 @@ function MusicPageContent() {
               await playAlbum(shuffledAlbums[0].id);
               
               // Add remaining albums to queue
-              for (let i = 1; i < shuffledAlbums.length; i++) {
-                try {
-                  const songs = await offline.getSongs(shuffledAlbums[i].id);
-                  const api = getNavidromeAPI();
-                  songs.forEach((song: Song) => {
-                    addToQueue({
-                      id: song.id,
-                      name: song.title,
-                      url: api ? api.getStreamUrl(song.id) : `offline-song-${song.id}`,
-                      artist: song.artist || 'Unknown Artist',
-                      artistId: song.artistId || '',
-                      album: song.album || 'Unknown Album',
-                      albumId: song.parent,
+              const navidromeApi = getNavidromeAPI();
+              if (navidromeApi) {
+                for (let i = 1; i < shuffledAlbums.length; i++) {
+                  try {
+                    const songs = await navidromeApi.getAlbumSongs(shuffledAlbums[i].id);
+                    songs.forEach((song: Song) => {
+                      addToQueue({
+                        id: song.id,
+                        name: song.title,
+                        url: navidromeApi.getStreamUrl(song.id),
+                        artist: song.artist || 'Unknown Artist',
+                        artistId: song.artistId || '',
+                        album: song.album || 'Unknown Album',
+                        albumId: song.parent,
                       duration: song.duration || 0,
                       coverArt: song.coverArt,
                       starred: !!song.starred
                     });
                   });
                 } catch (error) {
-                  console.error('Failed to load album tracks (offline-first):', error);
+                  console.error('Failed to load album tracks:', error);
                 }
               }
+            }
             }
             break;
 
@@ -154,28 +156,30 @@ function MusicPageContent() {
               await playAlbum(shuffledFavorites[0].id);
               
               // Add remaining albums to queue
-              for (let i = 1; i < shuffledFavorites.length; i++) {
-                try {
-                  const songs = await offline.getSongs(shuffledFavorites[i].id);
-                  const api = getNavidromeAPI();
-                  songs.forEach((song: Song) => {
-                    addToQueue({
-                      id: song.id,
-                      name: song.title,
-                      url: api ? api.getStreamUrl(song.id) : `offline-song-${song.id}`,
-                      artist: song.artist || 'Unknown Artist',
-                      artistId: song.artistId || '',
-                      album: song.album || 'Unknown Album',
-                      albumId: song.parent,
+              const navidromeApiFav = getNavidromeAPI();
+              if (navidromeApiFav) {
+                for (let i = 1; i < shuffledFavorites.length; i++) {
+                  try {
+                    const songs = await navidromeApiFav.getAlbumSongs(shuffledFavorites[i].id);
+                    songs.forEach((song: Song) => {
+                      addToQueue({
+                        id: song.id,
+                        name: song.title,
+                        url: navidromeApiFav.getStreamUrl(song.id),
+                        artist: song.artist || 'Unknown Artist',
+                        artistId: song.artistId || '',
+                        album: song.album || 'Unknown Album',
+                        albumId: song.parent,
                       duration: song.duration || 0,
                       coverArt: song.coverArt,
                       starred: !!song.starred
                     });
                   });
                 } catch (error) {
-                  console.error('Failed to load album tracks (offline-first):', error);
+                  console.error('Failed to load album tracks:', error);
                 }
               }
+            }
             }
             break;
         }
@@ -188,7 +192,7 @@ function MusicPageContent() {
     // Delay to ensure data is loaded
     const timeout = setTimeout(handleShortcuts, 1000);
     return () => clearTimeout(timeout);
-  }, [searchParams, recentAlbums, favoriteAlbums, shortcutProcessed, playAlbum, playTrack, shuffle, toggleShuffle, addToQueue, offline]);
+  }, [searchParams, recentAlbums, favoriteAlbums, shortcutProcessed, playAlbum, playTrack, shuffle, toggleShuffle, addToQueue]);
 
   // Try to get user name from navidrome context, fallback to 'user'
   let userName = '';
@@ -202,19 +206,7 @@ function MusicPageContent() {
   return (
     <div className="p-6 pb-24 w-full">
       {/* Connection status (offline indicator) */}
-      {!offline.isOfflineMode ? null : (
-        <div className="mb-4">
-          <OfflineStatusIndicator />
-        </div>
-      )}
-      {/* Offline empty state when nothing is cached */}
-      {offline.isOfflineMode && !albumsLoading && recentAlbums.length === 0 && newestAlbums.length === 0 && favoriteAlbums.length === 0 && (
-        <div className="mb-6 p-4 border rounded-lg bg-muted/30">
-          <p className="text-sm text-muted-foreground">
-            You are offline and no albums are cached yet. Download albums for offline use from an album page, or open Settings → Offline Library to sync your library.
-          </p>
-        </div>
-      )}
+
       {/* Song Recommendations Section */}
       <div className="mb-8">
         <SongRecommendations userName={userName} />

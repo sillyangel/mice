@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { AudioPlayerProvider } from "../components/AudioPlayerContext";
-import { OfflineNavidromeProvider, useOfflineNavidrome } from "../components/OfflineNavidromeProvider";
+import { NavidromeProvider, useNavidrome } from "../components/NavidromeContext";
 import { NavidromeConfigProvider } from "../components/NavidromeConfigContext";
 import { ThemeProvider } from "../components/ThemeProvider";
 import { WhatsNewPopup } from "../components/WhatsNewPopup";
@@ -105,7 +105,7 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
       <ThemeColorHandler />
       <ServiceWorkerRegistration />
       <NavidromeConfigProvider>
-        <OfflineNavidromeProvider>
+        <NavidromeProvider>
           <NavidromeErrorBoundary>
             <AudioPlayerProvider>
               <GlobalSearchProvider>
@@ -116,7 +116,7 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
               </GlobalSearchProvider>
             </AudioPlayerProvider>
           </NavidromeErrorBoundary>
-        </OfflineNavidromeProvider>
+        </NavidromeProvider>
       </NavidromeConfigProvider>
     </ThemeProvider>
   );

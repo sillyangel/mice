@@ -17,16 +17,12 @@ const CHANGELOG = [
       'Added keyboard shortcuts and queue management features',
       'Added ListeningStreakCard component for tracking listening streaks',
       'Moved service worker registration to dedicated component for improved client-side handling',
-      'Enhanced offline download manager with client-side checks',
-      'Enhanced OfflineManagement component with improved card styling and layout',
       'Implemented Auto-Tagging Settings and MusicBrainz integration',
       'Enhanced audio settings with ReplayGain, crossfade, and equalizer presets',
       'Added AudioSettingsDialog component',
       'Updated cover art retrieval to use higher resolution images',
       'Enhanced UI with Framer Motion animations for album artwork and artist icons',
       'Added page transition animations and notification settings for audio playback',
-      'Implemented offline library synchronization with IndexedDB',
-      'Implemented offline library management with IndexedDB support',
       'Updated all npm subdependencies to latest minor versions',
     ],
     fixes: [
@@ -34,7 +30,7 @@ const CHANGELOG = [
     ],
     breaking: [
       'Removed PostHog analytics tracking',
-      'Removed caching system (replaced with offline library management)',
+      'Removed all offline download and caching functionality',
     ]
   },
   {
