@@ -255,7 +255,7 @@ export function LoginForm({
                 <span>
                   <Label htmlFor="theme">Theme</Label>
                 </span>
-                <Select value={theme} onValueChange={setTheme}>
+                <Select value={theme || "blue"} onValueChange={setTheme}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a theme" />
                   </SelectTrigger>
