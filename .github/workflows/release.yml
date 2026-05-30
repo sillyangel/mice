@@ -30,7 +30,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Get version from package.json
         id: app_version
@@ -72,7 +72,7 @@ jobs:
           labels: |
             ${{ steps.meta.outputs.labels }}
             org.opencontainers.image.description=$(cat README.md | head -20 | tr '\n' ' ')
-            org.opencontainers.image.documentation=https://github.com/sillyangel/stillnavidrome/blob/main/README.md
+            org.opencontainers.image.documentation=https://github.com/sillyangel/mice/blob/main/README.md
           platforms: |
             linux/amd64
             linux/arm64/v8

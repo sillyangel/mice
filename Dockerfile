@@ -1,14 +1,14 @@
 # Use Node.js 20 Alpine for smaller image size
-FROM node:20-alpine
+FROM node:24-alpine
 
 # Install pnpm globally
-RUN npm install -g pnpm@10.12.4
+RUN npm install -g pnpm@latest-11
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install dependencies
 RUN pnpm install
