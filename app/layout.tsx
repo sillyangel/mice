@@ -2,6 +2,11 @@ import React from 'react';
 import localFont from "next/font/local";
 import "./globals.css";
 import RootLayoutClient from "./components/RootLayoutClient";
+import { Inter } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+
 
 // Get the short commit hash from env (set in dev via .env or prebuild script)
 const isDev = process.env.NODE_ENV === 'development';
@@ -75,7 +80,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", inter.variable)}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <script

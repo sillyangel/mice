@@ -39,9 +39,7 @@ const defaultSidebarItems: SidebarItem[] = [
   { id: 'albums', label: 'Albums', visible: true, icon: 'albums', href: '/library/albums' },
   { id: 'playlists', label: 'Playlists', visible: true, icon: 'playlists', href: '/library/playlists' },
   { id: 'favorites', label: 'Favorites', visible: true, icon: 'favorites', href: '/favorites' },
-  { id: 'browse', label: 'Browse', visible: true, icon: 'browse', href: '/browse' },
   { id: 'songs', label: 'Songs', visible: true, icon: 'songs', href: '/library/songs' },
-  { id: 'history', label: 'History', visible: true, icon: 'history', href: '/history' },
   { id: 'settings', label: 'Settings', visible: true, icon: 'settings', href: '/settings' },
 ];
 

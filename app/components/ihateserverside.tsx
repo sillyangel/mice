@@ -57,29 +57,14 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
     // Return a basic layout during SSR to match initial client render
     return (
       <div className="hidden md:flex md:flex-col md:h-screen md:w-screen md:overflow-hidden">
-        {/* Top Menu */}
-        <div
-          className="sticky z-10 bg-background border-b w-full"
-          style={{
-            left: 'env(titlebar-area-x, 0)',
-            top: 'env(titlebar-area-y, 0)',
-          }}
-        >
-          <Menu
-            toggleSidebar={toggleSidebarVisibility}
-            isSidebarVisible={isSidebarVisible}
-            toggleStatusBar={() => setIsStatusBarVisible(!isStatusBarVisible)}
-            isStatusBarVisible={isStatusBarVisible}
-          />
-        </div>
 
         {/* Main Content Area */}
         <div className="flex-1 flex overflow-hidden w-full">
           {isSidebarVisible && (
-            <div className="w-16 shrink-0 border-r transition-all duration-200">
+            <div className="w-16 shrink-0 transition-all duration-200">
               <Sidebar
                 playlists={playlists}
-                className="h-full overflow-y-auto"
+                className="overflow-y-auto"
                 visible={isSidebarVisible}
                 favoriteAlbums={favoriteAlbums}
                 onRemoveFavoriteAlbum={removeFavoriteAlbum}
@@ -144,10 +129,10 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
         {/* Main Content Area */}
           <div className="flex-1 flex overflow-hidden w-full">
             {isSidebarVisible && (
-              <div className="w-16 shrink-0 border-r transition-all duration-200">
+              <div className="w-16 shrink-0 h-full transition-all duration-200">
                 <Sidebar
                   playlists={playlists}
-                  className="h-full overflow-y-auto"
+                  className="overflow-y-auto"
                   visible={isSidebarVisible}
                   favoriteAlbums={favoriteAlbums}
                   onRemoveFavoriteAlbum={removeFavoriteAlbum}

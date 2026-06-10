@@ -1,14 +1,12 @@
 import { useCallback } from "react";
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
-import { Github, Mail, Menu as MenuIcon, X } from "lucide-react"
 import { UserProfile } from "@/app/components/UserProfile";
 import { useGlobalSearch } from "./GlobalSearchProvider";
 import {
     Menubar,
     MenubarCheckboxItem,
     MenubarContent,
-    MenubarLabel,
     MenubarItem,
     MenubarMenu,
     MenubarSeparator,
@@ -25,26 +23,8 @@ import { useNavidrome } from "./NavidromeContext";
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-    Drawer,
-    DrawerClose,
-    DrawerContent,
-    DrawerDescription,
-    DrawerFooter,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerTrigger,
-} from "@/components/ui/drawer"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { useIsMobile } from "@/hooks/use-mobile"
-import Link from "next/link"
 import { 
   Search,
   Home,
@@ -71,7 +51,6 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
     const [isFullScreen, setIsFullScreen] = useState(false)
     const router = useRouter();
     const [open, setOpen] = useState(false);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const { isConnected } = useNavidrome();
     const [isClient, setIsClient] = useState(false);
     const [navidromeUrl, setNavidromeUrl] = useState<string | null>(null);
@@ -79,24 +58,6 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
     const { openSpotlight } = useGlobalSearch();
 
     // Navigation items for mobile menu
-    const navigationItems = [
-      { href: '/', label: 'Home', icon: Home },
-      { href: '/search', label: 'Search', icon: Search },
-      { href: '/library/albums', label: 'Albums', icon: Disc },
-      { href: '/library/artists', label: 'Artists', icon: Users },
-      { href: '/library/songs', label: 'Songs', icon: Circle },
-      { href: '/library/playlists', label: 'Playlists', icon: Music },
-      { href: '/favorites', label: 'Favorites', icon: Heart },
-      { href: '/queue', label: 'Queue', icon: List },
-      { href: '/radio', label: 'Radio', icon: Radio },
-      { href: '/browse', label: 'Browse', icon: Grid3X3 },
-      { href: '/history', label: 'History', icon: Clock },
-      { href: '/settings', label: 'Settings', icon: Settings },
-    ];
-
-    // For this demo, we'll show connection status instead of user auth
-    const connectionStatus = isConnected ? "Connected to Navidrome" : "Not connected";
-
     const handleFullScreen = useCallback(() => {
       if (!isFullScreen) {
         document.documentElement.requestFullscreen()
@@ -350,7 +311,7 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-100 p-0 overflow-hidden">
           <div className=" px-6 pt-8 pb-6 flex flex-col items-center">
         <Image
           src="/icon-512.png"
@@ -375,7 +336,7 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Navidrome URL</span>
-            <span className="text-xs truncate max-w-[160px] text-right">
+            <span className="text-xs truncate max-w-40 text-right">
               {!isClient ? (
                 <span className="italic text-gray-400">Loading...</span>
               ) : navidromeUrl ? (

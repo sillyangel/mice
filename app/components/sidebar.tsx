@@ -43,9 +43,7 @@ const iconMap: Record<string, React.ReactNode> = {
   albums: <Disc className="h-4 w-4" />,
   playlists: <Music className="h-4 w-4" />,
   favorites: <Heart className="h-4 w-4" />,
-  browse: <Grid3X3 className="h-4 w-4" />,
   songs: <Circle className="h-4 w-4" />,
-  history: <Clock className="h-4 w-4" />,
   settings: <Settings className="h-4 w-4" />,
 };
 
@@ -77,8 +75,8 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
   const visibleItems = settings.items.filter(item => item.visible);
 
   return (
-    <div className={cn("pb-23 relative w-16", className)}>
-      <div className="space-y-4 py-4 pt-6">
+    <div className={cn("relative w-16 z-50 bg-background/95 backdrop-blur-sm border rounded-2xl shadow-2xl mt-3 ml-3 mb-3", className)} style={{ height: 'calc(100% - 1.5rem)' }}>
+      <div className="space-y-4 py-4 h-full overflow-y-auto">
         <div className="px-3 py-2">
           <div className="space-y-1">
             {/* Main Navigation Items */}
@@ -86,7 +84,7 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
               <Link key={item.id} href={item.href}>
                 <Button 
                   variant={isRouteActive(item.href) ? "secondary" : "ghost"} 
-                  className="w-full justify-center px-2"
+                  className="w-full justify-center px-1"
                   title={item.label}
                 >
                   {settings.showIcons && (iconMap[item.icon] || <div className="h-4 w-4" />)}

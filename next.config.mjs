@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    qualities: [50, 75, 100],
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
@@ -13,7 +13,6 @@ const nextConfig = {
       }
     ],
     minimumCacheTTL: 60,
-    // unoptimized: true,
   },
   async headers() {
     return [
