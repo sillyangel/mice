@@ -128,11 +128,30 @@ export default function AlbumPage() {
     return currentTrack?.id === song.id;
   };
 
-  const formatDuration = (duration: number): string => {
+const formatDuration = (
+  duration: number,
+  style: 'clock' | 'human' = 'clock'
+): string => {
+  if (style === 'clock') {
     const minutes = Math.floor(duration / 60);
     const seconds = duration % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+  }
+
+  const totalMinutes = Math.floor(duration / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) {
+    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  }
+
+  if (minutes === 0) {
+    return `${hours} hour${hours !== 1 ? 's' : ''}`;
+  }
+
+  return `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+};
 
   // Dynamic cover art URLs based on image size
   const getMobileCoverArtUrl = () => {
@@ -147,6 +166,32 @@ export default function AlbumPage() {
       : '/default-user.jpg';
   };
 
+  const shouldShowSongArtist = (song: Song): boolean => {
+  if (!album) return true;
+
+  const albumArtist = album.artist.trim().toLowerCase();
+  const songArtist = song.artist.trim().toLowerCase();
+
+  // Exact same artist → hide
+  if (songArtist === albumArtist) {
+    return false;
+  }
+
+  // Song has multiple artists and includes album artist
+  // Example: "Steve Lacy, Kali Uchis"
+  if (
+    songArtist.includes(albumArtist) &&
+    (songArtist.includes(',') ||
+      songArtist.includes('&') ||
+      songArtist.includes('feat.') ||
+      songArtist.includes('ft.'))
+  ) {
+    return true;
+  }
+
+  // Different artist → show
+  return true;
+};
   return (
     <>
     <div className="h-full px-4 py-6 lg:px-8">
@@ -215,7 +260,9 @@ export default function AlbumPage() {
                 </Button>
               </div>
               <Link href={`/artist/${album.artistId}`}>
-                <p className="text-xl text-primary mt-0 mb-4 underline">{album.artist}</p>
+                <p className="text-xl text-primary mt-0 mb-4 underline">
+                  {album.artist.split(";").join(", ")}
+                </p>
               </Link>
               
               {/* Controls row */}
@@ -233,7 +280,6 @@ export default function AlbumPage() {
               {/* Album info */}
               <div className="text-sm text-muted-foreground">
                 <p>{album.genre} • {album.year}</p>
-                <p>{album.songCount} songs, {formatDuration(album.duration)}</p>
               </div>
             </div>
           </div>
@@ -263,18 +309,20 @@ export default function AlbumPage() {
 
                   {/* Song Info */}
                   <div className="flex-1 min-w-0 mr-4">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2">
                       <p className={`font-semibold truncate ${
                         isCurrentlyPlaying(song) ? 'text-primary' : ''
                       }`}>
                         {song.title}
                       </p>
                     </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <span className="truncate">{song.artist}</span>
+                    {shouldShowSongArtist(song) && (
+                      <div className="flex items-center text-sm text-muted-foreground mt-1">
+                        <div className="flex items-center gap-1">
+                          <span className="truncate">{song.artist}</span>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Duration */}
@@ -301,6 +349,10 @@ export default function AlbumPage() {
                   </div>
                 </div>
               ))}
+              <Separator />
+              <div className="text-sm text-muted-foreground">
+                <p>{album.songCount} songs, {formatDuration(album.duration, 'human')}</p>
+              </div>
             </div>
           )}
         </div>

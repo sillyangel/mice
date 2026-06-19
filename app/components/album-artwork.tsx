@@ -177,7 +177,7 @@ export function AlbumArtwork({
               <h3 className="font-semibold truncate">
                 <Link href={`/album/${album.id}`} prefetch>{album.name}</Link>
               </h3>
-              <p className="text-sm text-muted-foreground truncate " onClick={() => router.push(album.artistId)}>{album.artist}</p>
+              <p className="text-sm text-muted-foreground truncate " onClick={() => router.push(album.artistId)}>{album.artist.split(";").join(", ")}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {album.songCount} songs • {Math.floor(album.duration / 60)} min
               </p>

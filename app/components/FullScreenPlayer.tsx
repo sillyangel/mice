@@ -517,7 +517,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
-              filter: 'blur(20px) brightness(0.3)',
+              filter: 'blur(50px) brightness(0.3)',
               transform: 'scale(1.1)',
             }}
             initial={{ opacity: 0 }}
@@ -876,16 +876,16 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 </div>
 
                 {/* Track Info */}
-                <div className="text-center mb-6 px-4 shrink-0 max-w-full">
+                <div className="text-start mb-6 shrink-0 max-w-full">
                   <h1 className="text-3xl font-bold text-foreground line-clamp-2 leading-tight mb-2">
                     {currentTrack.name}
                   </h1>
                   <Link href={`/artist/${currentTrack.artistId}`} className="text-xl text-foreground/80 mb-1 line-clamp-1">
                     {currentTrack.artist}
                   </Link>
-                  <Link href={`/album/${currentTrack.albumId}`}  className="text-lg text-foreground/60 line-clamp-1 cursor-pointer hover:underline">
+                  {/* <Link href={`/album/${currentTrack.albumId}`}  className="text-lg text-foreground/60 line-clamp-1 cursor-pointer hover:underline">
                     {currentTrack.album}
-                  </Link>
+                  </Link> */}
                 </div>
 
                 {/* Progress */}

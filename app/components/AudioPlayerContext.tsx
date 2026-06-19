@@ -460,10 +460,10 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       }
       
-      toast({
-        title: "Playing Album",
-        description: `Now playing "${album.name}"${shuffle ? ' (shuffled)' : ''}`,
-      });
+      // toast({
+      //   title: "Playing Album",
+      //   description: `Now playing "${album.name}"${shuffle ? ' (shuffled)' : ''}`,
+      // });
     } catch (error) {
       console.error('Failed to play album:', error);
       toast({
