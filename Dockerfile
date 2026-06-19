@@ -1,44 +1,66 @@
-# Use Node.js 20 Alpine for smaller image size
-FROM node:24-alpine
+# ---------- deps ----------
+FROM node:24-alpine AS deps
 
-# Install pnpm globally
-RUN npm install -g pnpm@latest-11
+RUN apk add --no-cache libc6-compat
+RUN npm i -g pnpm@latest-11
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 
-# Install dependencies
-RUN pnpm install
 
-# Copy source code
+# ---------- build ----------
+FROM node:24-alpine AS builder
+
+RUN apk add --no-cache libc6-compat
+RUN npm i -g pnpm@latest-11
+
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Copy README.md to the app directory for documentation
-COPY README.md /app/
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Set environment variable placeholders during build
-# These will be replaced at runtime with actual values
-ENV NEXT_PUBLIC_NAVIDROME_URL=NEXT_PUBLIC_NAVIDROME_URL
-ENV NEXT_PUBLIC_NAVIDROME_USERNAME=NEXT_PUBLIC_NAVIDROME_USERNAME
-ENV NEXT_PUBLIC_NAVIDROME_PASSWORD=NEXT_PUBLIC_NAVIDROME_PASSWORD
-ENV NEXT_PUBLIC_COMMIT_SHA=docker-build
-ENV PORT=3000
-
-# Build the application
 RUN pnpm build
 
-# Copy entrypoint script
-COPY entrypoint.sh /usr/bin/
-RUN chmod +x /usr/bin/entrypoint.sh
 
-# Expose the port
-EXPOSE $PORT
+# ---------- prod deps only ----------
+FROM node:24-alpine AS prod-deps
 
-# Set entrypoint to replace env vars at runtime
-ENTRYPOINT ["entrypoint.sh"]
+WORKDIR /app
 
-# Start the application
-CMD ["sh", "-c", "pnpm start -p $PORT"]
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN npm i -g pnpm@latest-11 \
+  && pnpm install --prod --frozen-lockfile
+
+
+# ---------- runtime ----------
+FROM node:24-alpine AS runner
+
+RUN apk add --no-cache libc6-compat
+RUN npm i -g pnpm@latest-11
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# production node_modules only
+COPY --from=prod-deps /app/node_modules ./node_modules
+
+# build output only
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
+
+# your runtime env injector
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 3000
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["pnpm", "start", "-p", "3000"]
