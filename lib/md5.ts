@@ -33,31 +33,28 @@ function toUtf8Bytes(str: string): number[] {
 }
 
 export function md5(input: string): string {
-  const msg = toUtf8Bytes(input);
-  const bitLen = msg.length * 8;
+  const bytes = toUtf8Bytes(input);
+  const bitLen = bytes.length * 8;
 
-  msg.push(0x80);
-  while (msg.length % 64 !== 56) {
-    msg.push(0);
+  // Padded message length: enough space for the 0x80 byte and the 64-bit length.
+  const padLen = (((bytes.length + 8) >> 6) + 1) << 6;
+  const dv = new DataView(new ArrayBuffer(padLen));
+  for (let i = 0; i < bytes.length; i++) {
+    dv.setUint8(i, bytes[i]);
   }
-  msg.push(0, 0, 0, 0, 0, 0, 0, 0);
-  for (let i = 0; i < 8; i++) {
-    msg.push((bitLen >>> (i * 8)) & 0xff);
-  }
+  dv.setUint8(bytes.length, 0x80);
+  dv.setUint32(padLen - 8, bitLen >>> 0, true);
+  dv.setUint32(padLen - 4, Math.floor(bitLen / 0x100000000), true);
 
   let a0 = 0x67452301;
   let b0 = 0xefcdab89;
   let c0 = 0x98badcfe;
   let d0 = 0x10325476;
+  const M = new Uint32Array(16);
 
-  for (let offset = 0; offset < msg.length; offset += 64) {
-    const M = new Array<number>(16);
+  for (let offset = 0; offset < padLen; offset += 64) {
     for (let i = 0; i < 16; i++) {
-      M[i] =
-        msg[offset + i * 4] |
-        (msg[offset + i * 4 + 1] << 8) |
-        (msg[offset + i * 4 + 2] << 16) |
-        (msg[offset + i * 4 + 3] << 24);
+      M[i] = dv.getUint32(offset + i * 4, true);
     }
 
     let A = a0;
