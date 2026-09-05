@@ -83,7 +83,7 @@ function NavidromeErrorBoundary({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
         <div className="absolute top-4 left-4 flex items-center space-x-2">
-          <Image src="/icon-192.png" alt="Logo" width={32} height={32} className="h-8 w-8" />
+          <Image src="/icon-192.png" alt="mice logo" width={32} height={32} className="h-8 w-8" />
           <span className="text-xl font-semibold">mice | navidrome client</span>
         </div>
 

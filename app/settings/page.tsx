@@ -32,6 +32,12 @@ const SettingsPage = () => {
         username: '',
         password: ''
     });
+    const [formErrors, setFormErrors] = useState<{
+        serverUrl?: string;
+        username?: string;
+        password?: string;
+    }>({});
+    const [connectionError, setConnectionError] = useState('');
     const [isTesting, setIsTesting] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     
@@ -122,20 +128,41 @@ const SettingsPage = () => {
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        setFormErrors(prev => ({ ...prev, [field]: undefined }));
+        setConnectionError('');
         setHasUnsavedChanges(true);
     };
 
+    const validateForm = () => {
+        const nextErrors: { serverUrl?: string; username?: string; password?: string } = {};
+        const serverUrl = formData.serverUrl.trim();
+        if (!serverUrl) {
+            nextErrors.serverUrl = 'Server URL is required.';
+        } else if (!/^https?:\/\/.+/.test(serverUrl)) {
+            nextErrors.serverUrl = 'Enter a valid URL, e.g. https://your-server.com';
+        }
+        if (!formData.username.trim()) {
+            nextErrors.username = 'Username is required.';
+        }
+        if (!formData.password) {
+            nextErrors.password = 'Password is required.';
+        }
+        setFormErrors(nextErrors);
+        return Object.keys(nextErrors).length === 0;
+    };
+
     const handleTestConnection = async () => {
-        if (!formData.serverUrl || !formData.username || !formData.password) {
+        if (!validateForm()) {
             toast({
                 title: "Missing Information",
-                description: "Please fill in all fields before testing the connection.",
+                description: "Please review the highlighted fields.",
                 variant: "destructive"
             });
             return;
         }
 
         setIsTesting(true);
+        setConnectionError('');
         try {
             // Strip trailing slash from server URL before testing
             const cleanServerUrl = formData.serverUrl.replace(/\/+$/, '');
@@ -152,6 +179,7 @@ const SettingsPage = () => {
                     description: "Successfully connected to Navidrome server.",
                 });
             } else {
+                setConnectionError("Could not connect to the server. Please check your settings.");
                 toast({
                     title: "Connection Failed",
                     description: "Could not connect to the server. Please check your settings.",
@@ -159,6 +187,7 @@ const SettingsPage = () => {
                 });
             }
         } catch (error) {
+            setConnectionError("An error occurred while testing the connection.");
             toast({
                 title: "Connection Error",
                 description: "An error occurred while testing the connection.",
@@ -170,10 +199,10 @@ const SettingsPage = () => {
     };
 
     const handleSaveConfig = async () => {
-        if (!formData.serverUrl || !formData.username || !formData.password) {
+        if (!validateForm()) {
             toast({
                 title: "Missing Information",
-                description: "Please fill in all fields.",
+                description: "Please review the highlighted fields.",
                 variant: "destructive"
             });
             return;
@@ -204,6 +233,8 @@ const SettingsPage = () => {
             username: '',
             password: ''
         });
+        setFormErrors({});
+        setConnectionError('');
         setHasUnsavedChanges(false);
         toast({
             title: "Configuration Cleared",
@@ -419,7 +450,12 @@ const SettingsPage = () => {
                                 placeholder="https://your-navidrome-server.com"
                                 value={formData.serverUrl}
                                 onChange={(e) => handleInputChange('serverUrl', e.target.value)}
+                                className={formErrors.serverUrl ? "border-destructive focus-visible:ring-destructive" : ""}
+                                aria-invalid={!!formErrors.serverUrl}
                             />
+                            {formErrors.serverUrl && (
+                                <p className="text-sm text-destructive" role="alert">{formErrors.serverUrl}</p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -430,7 +466,12 @@ const SettingsPage = () => {
                                 placeholder="Your username"
                                 value={formData.username}
                                 onChange={(e) => handleInputChange('username', e.target.value)}
+                                className={formErrors.username ? "border-destructive focus-visible:ring-destructive" : ""}
+                                aria-invalid={!!formErrors.username}
                             />
+                            {formErrors.username && (
+                                <p className="text-sm text-destructive" role="alert">{formErrors.username}</p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -441,8 +482,20 @@ const SettingsPage = () => {
                                 placeholder="Your password"
                                 value={formData.password}
                                 onChange={(e) => handleInputChange('password', e.target.value)}
+                                className={formErrors.password ? "border-destructive focus-visible:ring-destructive" : ""}
+                                aria-invalid={!!formErrors.password}
                             />
+                            {formErrors.password && (
+                                <p className="text-sm text-destructive" role="alert">{formErrors.password}</p>
+                            )}
                         </div>
+
+                        {connectionError && (
+                            <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/30 p-3" role="alert">
+                                <FaTimes className="w-4 h-4 text-destructive shrink-0" />
+                                <p className="text-sm text-destructive">{connectionError}</p>
+                            </div>
+                        )}
 
                         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
                             {isConnected ? (

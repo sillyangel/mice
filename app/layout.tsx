@@ -17,7 +17,20 @@ export const metadata = {
     template: isDev && shortCommit ? `mice (dev: ${shortCommit}) | %s` : 'mice | %s',
     default: isDev && shortCommit ? `mice (dev: ${shortCommit})` : 'mice',
   },
-  description: 'a very awesome music streaming service',
+  description: 'mice is a fast, self-hosted music streaming client for Navidrome. Stream your personal music library on any device, with offline playback, Last.fm scrobbling, and more.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
+  openGraph: {
+    title: 'mice — music streaming client for Navidrome',
+    description: 'Stream your personal music library from Navidrome on any device. Offline playback, Last.fm scrobbling, and more.',
+    siteName: 'mice',
+    type: 'website',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'mice — music streaming client for Navidrome',
+    description: 'Stream your personal music library from Navidrome on any device. Offline playback, Last.fm scrobbling, and more.',
+  },
   robots: {
     index: true,
     follow: true,

@@ -155,7 +155,7 @@ export function AlbumArtwork({
               {album.coverArt && api ? (
                 <Image
                   src={coverArtUrl}
-                  alt={album.name}
+                  alt={`${album.name} by ${album.artist.split(";")[0]}`}
                   fill
                   className="w-full h-full object-cover transition-all"
                   sizes="(max-width: 768px) 100vw, 300px"

@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAudioPlayer, Track } from '@/app/components/AudioPlayerContext';
-import { FullScreenPlayer } from '@/app/components/FullScreenPlayer';
+import dynamic from 'next/dynamic';
 import { FaPlay, FaPause, FaVolumeHigh, FaForward, FaBackward, FaCompress, FaVolumeXmark, FaExpand, FaShuffle } from "react-icons/fa6";
 import { Heart } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
@@ -13,7 +13,18 @@ import { useStandaloneLastFm } from '@/hooks/use-standalone-lastfm';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { useGlobalSearch } from './GlobalSearchProvider';
-import { DraggableMiniPlayer } from './DraggableMiniPlayer';
+
+// Lazy-load the full-screen player until it's actually opened
+const FullScreenPlayer = dynamic(
+  () => import('@/app/components/FullScreenPlayer').then((mod) => mod.FullScreenPlayer),
+  { ssr: false, loading: () => null }
+);
+
+// Lazy-load the draggable mini player (only rendered in the minimized state)
+const DraggableMiniPlayer = dynamic(
+  () => import('./DraggableMiniPlayer').then((mod) => mod.DraggableMiniPlayer),
+  { ssr: false, loading: () => null }
+);
 
 export const AudioPlayer: React.FC = () => {
   const { 

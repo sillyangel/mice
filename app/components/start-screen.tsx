@@ -37,7 +37,12 @@ export function LoginForm({
   });
 
   const [isTesting, setIsTesting] = useState(false);
-  const [hasError, setHasError] = useState(false);
+  const [errors, setErrors] = useState<{
+    serverUrl?: string;
+    username?: string;
+    password?: string;
+  }>({});
+  const [connectionError, setConnectionError] = useState('');
   
   // Settings for step 2
   const [scrobblingEnabled, setScrobblingEnabled] = useState(() => {
@@ -116,23 +121,42 @@ export function LoginForm({
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: undefined }));
+    setConnectionError('');
+  };
+
+  const validateForm = () => {
+    const nextErrors: { serverUrl?: string; username?: string; password?: string } = {};
+    const serverUrl = formData.serverUrl.trim();
+    if (!serverUrl) {
+      nextErrors.serverUrl = 'Server URL is required.';
+    } else if (!/^https?:\/\/.+/.test(serverUrl)) {
+      nextErrors.serverUrl = 'Enter a valid URL, e.g. https://your-server.com';
+    }
+    if (!formData.username.trim()) {
+      nextErrors.username = 'Username is required.';
+    }
+    if (!formData.password) {
+      nextErrors.password = 'Password is required.';
+    }
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handleTestAndNext = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.serverUrl || !formData.username || !formData.password) {
-      setHasError(true);
+
+    if (!validateForm()) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all fields before proceeding.",
+        description: "Please review the highlighted fields.",
         variant: "destructive"
       });
       return;
     }
 
     setIsTesting(true);
-    setHasError(false);
+    setConnectionError('');
     try {
       // Strip trailing slash from server URL before testing
       const cleanServerUrl = formData.serverUrl.replace(/\/+$/, '');
@@ -159,7 +183,7 @@ export function LoginForm({
         // Move to settings step
         setStep('settings');
       } else {
-        setHasError(true);
+        setConnectionError('Could not connect to the server. Please check your settings.');
         toast({
           title: "Connection Failed",
           description: "Could not connect to the server. Please check your settings.",
@@ -167,7 +191,7 @@ export function LoginForm({
         });
       }
     } catch (error) {
-      setHasError(true);
+      setConnectionError('An error occurred while testing the connection.');
       toast({
         title: "Connection Error",
         description: "An error occurred while testing the connection.",
@@ -399,9 +423,13 @@ export function LoginForm({
                   placeholder="https://your-navidrome-server.com"
                   value={formData.serverUrl}
                   onChange={(e) => handleInputChange('serverUrl', e.target.value)}
-                  className={hasError ? "border-destructive focus-visible:ring-destructive" : ""}
+                  className={errors.serverUrl ? "border-destructive focus-visible:ring-destructive" : ""}
+                  aria-invalid={!!errors.serverUrl}
                   required
                 />
+                {errors.serverUrl && (
+                  <p className="text-sm text-destructive" role="alert">{errors.serverUrl}</p>
+                )}
               </div>
               
               <div className="grid gap-3">
@@ -414,9 +442,13 @@ export function LoginForm({
                   placeholder="your-username"
                   value={formData.username}
                   onChange={(e) => handleInputChange('username', e.target.value)}
-                  className={hasError ? "border-destructive focus-visible:ring-destructive" : ""}
+                  className={errors.username ? "border-destructive focus-visible:ring-destructive" : ""}
+                  aria-invalid={!!errors.username}
                   required
                 />
+                {errors.username && (
+                  <p className="text-sm text-destructive" role="alert">{errors.username}</p>
+                )}
               </div>
               
               <div className="grid gap-3">
@@ -428,9 +460,13 @@ export function LoginForm({
                   type="password" 
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className={hasError ? "border-destructive focus-visible:ring-destructive" : ""}
+                  className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
+                  aria-invalid={!!errors.password}
                   required 
                 />
+                {errors.password && (
+                  <p className="text-sm text-destructive" role="alert">{errors.password}</p>
+                )}
               </div>
 
               {/* Demo Server Setup */}
@@ -483,6 +519,13 @@ export function LoginForm({
                 </div>
               </div>
               
+              {connectionError && (
+                <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/30 p-3" role="alert">
+                  <FaTimes className="w-4 h-4 text-destructive shrink-0" />
+                  <p className="text-sm text-destructive">{connectionError}</p>
+                </div>
+              )}
+
               <div className="flex flex-col gap-3">
                 <Button type="submit" className="w-full" disabled={isTesting}>
                   {isTesting ? (

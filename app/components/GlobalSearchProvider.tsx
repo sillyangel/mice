@@ -1,7 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { SpotlightSearch } from './SpotlightSearch';
+import dynamic from 'next/dynamic';
+
+// Lazy-load the spotlight search overlay until it's first opened
+const SpotlightSearch = dynamic(
+  () => import('./SpotlightSearch').then((mod) => mod.SpotlightSearch),
+  { ssr: false, loading: () => null }
+);
 
 interface GlobalSearchContextProps {
   isSpotlightOpen: boolean;

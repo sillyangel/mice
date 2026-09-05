@@ -91,7 +91,7 @@ export function Menu({ toggleSidebar, isSidebarVisible, toggleStatusBar, isStatu
           <div className=" px-6 pt-8 pb-6 flex flex-col items-center">
         <Image
           src="/icon-512.png"
-          alt="music"
+          alt="mice logo"
           width={80}
           height={80}
           className="rounded-2xl shadow-md mb-4"

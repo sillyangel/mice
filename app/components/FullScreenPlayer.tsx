@@ -544,7 +544,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                         >
                           <Image
                             src={currentTrack.coverArt || '/default-album.png'}
-                            alt={currentTrack.album}
+                            alt={`Now playing: ${currentTrack.name} by ${currentTrack.artist}`}
                             width={260}
                             height={260}
                             className={`rounded-lg shadow-2xl object-cover transition-all duration-300 ${
@@ -790,7 +790,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                     >
                       <Image
                         src={currentTrack.coverArt || '/default-album.png'}
-                        alt={currentTrack.album}
+                        alt={`Now playing: ${currentTrack.name} by ${currentTrack.artist}`}
                         width={320}
                         height={320}
                         className="w-80 h-80 rounded-lg shadow-2xl object-cover"
