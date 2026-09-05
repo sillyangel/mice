@@ -89,8 +89,6 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const navidromeApi = getNavidromeAPI();
     if (!navidromeApi) {
       console.warn('⚠️ Navidrome API not configured');
-    } else {
-      console.log('✅ Navidrome API initialized');
     }
     return navidromeApi;
   }, []);
@@ -208,7 +206,6 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     
     const streamUrl = api.getStreamUrl(song.id);
-    console.log('🎵 Creating track with stream URL:', streamUrl);
     
     return {
       id: song.id,
@@ -236,14 +233,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     // Set autoPlay flag on the track
     const trackWithAutoPlay = { ...track, autoPlay };
     setCurrentTrack(trackWithAutoPlay);
-    
-    // Scrobble the track if API is available
-    if (api) {
-      api.scrobble(track.id).catch(error => {
-        console.error('Failed to scrobble track:', error);
-      });
-    }
-  }, [currentTrack, api]);
+  }, [currentTrack]);
 
   const addToQueue = useCallback((track: Track) => {
     setQueue((prevQueue) => {

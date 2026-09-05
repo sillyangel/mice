@@ -30,7 +30,6 @@ export default function AlbumPage() {
   useEffect(() => {
     const fetchAlbum = async () => {
       setLoading(true);
-      console.log(`Fetching album with id: ${id}`);
       
       try {
         const albumData = await getAlbum(id as string);
@@ -44,7 +43,6 @@ export default function AlbumPage() {
         );
         setStarredSongs(starredSongIds);
         
-        console.log(`Album found: ${albumData.album.name}`);
       } catch (error) {
         console.error('Failed to fetch album:', error);
       }

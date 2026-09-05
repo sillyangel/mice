@@ -141,9 +141,6 @@ class OfflineLibraryManager {
     if (!this.db || !navidromeAPI) return;
 
     try {
-      console.log('Starting full library sync...');
-      
-      // Test connection
       const isConnected = await navidromeAPI.ping();
       if (!isConnected) {
         throw new Error('No connection to Navidrome server');
@@ -174,7 +171,6 @@ class OfflineLibraryManager {
 
       // Update last sync timestamp
       await this.setMetadata('lastSync', Date.now());
-      console.log('Library sync completed successfully');
 
     } catch (error) {
       console.error('Failed to sync library:', error);

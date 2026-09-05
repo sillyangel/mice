@@ -26,13 +26,11 @@ export default function PlaylistPage() {
   useEffect(() => {
     const fetchPlaylist = async () => {
       setLoading(true);
-      console.log(`Fetching playlist with id: ${id}`);
       
       try {
         const playlistData = await getPlaylist(id as string);
         setPlaylist(playlistData.playlist);
         setTracklist(playlistData.songs);
-        console.log(`Playlist found: ${playlistData.playlist.name}`);
       } catch (error) {
         console.error('Failed to fetch playlist:', error);
       }

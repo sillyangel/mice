@@ -106,7 +106,7 @@ export function LoginForm({
         }
       }
     } catch (error) {
-      console.log('Navidrome connection check failed, will show config step');
+      console.error('Navidrome connection check failed, will show config step');
     }
   }, [config, setStep, setFormData, setCanSkipNavidrome, testConnection]);
 
