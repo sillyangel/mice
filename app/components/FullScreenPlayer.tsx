@@ -678,14 +678,14 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                             data-lyric-index={index}
                             onClick={() => handleLyricClick(line.time)}
                             initial={false}
-              animate={index === currentLyricIndex ? { scale: 1.06, opacity: 1 } : index < currentLyricIndex ? { scale: 0.985, opacity: 0.75 } : { scale: 0.98, opacity: 0.6 }}
-                            transition={{ duration: 0.2 }}
-              className={`text-2xl sm:text-3xl leading-relaxed transition-colors duration-200 break-words cursor-pointer hover:text-foreground px-2 ${
+                            animate={index === currentLyricIndex
+                              ? { scale: 1.06, opacity: 1, filter: 'blur(0px)' }
+                              : { scale: 0.98, opacity: 0.65, filter: 'blur(2px)' }}
+                            transition={{ duration: 0.25 }}
+                            className={`text-3xl sm:text-4xl leading-relaxed break-words cursor-pointer hover:text-foreground px-2 ${
                               index === currentLyricIndex
-                ? 'text-foreground font-extrabold leading-tight text-5xl sm:text-6xl'
-                                : index < currentLyricIndex
-                                ? 'text-foreground/60'
-                                : 'text-foreground/40'
+                                ? 'text-foreground font-extrabold leading-tight text-5xl sm:text-6xl'
+                                : 'text-foreground/50'
                             }`}
                             style={{ 
                               wordWrap: 'break-word',
@@ -940,14 +940,14 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                             data-lyric-index={index}
                             onClick={() => handleLyricClick(line.time)}
                             initial={false}
-                            animate={index === currentLyricIndex ? { scale: 1.04, opacity: 1 } : index < currentLyricIndex ? { scale: 0.985, opacity: 0.75 } : { scale: 0.98, opacity: 0.5 }}
-                            transition={{ duration: 0.2 }}
-                            className={`text-base leading-relaxed transition-colors duration-200 break-words cursor-pointer hover:text-foreground ${
+                            animate={index === currentLyricIndex
+                              ? { scale: 1.04, opacity: 1, filter: 'blur(0px)' }
+                              : { scale: 0.98, opacity: 0.65, filter: 'blur(2px)' }}
+                            transition={{ duration: 0.25 }}
+                            className={`text-xl leading-relaxed break-words cursor-pointer hover:text-foreground ${
                               index === currentLyricIndex
                                 ? 'text-foreground font-extrabold leading-tight text-5xl'
-                                : index < currentLyricIndex
-                                ? 'text-foreground/60'
-                                : 'text-foreground/40'
+                                : 'text-foreground/50'
                             }`}
                             style={{ 
                               wordWrap: 'break-word',
