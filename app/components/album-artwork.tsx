@@ -68,7 +68,7 @@ export function AlbumArtwork({
   }, []);
 
   const handleImageError = useCallback(() => {
-    // Image failed to load - could set error state if needed
+    // Image failed to load silently (a broken cover falls back to the default)
   }, []);
 
   const handleClick = () => {
@@ -111,7 +111,7 @@ export function AlbumArtwork({
             album: song.album,
             albumId: song.albumId,
             artistId: song.artistId,
-            url: api.getStreamUrl(song.id),
+            url: api.getStreamUrlForSong(song),
             duration: song.duration,
             coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 1200) : undefined,
             starred: !!song.starred
@@ -177,7 +177,7 @@ export function AlbumArtwork({
               <h3 className="font-semibold truncate">
                 <Link href={`/album/${album.id}`} prefetch>{album.name}</Link>
               </h3>
-              <p className="text-sm text-muted-foreground truncate " onClick={() => router.push(album.artistId)}>{album.artist.split(";").join(", ")}</p>
+              <p className="text-sm text-muted-foreground truncate " onClick={() => album.artistId && router.push(`/artist/${album.artistId}`)}>{album.artist.split(";").join(", ")}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {album.songCount} songs • {Math.floor(album.duration / 60)} min
               </p>

@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { getNavidromeAPI, Album, Artist, Song, Playlist, AlbumInfo, ArtistInfo } from '@/lib/navidrome';
 import { useCallback } from 'react';
+import { devLog } from '@/lib/logger';
 
 interface NavidromeContextType {
   // API instance
@@ -350,7 +351,7 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
 
   const scrobble = async (songId: string) => {
     if (!api) {
-      console.log('Navidrome is not configured. Skipping scrobble.');
+      devLog('Navidrome is not configured. Skipping scrobble.');
       return;
     }
     

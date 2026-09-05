@@ -17,6 +17,9 @@ import { UserProfile } from './components/UserProfile';
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 
+// Only render a subset of home-page cards; the rest are loaded if the user scrolls.
+const HOME_ROW_CAP = 50;
+
 function MusicPageContent() {
   const { api } = useNavidrome();
   const { playAlbum, playTrack, shuffle, toggleShuffle, addToQueue } = useAudioPlayer();
@@ -123,7 +126,7 @@ function MusicPageContent() {
                       addToQueue({
                         id: song.id,
                         name: song.title,
-                        url: navidromeApi.getStreamUrl(song.id),
+                        url: navidromeApi.getStreamUrlForSong(song),
                         artist: song.artist || 'Unknown Artist',
                         artistId: song.artistId || '',
                         album: song.album || 'Unknown Album',
@@ -164,7 +167,7 @@ function MusicPageContent() {
                       addToQueue({
                         id: song.id,
                         name: song.title,
-                        url: navidromeApiFav.getStreamUrl(song.id),
+                        url: navidromeApiFav.getStreamUrlForSong(song),
                         artist: song.artist || 'Unknown Artist',
                         artistId: song.artistId || '',
                         album: song.album || 'Unknown Album',
@@ -239,7 +242,7 @@ function MusicPageContent() {
                     </div>
                   ))
                 ) : (
-                  recentAlbums.map((album) => (
+                  recentAlbums.slice(0, HOME_ROW_CAP).map((album) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}
@@ -283,7 +286,7 @@ function MusicPageContent() {
                         </div>
                       ))
                     ) : (
-                      favoriteAlbums.map((album) => (
+                      favoriteAlbums.slice(0, HOME_ROW_CAP).map((album) => (
                         <AlbumArtwork
                           key={album.id}
                           album={album}
@@ -326,7 +329,7 @@ function MusicPageContent() {
                     </div>
                   ))
                 ) : (
-                  newestAlbums.map((album) => (
+                  newestAlbums.slice(0, HOME_ROW_CAP).map((album) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}

@@ -1,4 +1,5 @@
 import { md5, randomHex } from './md5';
+import { selectStreamFormat } from './stream-format';
 
 export interface NavidromeConfig {
   serverUrl: string;
@@ -540,6 +541,36 @@ class NavidromeAPI {
     if (maxBitRate) {
       params.append('maxBitRate', maxBitRate.toString());
     }
+
+    return `${this.config.serverUrl}/rest/stream?${params.toString()}`;
+  }
+
+  // Codec-aware stream URL: transcodes server-side when the browser can't play
+  // the original file (ALAC/AAC, WMA, APE, ...). `estimateContentLength` lets
+  // the player show a seek bar for transcoded streams.
+  getStreamUrlForSong(song: Pick<Song, 'id' | 'suffix'>, options?: { maxBitRate?: number; format?: string }): string {
+    const format = selectStreamFormat(song.suffix);
+
+    if (!format) {
+      return this.getStreamUrl(song.id, options?.maxBitRate);
+    }
+
+    const salt = randomHex(8);
+    const params = new URLSearchParams({
+      u: this.config.username,
+      t: md5(this.config.password + salt),
+      s: salt,
+      v: this.version,
+      c: this.clientName,
+      id: song.id,
+      format
+    });
+
+    if (options?.maxBitRate) {
+      params.append('maxBitRate', String(options.maxBitRate));
+    }
+
+    params.append('estimateContentLength', 'true');
 
     return `${this.config.serverUrl}/rest/stream?${params.toString()}`;
   }

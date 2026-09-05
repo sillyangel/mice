@@ -114,7 +114,7 @@ export default function SongsPage() {
     const track = {
       id: song.id,
       name: song.title,
-      url: api.getStreamUrl(song.id),
+      url: api.getStreamUrlForSong(song),
       artist: song.artist,
       album: song.album,
       duration: song.duration,
@@ -135,7 +135,7 @@ export default function SongsPage() {
     const track = {
       id: song.id,
       name: song.title,
-      url: api.getStreamUrl(song.id),
+      url: api.getStreamUrlForSong(song),
       artist: song.artist,
       album: song.album,
       duration: song.duration,

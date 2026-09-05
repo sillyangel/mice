@@ -19,6 +19,8 @@ export interface Track {
   autoPlay?: boolean;
   starred?: boolean;
   replayGain?: number; // Added ReplayGain field
+  suffix?: string; // Original file extension, used for codec-aware transcoding
+  format?: string; // Server-side transcode format if the original isn't browser-playable
 }
 
 interface AudioSettings {
@@ -205,7 +207,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       throw new Error('Navidrome API not configured');
     }
     
-    const streamUrl = api.getStreamUrl(song.id);
+    const streamUrl = api.getStreamUrlForSong(song);
     
     return {
       id: song.id,
@@ -218,7 +220,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred,
-      replayGain: song.replayGain || 0 // Add ReplayGain support
+      replayGain: song.replayGain || 0, // Add ReplayGain support
+      suffix: song.suffix // Keep original extension for codec fallback
     };
   }, [api]);
 

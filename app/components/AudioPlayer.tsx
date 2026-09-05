@@ -13,6 +13,9 @@ import { useStandaloneLastFm } from '@/hooks/use-standalone-lastfm';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { useGlobalSearch } from './GlobalSearchProvider';
+import { getNavidromeAPI } from '@/lib/navidrome';
+import { selectStreamFormat } from '@/lib/stream-format';
+import { devLog } from '@/lib/logger';
 
 // Lazy-load the full-screen player until it's actually opened
 const FullScreenPlayer = dynamic(
@@ -54,6 +57,10 @@ export const AudioPlayer: React.FC = () => {
   const minSwipeDistance = 50;
   const audioRef = useRef<HTMLAudioElement>(null);
   const preloadAudioRef = useRef<HTMLAudioElement>(null);
+  // Codec fallback: remember the track ID we already retried transcoding and the
+  // URL we swapped in, so we don't loop or revert to a broken source.
+  const transcodeRetriedRef = useRef<string | null>(null);
+  const transcodedOverrideRef = useRef<{ trackId: string; url: string } | null>(null);
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
@@ -66,6 +73,35 @@ export const AudioPlayer: React.FC = () => {
   const [audioInitialized, setAudioInitialized] = useState(false);
   const audioCurrent = audioRef.current;
   const { toast } = useToast();
+
+  // Codec fallback: when the browser can't play the original file (e.g. ALAC or
+  // AAC in m4a on Chrome), ask Navidrome to transcode it to MP3 and reload.
+  const handleAudioError = useCallback(() => {
+    const audio = audioRef.current;
+    const track = currentTrack;
+    if (!audio || !track) return;
+
+    // Only recover from MEDIA_ERR_SRC_NOT_SUPPORTED; leave network/decode errors alone.
+    if (audio.error?.code !== 4) return;
+    if (transcodeRetriedRef.current === track.id) return;
+    if (!track.suffix || selectStreamFormat(track.suffix) === undefined) return;
+
+    const api = getNavidromeAPI();
+    if (!api) return;
+
+    transcodeRetriedRef.current = track.id;
+    const url = api.getStreamUrlForSong({ id: track.id, suffix: track.suffix });
+    transcodedOverrideRef.current = { trackId: track.id, url };
+
+    audio.src = url;
+    audio.load();
+    audio.play().catch(() => {});
+    toast({
+      title: 'Transcoding',
+      description: `Playing a server-transcoded MP3 (original: .${track.suffix}).`,
+      duration: 3000,
+    });
+  }, [currentTrack, toast]);
   
   // Swipe gesture handlers for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -265,14 +301,21 @@ export const AudioPlayer: React.FC = () => {
   useEffect(() => {
     const audioCurrent = audioRef.current;
     const preloadAudioCurrent = preloadAudioRef.current;
-    
-    if (currentTrack && audioCurrent && audioCurrent.src !== currentTrack.url) {
+
+    if (currentTrack && audioCurrent) {
+      // If this track was already swapped to a transcoded stream, keep using it.
+      const effectiveSrc =
+        transcodedOverrideRef.current?.trackId === currentTrack.id
+          ? transcodedOverrideRef.current.url
+          : currentTrack.url;
+
+      if (audioCurrent.src !== effectiveSrc) {
       // Always clear current track time when changing tracks
       localStorage.removeItem('navidrome-current-track-time');
       
       // Track selection for the audio element
-      if (!currentTrack.url || currentTrack.url === 'undefined' || currentTrack.url === '') {
-        console.error('Invalid audio URL:', currentTrack.url);
+      if (!effectiveSrc || effectiveSrc === 'undefined' || effectiveSrc === '') {
+        devLog('Invalid audio URL:', effectiveSrc);
         return;
       }
 
@@ -296,20 +339,11 @@ export const AudioPlayer: React.FC = () => {
       audioCurrent.oncanplay = null;
       
       // Simple error handling
-      audioCurrent.onerror = (e) => {
-        const event = e as Event;
-        const error = event.target as HTMLAudioElement;
-        console.error('Audio element error:', {
-          error: error.error,
-          networkState: error.networkState,
-          readyState: error.readyState,
-          src: error.src
-        });
-      };
+      audioCurrent.onerror = handleAudioError;
       
       // Set source without any CORS configuration
       audioCurrent.removeAttribute('crossorigin');
-      audioCurrent.src = currentTrack.url;
+      audioCurrent.src = effectiveSrc;
       
       // Force load
       audioCurrent.load();
@@ -362,19 +396,16 @@ export const AudioPlayer: React.FC = () => {
           // Notify scrobbler about play
           onTrackPlay(currentTrack);
         }).catch((error) => {
-          console.error('Failed to auto-play:', error);
+          // Autoplay being blocked is normal on mobile; the user taps to resume.
+          devLog('Auto-play failed:', error);
           setIsPlaying(false);
-          
-          // On iOS, auto-play might fail - that's normal
-          if (isMobile) {
-            console.error('Auto-play failed on mobile - user interaction required');
-          }
         });
       } else {
         setIsPlaying(false);
       }
+      }
     }
-  }, [currentTrack, onTrackStart, onTrackPlay, isMobile, audioInitialized, audioEffects, audioSettings.gaplessPlayback, audioSettings.replayGainEnabled, audioSettings.crossfadeDuration, queue]);
+  }, [currentTrack, onTrackStart, onTrackPlay, isMobile, audioInitialized, audioEffects, handleAudioError, audioSettings.gaplessPlayback, audioSettings.replayGainEnabled, audioSettings.crossfadeDuration, queue]);
 
   useEffect(() => {
     const audioCurrent = audioRef.current;
@@ -579,6 +610,8 @@ export const AudioPlayer: React.FC = () => {
 
       // Update position state for better scrubbing support
       const updatePositionState = () => {
+        // Skip when the tab is in the background to save CPU
+        if (document.hidden) return;
         const audioCurrent = audioRef.current;
         if (audioCurrent && currentTrack && 'setPositionState' in navigator.mediaSession) {
           try {

@@ -214,6 +214,8 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
   // Sync with main audio player (improved responsiveness)
   useEffect(() => {
     const syncWithMainPlayer = () => {
+      // Don't burn CPU re-syncing while the tab is in the background.
+      if (document.hidden) return;
       const mainAudio = document.querySelector('audio') as HTMLAudioElement;
       
       if (mainAudio && currentTrack) {
@@ -238,8 +240,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       // Initial sync
       syncWithMainPlayer();
       
-      // Set up interval to keep syncing
-      const interval = setInterval(syncWithMainPlayer, 100);
+      // Keep syncing while open — 1s tick is plenty for a progress bar and avoids
+      // the constant React state churn of a 100ms loop.
+      const interval = setInterval(syncWithMainPlayer, 1000);
       return () => clearInterval(interval);
     }
   }, [isOpen, currentTrack]); // React to track changes

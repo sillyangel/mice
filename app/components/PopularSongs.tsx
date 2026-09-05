@@ -32,7 +32,7 @@ export function PopularSongs({ songs, artistName }: PopularSongsProps) {
     return {
       id: song.id,
       name: song.title,
-      url: api.getStreamUrl(song.id),
+      url: api.getStreamUrlForSong(song),
       artist: song.artist,
       album: song.album,
       duration: song.duration,
