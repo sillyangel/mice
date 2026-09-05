@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
+const isStandaloneBuild = process.env.BUILD_STANDALONE === '1';
+
 const nextConfig = {
   poweredByHeader: false,
-  output: 'standalone',
+  output: isStandaloneBuild ? 'standalone' : undefined,
   images: {
     unoptimized: true,
   },
