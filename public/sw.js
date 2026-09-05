@@ -5,7 +5,7 @@
 */
 
 /* global self, caches */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const APP_SHELL_CACHE = `mice-app-shell-${VERSION}`;
 const IMAGE_CACHE = `mice-images-${VERSION}`;
 
@@ -93,7 +93,11 @@ self.addEventListener('fetch', (event) => {
 		return;
 	}
 
-	// Scripts, styles, fonts, and Next.js assets: cache-first for faster loading
+	// Scripts, styles, fonts, and Next.js assets:
+	// network-first, stale-while-revalidate. Build artifacts are content-hashed,
+	// so a stale cached chunk is never reused once a new navigation is served,
+	// and the fresh response replaces it in the cache. This lets new deployments
+	// take effect on the next reload instead of serving stale JS forever.
 	if (
 		req.destination === 'script' ||
 		req.destination === 'style' ||
@@ -103,13 +107,12 @@ self.addEventListener('fetch', (event) => {
 		event.respondWith(
 			(async () => {
 				const cache = await caches.open(APP_SHELL_CACHE);
-				const cached = await cache.match(req);
-				if (cached) return cached;
 				try {
 					const res = await fetch(req);
 					cache.put(req, res.clone()).catch(() => {});
 					return res;
 				} catch {
+					const cached = await cache.match(req);
 					return cached || Response.error();
 				}
 			})()
