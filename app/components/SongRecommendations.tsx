@@ -86,7 +86,7 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
       const api = getNavidromeAPI();
       if (!api) return;
       
-      const url = api.getStreamUrl(song.id);
+      const url = api.getStreamUrlForSong(song);
       const coverArt = song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined;
       const track = {
         id: song.id,
@@ -114,7 +114,7 @@ export function SongRecommendations({ userName }: SongRecommendationsProps) {
       const albumSongs = await api.getAlbumSongs(album.id);
       if (albumSongs.length > 0) {
         const first = albumSongs[0];
-        const url = api.getStreamUrl(first.id);
+        const url = api.getStreamUrlForSong(first);
         const coverArt = first.coverArt ? api.getCoverArtUrl(first.coverArt, 300) : undefined;
         const track = {
           id: first.id,

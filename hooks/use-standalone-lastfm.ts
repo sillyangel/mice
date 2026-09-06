@@ -107,7 +107,6 @@ export function useStandaloneLastFm() {
       });
       
       scrobbleStateRef.current.hasUpdatedNowPlaying = true;
-      console.log('Updated now playing on Last.fm:', track.name);
     } catch (error) {
       console.error('Failed to update now playing on Last.fm:', error);
     }
@@ -124,7 +123,6 @@ export function useStandaloneLastFm() {
         'timestamp[0]': (timestamp || Math.floor(Date.now() / 1000)).toString()
       });
       
-      console.log('Scrobbled track to Last.fm:', track.name);
     } catch (error) {
       console.error('Failed to scrobble track to Last.fm:', error);
     }

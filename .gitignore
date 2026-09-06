@@ -78,3 +78,4 @@ source-map-support/
 .next/
 certificates
 .vercel
+.env*

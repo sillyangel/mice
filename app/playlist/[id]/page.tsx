@@ -26,13 +26,11 @@ export default function PlaylistPage() {
   useEffect(() => {
     const fetchPlaylist = async () => {
       setLoading(true);
-      console.log(`Fetching playlist with id: ${id}`);
       
       try {
         const playlistData = await getPlaylist(id as string);
         setPlaylist(playlistData.playlist);
         setTracklist(playlistData.songs);
-        console.log(`Playlist found: ${playlistData.playlist.name}`);
       } catch (error) {
         console.error('Failed to fetch playlist:', error);
       }
@@ -53,7 +51,7 @@ export default function PlaylistPage() {
     const track = {
       id: song.id,
       name: song.title,
-      url: api.getStreamUrl(song.id),
+      url: api.getStreamUrlForSong(song),
       artist: song.artist,
       album: song.album,
       duration: song.duration,
@@ -73,7 +71,7 @@ export default function PlaylistPage() {
     const track = {
       id: song.id,
       name: song.title,
-      url: api.getStreamUrl(song.id),
+      url: api.getStreamUrlForSong(song),
       artist: song.artist,
       album: song.album,
       duration: song.duration,
@@ -94,7 +92,7 @@ export default function PlaylistPage() {
     const tracks = tracklist.map(song => ({
       id: song.id,
       name: song.title,
-      url: api.getStreamUrl(song.id),
+      url: api.getStreamUrlForSong(song),
       artist: song.artist,
       album: song.album,
       duration: song.duration,

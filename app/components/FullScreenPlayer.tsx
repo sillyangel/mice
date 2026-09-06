@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Progress } from '@/components/ui/progress';
 import { lrcLibClient } from '@/lib/lrclib';
+import { getNavidromeAPI } from '@/lib/navidrome';
 import Link from 'next/link';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
@@ -87,16 +88,6 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     } catch {}
   }, [isOpen]);
 
-  // Debug logging for component changes
-  useEffect(() => {
-    console.log('🔍 FullScreenPlayer state changed:', {
-      isOpen,
-      currentTrack,
-      currentTrackKeys: currentTrack ? Object.keys(currentTrack) : 'null',
-      queueLength: queue?.length || 0
-    });
-  }, [isOpen, currentTrack, queue?.length]);
-
   // Load lyrics when track changes
   useEffect(() => {
     const loadLyrics = async () => {
@@ -106,21 +97,46 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       }
 
       try {
-        const lyricsData = await lrcLibClient.searchTrack(
-          currentTrack.artist,
-          currentTrack.name,
-          currentTrack.album,
-          currentTrack.duration
-        );
-
-        if (lyricsData && lyricsData.syncedLyrics) {
-          const parsedLyrics = lrcLibClient.parseSyncedLyrics(lyricsData.syncedLyrics);
-          setLyrics(parsedLyrics);
-        } else {
-          setLyrics([]);
+        // 1. Prefer structured lyrics from the Navidrome/OpenSubsonic server (songLyrics extension).
+        const api = getNavidromeAPI();
+        let lines: LyricLine[] = [];
+        if (api) {
+          const supportsLyrics = await api.hasExtension('songLyrics');
+          if (supportsLyrics) {
+            const structured = await api.getLyricsBySongId(currentTrack.id);
+            const synced = structured.find((entry) => entry.synced && typeof entry.offset === 'number') || structured.find((entry) => entry.synced);
+            if (synced) {
+              // OpenSubsonic structured lyric timestamps are in milliseconds;
+              // the player's LyricLine.time (and getCurrentLyricIndex vs currentTime) is in seconds.
+              const offsetMs = typeof synced.offset === 'number' ? synced.offset : 0;
+              lines = (synced.line || [])
+                .map((line) => ({
+                  time: ((line.start ?? 0) + offsetMs) / 1000,
+                  text: line.value || '',
+                }))
+                .filter((line) => line.text)
+                .sort((a, b) => a.time - b.time);
+            }
+          }
         }
+
+        // 2. Fall back to lrclib.net when the server has no lyrics.
+        if (lines.length === 0) {
+          const lyricsData = await lrcLibClient.searchTrack(
+            currentTrack.artist,
+            currentTrack.name,
+            currentTrack.album,
+            currentTrack.duration
+          );
+
+          if (lyricsData && lyricsData.syncedLyrics) {
+            lines = lrcLibClient.parseSyncedLyrics(lyricsData.syncedLyrics);
+          }
+        }
+
+        setLyrics(lines.sort((a, b) => a.time - b.time));
       } catch (error) {
-        console.log('Failed to load lyrics:', error);
+        console.warn('Failed to load lyrics:', error);
         setLyrics([]);
       }
     };
@@ -198,45 +214,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
   // Sync with main audio player (improved responsiveness)
   useEffect(() => {
     const syncWithMainPlayer = () => {
+      // Don't burn CPU re-syncing while the tab is in the background.
+      if (document.hidden) return;
       const mainAudio = document.querySelector('audio') as HTMLAudioElement;
-      
-      console.log('=== FULLSCREEN PLAYER AUDIO DEBUG ===');
-      console.log('currentTrack from context:', currentTrack);
-      console.log('currentTrack keys:', currentTrack ? Object.keys(currentTrack) : 'null');
-      if (currentTrack) {
-        console.log('currentTrack.url:', currentTrack.url);
-        console.log('currentTrack.id:', currentTrack.id);
-        console.log('currentTrack.name:', currentTrack.name);
-        console.log('currentTrack.artist:', currentTrack.artist);
-      }
-      console.log('Audio element found:', !!mainAudio);
-      
-      if (mainAudio) {
-        console.log('Audio element src:', mainAudio.src);
-        console.log('Audio element currentSrc:', mainAudio.currentSrc);
-        console.log('Audio state:', {
-          currentTime: mainAudio.currentTime,
-          duration: mainAudio.duration,
-          paused: mainAudio.paused,
-          ended: mainAudio.ended,
-          readyState: mainAudio.readyState,
-          networkState: mainAudio.networkState,
-          error: mainAudio.error
-        });
-        
-        // Check if audio source matches current track
-        if (currentTrack) {
-          const audioSourceMatches = mainAudio.src === currentTrack.url || mainAudio.currentSrc === currentTrack.url;
-          console.log('Audio source matches current track URL:', audioSourceMatches);
-          if (!audioSourceMatches) {
-            console.log('⚠️ Audio source mismatch!');
-            console.log('Expected:', currentTrack.url);
-            console.log('Audio src:', mainAudio.src);
-            console.log('Audio currentSrc:', mainAudio.currentSrc);
-          }
-        }
-      }
-      console.log('==========================================');
       
       if (mainAudio && currentTrack) {
         const newCurrentTime = mainAudio.currentTime;
@@ -260,8 +240,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       // Initial sync
       syncWithMainPlayer();
       
-      // Set up interval to keep syncing
-      const interval = setInterval(syncWithMainPlayer, 100);
+      // Keep syncing while open — 1s tick is plenty for a progress bar and avoids
+      // the constant React state churn of a 100ms loop.
+      const interval = setInterval(syncWithMainPlayer, 1000);
       return () => clearInterval(interval);
     }
   }, [isOpen, currentTrack]); // React to track changes
@@ -300,94 +281,41 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
           setDominantColor(`rgb(${r}, ${g}, ${b})`);
         }
       } catch (error) {
-        console.log('Failed to extract color:', error);
+        console.warn('Failed to extract color:', error);
       }
     };
     img.src = currentTrack.coverArt;
   }, [currentTrack]);
 
   const togglePlayPause = () => {
-    console.log('🎵 FullScreenPlayer Toggle Play/Pause clicked');
-    
     // Find the main audio player's play/pause button and click it
     // This ensures we use the same logic as the main player
     const mainPlayButton = document.querySelector('[data-testid="play-pause-button"]') as HTMLButtonElement;
     
     if (mainPlayButton) {
-      console.log('✅ Found main play button, triggering click');
       mainPlayButton.click();
     } else {
-      console.log('❌ Main play button not found, falling back to direct audio control');
-      
       // Fallback to direct audio control if button not found
       const mainAudio = document.querySelector('audio') as HTMLAudioElement;
       if (!mainAudio) {
-        console.log('❌ No audio element found');
-        
-        // Try to find ALL audio elements for debugging
-        const allAudio = document.querySelectorAll('audio');
-        console.log('🔍 Found audio elements:', allAudio.length);
-        allAudio.forEach((audio, index) => {
-          console.log(`Audio ${index}:`, {
-            src: audio.src,
-            currentSrc: audio.currentSrc,
-            paused: audio.paused,
-            hidden: audio.hidden,
-            style: audio.style.display
-          });
-        });
         return;
       }
 
-      console.log('🔍 Detailed audio element state:');
-      console.log('- Audio src:', mainAudio.src);
-      console.log('- Audio currentSrc:', mainAudio.currentSrc);
-      console.log('- Audio paused:', mainAudio.paused);
-      console.log('- Audio currentTime:', mainAudio.currentTime);
-      console.log('- Audio duration:', mainAudio.duration);
-      console.log('- Audio readyState:', mainAudio.readyState, '(0=HAVE_NOTHING, 1=HAVE_METADATA, 2=HAVE_CURRENT_DATA, 3=HAVE_FUTURE_DATA, 4=HAVE_ENOUGH_DATA)');
-      console.log('- Audio networkState:', mainAudio.networkState, '(0=EMPTY, 1=IDLE, 2=LOADING, 3=NO_SOURCE)');
-      console.log('- Audio error:', mainAudio.error);
-      console.log('- Audio ended:', mainAudio.ended);
-      console.log('- Audio seeking:', mainAudio.seeking);
-      console.log('- Audio volume:', mainAudio.volume);
-      console.log('- Audio muted:', mainAudio.muted);
-      console.log('- Audio autoplay:', mainAudio.autoplay);
-      console.log('- Audio loop:', mainAudio.loop);
-      console.log('- Audio preload:', mainAudio.preload);
-      console.log('- Audio crossOrigin:', mainAudio.crossOrigin);
-
       if (isPlaying) {
-        console.log('⏸️ Attempting to pause audio');
         try {
           mainAudio.pause();
-          console.log('✅ Audio pause() succeeded');
         } catch (error) {
-          console.log('❌ Audio pause() failed:', error);
+          console.error('Audio pause() failed:', error);
         }
       } else {
-        console.log('▶️ Attempting to play audio');
-        
         // Check if audio has a valid source
-        if (!mainAudio.src && !mainAudio.currentSrc) {
-          console.log('❌ Audio has no source set!');
-          console.log('currentTrack:', currentTrack);
-          if (currentTrack) {
-            console.log('Setting audio source to:', currentTrack.url);
-            mainAudio.src = currentTrack.url;
-            mainAudio.load();
-          }
+        if (!mainAudio.src && !mainAudio.currentSrc && currentTrack) {
+          mainAudio.src = currentTrack.url;
+          mainAudio.load();
         }
         
-        mainAudio.play().then(() => {
-          console.log('✅ Audio play() succeeded');
-        }).catch((error) => {
-          console.log('❌ Audio play() failed:', error);
-          console.log('Error details:', {
-            name: error.name,
-            message: error.message,
-            code: error.code
-          });
+        mainAudio.play().catch((error) => {
+          console.error('Audio play() failed:', error);
         });
       }
     }
@@ -619,7 +547,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                         >
                           <Image
                             src={currentTrack.coverArt || '/default-album.png'}
-                            alt={currentTrack.album}
+                            alt={`Now playing: ${currentTrack.name} by ${currentTrack.artist}`}
                             width={260}
                             height={260}
                             className={`rounded-lg shadow-2xl object-cover transition-all duration-300 ${
@@ -750,14 +678,14 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                             data-lyric-index={index}
                             onClick={() => handleLyricClick(line.time)}
                             initial={false}
-              animate={index === currentLyricIndex ? { scale: 1.06, opacity: 1 } : index < currentLyricIndex ? { scale: 0.985, opacity: 0.75 } : { scale: 0.98, opacity: 0.6 }}
-                            transition={{ duration: 0.2 }}
-              className={`text-2xl sm:text-3xl leading-relaxed transition-colors duration-200 break-words cursor-pointer hover:text-foreground px-2 ${
+                            animate={index === currentLyricIndex
+                              ? { scale: 1.06, opacity: 1, filter: 'blur(0px)' }
+                              : { scale: 0.98, opacity: 0.65, filter: 'blur(2px)' }}
+                            transition={{ duration: 0.25 }}
+                            className={`text-3xl sm:text-4xl leading-relaxed break-words cursor-pointer hover:text-foreground px-2 ${
                               index === currentLyricIndex
-                ? 'text-foreground font-extrabold leading-tight text-5xl sm:text-6xl'
-                                : index < currentLyricIndex
-                                ? 'text-foreground/60'
-                                : 'text-foreground/40'
+                                ? 'text-foreground font-extrabold leading-tight text-5xl sm:text-6xl'
+                                : 'text-foreground/50'
                             }`}
                             style={{ 
                               wordWrap: 'break-word',
@@ -865,7 +793,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                     >
                       <Image
                         src={currentTrack.coverArt || '/default-album.png'}
-                        alt={currentTrack.album}
+                        alt={`Now playing: ${currentTrack.name} by ${currentTrack.artist}`}
                         width={320}
                         height={320}
                         className="w-80 h-80 rounded-lg shadow-2xl object-cover"
@@ -1012,14 +940,14 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                             data-lyric-index={index}
                             onClick={() => handleLyricClick(line.time)}
                             initial={false}
-                            animate={index === currentLyricIndex ? { scale: 1.04, opacity: 1 } : index < currentLyricIndex ? { scale: 0.985, opacity: 0.75 } : { scale: 0.98, opacity: 0.5 }}
-                            transition={{ duration: 0.2 }}
-                            className={`text-base leading-relaxed transition-colors duration-200 break-words cursor-pointer hover:text-foreground ${
+                            animate={index === currentLyricIndex
+                              ? { scale: 1.04, opacity: 1, filter: 'blur(0px)' }
+                              : { scale: 0.98, opacity: 0.65, filter: 'blur(2px)' }}
+                            transition={{ duration: 0.25 }}
+                            className={`text-xl leading-relaxed break-words cursor-pointer hover:text-foreground ${
                               index === currentLyricIndex
                                 ? 'text-foreground font-extrabold leading-tight text-5xl'
-                                : index < currentLyricIndex
-                                ? 'text-foreground/60'
-                                : 'text-foreground/40'
+                                : 'text-foreground/50'
                             }`}
                             style={{ 
                               wordWrap: 'break-word',

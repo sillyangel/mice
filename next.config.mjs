@@ -1,18 +1,11 @@
 /** @type {import('next').NextConfig} */
+const isStandaloneBuild = process.env.BUILD_STANDALONE === '1';
+
 const nextConfig = {
+  poweredByHeader: false,
+  output: isStandaloneBuild ? 'standalone' : undefined,
   images: {
     unoptimized: true,
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**",
-      },
-      {
-        protocol: "http",
-        hostname: "**",
-      }
-    ],
-    minimumCacheTTL: 60,
   },
   async headers() {
     return [

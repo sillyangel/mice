@@ -19,6 +19,8 @@ export interface Track {
   autoPlay?: boolean;
   starred?: boolean;
   replayGain?: number; // Added ReplayGain field
+  suffix?: string; // Original file extension, used for codec-aware transcoding
+  format?: string; // Server-side transcode format if the original isn't browser-playable
 }
 
 interface AudioSettings {
@@ -89,8 +91,6 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const navidromeApi = getNavidromeAPI();
     if (!navidromeApi) {
       console.warn('⚠️ Navidrome API not configured');
-    } else {
-      console.log('✅ Navidrome API initialized');
     }
     return navidromeApi;
   }, []);
@@ -207,8 +207,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       throw new Error('Navidrome API not configured');
     }
     
-    const streamUrl = api.getStreamUrl(song.id);
-    console.log('🎵 Creating track with stream URL:', streamUrl);
+    const streamUrl = api.getStreamUrlForSong(song);
     
     return {
       id: song.id,
@@ -221,7 +220,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       albumId: song.albumId,
       artistId: song.artistId,
       starred: !!song.starred,
-      replayGain: song.replayGain || 0 // Add ReplayGain support
+      replayGain: song.replayGain || 0, // Add ReplayGain support
+      suffix: song.suffix // Keep original extension for codec fallback
     };
   }, [api]);
 
@@ -236,14 +236,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     // Set autoPlay flag on the track
     const trackWithAutoPlay = { ...track, autoPlay };
     setCurrentTrack(trackWithAutoPlay);
-    
-    // Scrobble the track if API is available
-    if (api) {
-      api.scrobble(track.id).catch(error => {
-        console.error('Failed to scrobble track:', error);
-      });
-    }
-  }, [currentTrack, api]);
+  }, [currentTrack]);
 
   const addToQueue = useCallback((track: Track) => {
     setQueue((prevQueue) => {

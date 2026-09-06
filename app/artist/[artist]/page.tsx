@@ -43,7 +43,7 @@ export default function ArtistPage() {
 
           // Fetch popular songs for the artist
           try {
-            const songs = await api.getArtistTopSongs(artistData.artist.name, 10);
+            const songs = await api.getArtistTopSongs(artistData.artist.name, 10, artistData.artist.id);
             setPopularSongs(songs);
           } catch (error) {
             console.error('Failed to fetch popular songs:', error);

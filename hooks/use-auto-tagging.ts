@@ -497,7 +497,6 @@ export function useAutoTagging() {
           if (album.status === 'matched') {
             // To be implemented: Update album metadata via Navidrome API
             // This requires a custom Navidrome endpoint or plugin
-            console.log('Would update album:', album);
           }
           
           processedItems++;
@@ -510,8 +509,7 @@ export function useAutoTagging() {
         if (track.status === 'matched') {
           // To be implemented: Update track metadata via Navidrome API
           // This requires a custom Navidrome endpoint or plugin
-          console.log('Would update track:', track);
-          
+
           // Alternatively, suggest implementing this feature using a separate
           // script that interacts with music files directly
         }

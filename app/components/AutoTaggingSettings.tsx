@@ -71,6 +71,12 @@ export const AutoTaggingSettings = () => {
     });
   };
 
+  const rateLimitError =
+    isClient && autoTagOptions.rateLimit != null &&
+    (autoTagOptions.rateLimit < 500 || autoTagOptions.rateLimit > 5000)
+      ? 'Rate limit must be between 500 and 5000 ms.'
+      : '';
+
   const handleTagSelectionChange = (tag: string, isSelected: boolean) => {
     setAutoTagOptions(prev => {
       const currentTags = [...prev.tagsToUpdate];
@@ -128,7 +134,13 @@ export const AutoTaggingSettings = () => {
                   step={100}
                   value={autoTagOptions.rateLimit}
                   onChange={(e) => handleOptionsChange('rateLimit', Number(e.target.value))}
+                  className={rateLimitError ? "border-destructive focus-visible:ring-destructive" : ""}
+                  aria-invalid={!!rateLimitError}
+                  aria-describedby={rateLimitError ? "rate-limit-error" : undefined}
                 />
+                {rateLimitError && (
+                  <p id="rate-limit-error" className="text-sm text-destructive" role="alert">{rateLimitError}</p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Time between API requests in milliseconds (min: 500ms)
                 </p>

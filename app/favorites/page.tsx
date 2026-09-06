@@ -56,7 +56,7 @@ const FavoritesPage = () => {
       album: song.album,
       albumId: song.albumId,
       artistId: song.artistId,
-      url: api?.getStreamUrl(song.id) || '',
+      url: api?.getStreamUrlForSong(song) || '',
       duration: song.duration,
       coverArt: song.coverArt ? api?.getCoverArtUrl(song.coverArt, 1200) : undefined,
       starred: !!song.starred
@@ -76,7 +76,7 @@ const FavoritesPage = () => {
           album: song.album,
           albumId: song.albumId,
           artistId: song.artistId,
-          url: api.getStreamUrl(song.id),
+          url: api.getStreamUrlForSong(song),
           duration: song.duration,
           coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 1200) : undefined,
           starred: !!song.starred
