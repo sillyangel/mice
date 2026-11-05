@@ -418,7 +418,22 @@ export default function PlaylistPage() {
                   </div>
 
                   {/* Duration + More menu */}
-                  <div className="flex items-center justify-end gap-1.5">
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSongStar(song);
+                      }}
+                      className={`w-7 h-7 rounded-full flex items-center justify-center transition-opacity ${
+                        starredSongs.has(song.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 text-white/40 hover:text-white'
+                      }`}
+                      title={starredSongs.has(song.id) ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <Heart
+                        className={`w-3.5 h-3.5 ${starredSongs.has(song.id) ? 'fill-[#ff375f] text-[#ff375f]' : 'text-white/40'}`}
+                      />
+                    </button>
+
                     <span className="text-xs text-white/40 font-mono tracking-tight">
                       {formatDuration(song.duration)}
                     </span>

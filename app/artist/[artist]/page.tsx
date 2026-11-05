@@ -11,7 +11,7 @@ import { AlbumArtwork } from '@/app/components/album-artwork';
 import { ArtistBio } from '@/app/components/ArtistBio';
 import { SimilarArtists } from '@/app/components/SimilarArtists';
 import Loading from '@/app/components/loading';
-import { Play, Pause, Heart, Shuffle, MoreHorizontal, Share2, Info, ChevronRight } from 'lucide-react';
+import { Play, Pause, Heart, Shuffle, MoreHorizontal, Share2, Info, ChevronRight, Plus } from 'lucide-react';
 import { EqualizerBars } from '@/app/components/EqualizerBars';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,7 +33,7 @@ export default function ArtistPage() {
   const [hoveredSongId, setHoveredSongId] = useState<string | null>(null);
 
   const { getArtist, starItem, unstarItem } = useNavidrome();
-  const { playTrack, playArtist, currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
+  const { playTrack, playArtist, playAlbum, addAlbumToQueue, currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
   const api = getNavidromeAPI();
 
   useEffect(() => {
@@ -237,31 +237,61 @@ export default function ArtistPage() {
               <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
                 Latest Release
               </h2>
-              <Link
-                href={`/album/${latestRelease.id}`}
-                className="group flex items-center gap-4 p-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
-              >
-                <div className="relative w-20 h-20 rounded-md overflow-hidden shrink-0 shadow-md">
+              <div className="flex items-center gap-4">
+                <div className="relative w-28 h-28 rounded-lg overflow-hidden shrink-0 shadow-lg group/cover bg-black/30">
                   <Image
-                    src={latestRelease.coverArt && api ? api.getCoverArtUrl(latestRelease.coverArt, 200) : '/default-user.jpg'}
+                    src={latestRelease.coverArt && api ? api.getCoverArtUrl(latestRelease.coverArt, 240) : '/default-user.jpg'}
                     alt={latestRelease.name}
-                    width={80}
-                    height={80}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    width={112}
+                    height={112}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover/cover:scale-[1.02]"
                   />
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-end justify-between p-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playAlbum(latestRelease.id);
+                      }}
+                      className="w-8 h-8 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center text-white backdrop-blur-md shadow-md active:scale-95 transition-all"
+                      title="Play Album"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-white text-white ml-0.5" />
+                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className="w-8 h-8 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center text-white backdrop-blur-md shadow-md active:scale-95 transition-all"
+                          title="More options"
+                        >
+                          <MoreHorizontal className="w-3.5 h-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-[#1f1d1c]/95 border-white/10 text-white">
+                        <DropdownMenuItem onClick={() => playAlbum(latestRelease.id)} className="cursor-pointer">
+                          <Play className="w-4 h-4 mr-2" /> Play Next
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => addAlbumToQueue(latestRelease.id)} className="cursor-pointer">
+                          <Plus className="w-4 h-4 mr-2" /> Add to Queue
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white/50 uppercase tracking-wider mb-1 font-medium">
+                  <p className="text-xs text-white/50 mb-1 font-medium">
                     {latestRelease.year ? String(latestRelease.year) : 'Album'}
                   </p>
-                  <p className="text-sm font-semibold text-white group-hover:text-[#ff375f] transition-colors truncate">
+                  <Link
+                    href={`/album/${latestRelease.id}`}
+                    className="text-[17px] font-semibold text-white hover:underline truncate block leading-snug"
+                  >
                     {latestRelease.name}
-                  </p>
-                  <p className="text-xs text-white/60 truncate mt-0.5">
-                    {latestRelease.artist}
+                  </Link>
+                  <p className="text-xs text-white/60 truncate mt-1">
+                    {latestRelease.songCount} {latestRelease.songCount === 1 ? 'song' : 'songs'}
                   </p>
                 </div>
-              </Link>
+              </div>
             </div>
           )}
 
@@ -345,18 +375,15 @@ export default function ArtistPage() {
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
               {fullAlbums.map((album) => (
-                <div key={album.id} className="group">
-                  <AlbumArtwork
-                    album={album}
-                    className="w-full"
-                    aspectRatio="square"
-                    width={220}
-                    height={220}
-                  />
-                  <div className="mt-2 text-left">
-                    <p className="text-xs text-white/50">{album.year || 'Album'}</p>
-                  </div>
-                </div>
+                <AlbumArtwork
+                  key={album.id}
+                  album={album}
+                  showArtist={false}
+                  className="w-full"
+                  aspectRatio="square"
+                  width={220}
+                  height={220}
+                />
               ))}
             </div>
           </div>
@@ -370,18 +397,15 @@ export default function ArtistPage() {
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
               {singlesAndEPs.map((single) => (
-                <div key={single.id} className="group">
-                  <AlbumArtwork
-                    album={single}
-                    className="w-full"
-                    aspectRatio="square"
-                    width={220}
-                    height={220}
-                  />
-                  <div className="mt-2 text-left">
-                    <p className="text-xs text-white/50">{single.year || 'Single'}</p>
-                  </div>
-                </div>
+                <AlbumArtwork
+                  key={single.id}
+                  album={single}
+                  showArtist={false}
+                  className="w-full"
+                  aspectRatio="square"
+                  width={220}
+                  height={220}
+                />
               ))}
             </div>
           </div>

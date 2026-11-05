@@ -562,9 +562,14 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                     {/* Track Info - Left Aligned and Heart on Same Line */}
                     <div className="w-full mb-6 shrink-0">
                       <div className="flex items-center justify-between mb-0">
-                        <h1 className="text-2xl font-bold text-foreground line-clamp-1 flex-1 text-left">
+                        <Link
+                          href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
+                          onClick={() => onClose()}
+                          className="text-2xl font-bold text-foreground line-clamp-1 flex-1 text-left hover:underline hover:text-white transition-colors"
+                          title={`Go to album: ${currentTrack.album || currentTrack.name}`}
+                        >
                           {currentTrack.name}
-                        </h1>
+                        </Link>
                         <button
                           onClick={toggleCurrentTrackStar}
                           className="p-2 hover:bg-gray-700/50 rounded-full transition-colors ml-3 pb-0"
@@ -576,17 +581,23 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                         </button>
                       </div>
                       <Link 
-                        href={`/artist/${currentTrack.artistId}`} 
-                        className="text-lg text-foreground/80 line-clamp-1 block text-left mb-1"
+                        href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`} 
+                        onClick={() => onClose()}
+                        className="text-lg text-foreground/80 line-clamp-1 block text-left mb-1 hover:underline hover:text-white transition-colors"
+                        title={`Go to artist: ${currentTrack.artist}`}
                       >
                         {currentTrack.artist}
                       </Link>
-                      <Link 
-                        href={`/album/${currentTrack.albumId}`}  
-                        className="text-base text-foreground/60 line-clamp-1 cursor-pointer hover:underline block text-left"
-                      >
-                        {currentTrack.album}
-                      </Link>
+                      {currentTrack.album && (
+                        <Link 
+                          href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}  
+                          onClick={() => onClose()}
+                          className="text-base text-foreground/60 line-clamp-1 cursor-pointer hover:underline hover:text-white transition-colors block text-left"
+                          title={`Go to album: ${currentTrack.album}`}
+                        >
+                          {currentTrack.album}
+                        </Link>
+                      )}
                     </div>
 
                     {/* Progress */}
@@ -805,15 +816,22 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
                 {/* Track Info */}
                 <div className="text-start mb-6 shrink-0 max-w-full">
-                  <h1 className="text-3xl font-bold text-foreground line-clamp-2 leading-tight mb-2">
+                  <Link
+                    href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
+                    onClick={() => onClose()}
+                    className="text-3xl font-bold text-foreground line-clamp-2 leading-tight mb-2 block hover:underline hover:text-white transition-colors"
+                    title={`Go to album: ${currentTrack.album || currentTrack.name}`}
+                  >
                     {currentTrack.name}
-                  </h1>
-                  <Link href={`/artist/${currentTrack.artistId}`} className="text-xl text-foreground/80 mb-1 line-clamp-1">
+                  </Link>
+                  <Link 
+                    href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`} 
+                    onClick={() => onClose()}
+                    className="text-xl text-foreground/80 mb-1 line-clamp-1 block hover:underline hover:text-white transition-colors"
+                    title={`Go to artist: ${currentTrack.artist}`}
+                  >
                     {currentTrack.artist}
                   </Link>
-                  {/* <Link href={`/album/${currentTrack.albumId}`}  className="text-lg text-foreground/60 line-clamp-1 cursor-pointer hover:underline">
-                    {currentTrack.album}
-                  </Link> */}
                 </div>
 
                 {/* Progress */}

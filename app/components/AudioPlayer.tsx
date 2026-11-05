@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAudioPlayer, Track } from '@/app/components/AudioPlayerContext';
 import dynamic from 'next/dynamic';
@@ -852,8 +853,22 @@ export const AudioPlayer: React.FC = () => {
                   className="w-12 h-12 rounded-lg mr-3 shrink-0 shadow-sm" 
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{currentTrack.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
+                  <Link
+                    href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-semibold text-sm truncate block hover:underline hover:text-white transition-colors"
+                    title={`Go to album: ${currentTrack.album || currentTrack.name}`}
+                  >
+                    {currentTrack.name}
+                  </Link>
+                  <Link
+                    href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs text-muted-foreground truncate block hover:underline hover:text-foreground transition-colors"
+                    title={`Go to artist: ${currentTrack.artist}`}
+                  >
+                    {currentTrack.artist}
+                  </Link>
                 </div>
               </div>
 
@@ -946,8 +961,20 @@ export const AudioPlayer: React.FC = () => {
                 className="w-12 h-12 rounded-md mr-4 shrink-0" 
               />
               <div className="flex-1 min-w-0">
-                <p className="font-semibold truncate text-base">{currentTrack.name}</p>
-                <p className="text-sm text-muted-foreground truncate">{currentTrack.artist}</p>
+                <Link
+                  href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
+                  className="font-semibold truncate text-base block hover:underline hover:text-white transition-colors"
+                  title={`Go to album: ${currentTrack.album || currentTrack.name}`}
+                >
+                  {currentTrack.name}
+                </Link>
+                <Link
+                  href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
+                  className="text-sm text-muted-foreground truncate block hover:underline hover:text-foreground transition-colors"
+                  title={`Go to artist: ${currentTrack.artist}`}
+                >
+                  {currentTrack.artist}
+                </Link>
               </div>
             </div>
 

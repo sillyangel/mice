@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion, PanInfo, AnimatePresence } from 'framer-motion';
 import { useAudioPlayer, Track } from './AudioPlayerContext';
 import { FaPlay, FaPause, FaExpand, FaForward, FaBackward, FaVolumeHigh, FaVolumeXmark } from 'react-icons/fa6';
@@ -363,8 +364,22 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
 
             {/* Track Info */}
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm truncate">{currentTrack.name}</p>
-              <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
+              <Link
+                href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
+                onClick={(e) => e.stopPropagation()}
+                className="font-semibold text-sm truncate block hover:underline hover:text-white transition-colors"
+                title={`Go to album: ${currentTrack.album || currentTrack.name}`}
+              >
+                {currentTrack.name}
+              </Link>
+              <Link
+                href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs text-muted-foreground truncate block hover:underline hover:text-foreground transition-colors"
+                title={`Go to artist: ${currentTrack.artist}`}
+              >
+                {currentTrack.artist}
+              </Link>
             </div>
           </div>
 

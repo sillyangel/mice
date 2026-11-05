@@ -25,8 +25,14 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArtistIcon } from "@/app/components/artist-icon";
-import { Heart, Music, Disc, Mic, Play, Download } from "lucide-react";
+import { Heart, Music, Disc, Mic, Play, Download, MoreHorizontal } from "lucide-react";
 import { Album, Artist, Song } from "@/lib/navidrome";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AlbumArtworkProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
@@ -37,6 +43,7 @@ interface AlbumArtworkProps extends Omit<
   width?: number
   height?: number
   loading?: 'eager' | 'lazy'
+  showArtist?: boolean
 }
 
 export function AlbumArtwork({
@@ -45,6 +52,7 @@ export function AlbumArtwork({
   width,
   height,
   loading = 'lazy',
+  showArtist = true,
   className,
   ...props
 }: AlbumArtworkProps) {
@@ -140,63 +148,105 @@ export function AlbumArtwork({
     };
     
   return (
-    <div className={cn("space-y-3", className)} {...props}>
+    <div className={cn("group cursor-pointer select-none", className)} {...props}>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.15 }}
         transition={{ duration: 0.2 }}
-        whileHover={{ y: -2 }}
       >
-      <ContextMenu>
-        <ContextMenuTrigger>
-          <Card key={album.id} className="overflow-hidden cursor-pointer px-0 py-0 gap-0" onClick={() => handleClick()} onMouseEnter={handlePrefetch} onFocus={handlePrefetch}>
-            <div className="aspect-square relative group">
+        <ContextMenu>
+          <ContextMenuTrigger>
+            <div
+              className="relative aspect-square w-full rounded-md lg:rounded-lg overflow-hidden bg-black/30 shadow-md group/cover"
+              onClick={handleClick}
+              onMouseEnter={handlePrefetch}
+              onFocus={handlePrefetch}
+            >
               {album.coverArt && api ? (
                 <Image
                   src={coverArtUrl}
                   alt={`${album.name} by ${album.artist.split(";")[0]}`}
                   fill
-                  className="w-full h-full object-cover transition-all"
-                  sizes="(max-width: 768px) 100vw, 300px"
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover/cover:scale-[1.02]"
+                  sizes="(max-width: 768px) 50vw, 300px"
                   onLoad={handleImageLoad}
                   onError={handleImageError}
                   priority={false}
                   loading={loading}
                 />
               ) : (
-                <div className="w-full h-full bg-muted rounded flex items-center justify-center">
+                <div className="w-full h-full bg-muted/40 rounded flex items-center justify-center">
                   <Disc className="w-12 h-12 text-muted-foreground" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <Play className="w-6 h-6 mx-auto hidden group-hover:block" onClick={() => handlePlayAlbum(album)}/>
+
+              {/* Apple Music Floating Hover Controls: Play circle (bottom left) & More circle (bottom right) */}
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-end justify-between p-2.5">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePlayAlbum(album);
+                  }}
+                  className="w-9 h-9 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center text-white backdrop-blur-md shadow-lg hover:scale-105 active:scale-95 transition-all"
+                  title="Play Album"
+                  aria-label="Play Album"
+                >
+                  <Play className="w-4 h-4 fill-white text-white ml-0.5" />
+                </button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className="w-9 h-9 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center text-white backdrop-blur-md shadow-lg hover:scale-105 active:scale-95 transition-all"
+                      title="More options"
+                      aria-label="More options"
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-[#1f1d1c]/95 border-white/10 text-white">
+                    <DropdownMenuItem onClick={() => handlePlayAlbum(album)} className="cursor-pointer">
+                      <Play className="w-4 h-4 mr-2" /> Play Next
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleAddToQueue} className="cursor-pointer">
+                      <PlusCircledIcon className="w-4 h-4 mr-2" /> Add to Queue
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleStar} className="cursor-pointer">
+                      <Heart className={`w-4 h-4 mr-2 ${album.starred ? 'fill-[#ff375f] text-[#ff375f]' : ''}`} />
+                      {album.starred ? 'Remove from Favorites' : 'Add to Favorites'}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
-            <CardContent className="p-4">
-              <h3 className="font-semibold truncate">
+
+            {/* Typography matching Apple Music layout */}
+            <div className="mt-2 text-left">
+              <h3 className="font-semibold text-[14px] text-white/95 truncate leading-snug hover:underline">
                 <Link href={`/album/${album.id}`} prefetch>{album.name}</Link>
               </h3>
-              <p className="text-sm text-muted-foreground truncate " onClick={() => album.artistId && router.push(`/artist/${album.artistId}`)}>{album.artist.split(";").join(", ")}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {album.songCount} songs • {Math.floor(album.duration / 60)} min
-              </p>
-            </CardContent>
-          </Card>
-          {/* <div onClick={handleClick} className="overflow-hidden rounded-md">
-            <Image
-              src={coverArtUrl}
-              alt={album.name}
-              width={width}
-              height={height}
-              
-              className={cn(
-                "w-full h-full object-cover transition-all hover:scale-105",
-                aspectRatio === "portrait" ? "aspect-3/4" : "aspect-square"
+              {showArtist ? (
+                <p className="text-xs text-white/50 truncate mt-0.5">
+                  {album.artistId ? (
+                    <Link
+                      href={`/artist/${album.artistId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:text-white hover:underline"
+                    >
+                      {album.artist.split(";").join(", ")}
+                    </Link>
+                  ) : (
+                    album.artist.split(";").join(", ")
+                  )}
+                </p>
+              ) : (
+                <p className="text-xs text-white/50 truncate mt-0.5">
+                  {album.year || 'Album'}
+                </p>
               )}
-            />
-          </div> */}
-        </ContextMenuTrigger>
+            </div>
+          </ContextMenuTrigger>
         <ContextMenuContent className="w-40">
           <ContextMenuItem onClick={handleStar}>
             {album.starred ? 'Remove from Favorites' : 'Add to Favorites'}

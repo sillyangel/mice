@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Album, Song, AlbumInfo } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
-import { Play, Pause, Heart, Shuffle, MoreHorizontal, Share2, Plus } from 'lucide-react';
+import { Play, Pause, Heart, Shuffle, MoreHorizontal, Plus } from 'lucide-react';
 import { EqualizerBars } from '@/app/components/EqualizerBars';
 import { Button } from '@/components/ui/button';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
@@ -267,30 +267,8 @@ export default function AlbumPage() {
       }}
     >
       <div className="max-w-[1340px] mx-auto px-6 lg:px-12 pt-8">
-        {/* Top Header Row with Share / More Options */}
+        {/* Top Header Row with More Options */}
         <div className="flex justify-end items-center gap-2 mb-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleStar}
-            className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 text-white/80 hover:text-white"
-            title={isStarred ? "Favorite" : "Add to Favorites"}
-          >
-            <Heart className={`w-4 h-4 ${isStarred ? 'text-[#ff3b30]' : ''}`} fill={isStarred ? '#ff3b30' : 'none'} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({ title: album.name, url: window.location.href }).catch(() => {});
-              }
-            }}
-            className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 text-white/80 hover:text-white"
-            title="Share"
-          >
-            <Share2 className="w-4 h-4" />
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -366,8 +344,19 @@ export default function AlbumPage() {
               </div>
             ) : null}
 
-            {/* Apple Music Pill Action Buttons */}
+            {/* Action Buttons: (ShuffleIcon) (PlayIcon Play) (HeartIcon) */}
             <div className="flex items-center justify-center md:justify-start gap-3 mt-auto">
+              {/* Shuffle button (icon only, first) */}
+              <button
+                onClick={handleShuffleAlbum}
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/15 text-white active:scale-95 transition-all backdrop-blur-md"
+                title="Shuffle Album"
+                aria-label="Shuffle Album"
+              >
+                <Shuffle className="w-4 h-4" />
+              </button>
+
+              {/* Play button (second) */}
               <button
                 onClick={() => playAlbum(album.id)}
                 className="inline-flex items-center justify-center gap-2 h-10 px-7 rounded-full bg-white text-black font-semibold text-sm hover:bg-white/90 active:scale-95 transition-all shadow-md"
@@ -375,12 +364,19 @@ export default function AlbumPage() {
                 <Play className="w-4 h-4 fill-black" />
                 Play
               </button>
+
+              {/* Heart button (third) to fav the album */}
               <button
-                onClick={handleShuffleAlbum}
-                className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-full bg-white/10 hover:bg-white/15 text-white font-semibold text-sm active:scale-95 transition-all backdrop-blur-md"
+                onClick={handleStar}
+                className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-md ${
+                  isStarred 
+                    ? 'bg-[#ff375f]/20 text-[#ff375f] hover:bg-[#ff375f]/30' 
+                    : 'bg-white/10 hover:bg-white/15 text-white'
+                }`}
+                title={isStarred ? "Remove from Favorites" : "Add to Favorites"}
+                aria-label={isStarred ? "Remove from Favorites" : "Add to Favorites"}
               >
-                <Shuffle className="w-4 h-4" />
-                Shuffle
+                <Heart className={`w-4 h-4 ${isStarred ? 'fill-[#ff375f] text-[#ff375f]' : ''}`} />
               </button>
             </div>
           </div>
@@ -392,6 +388,7 @@ export default function AlbumPage() {
             {tracklist.map((song, index) => {
               const playing = isCurrentlyPlaying(song);
               const isHovered = hoveredTrackId === song.id;
+              const isSongStarred = starredSongs.has(song.id);
 
               return (
                 <div
@@ -435,8 +432,23 @@ export default function AlbumPage() {
                     </span>
                   </div>
 
-                  {/* Right side: Duration + Options Menu */}
-                  <div className="shrink-0 flex items-center gap-3">
+                  {/* Right side: Star/Heart + Duration + Options Menu */}
+                  <div className="shrink-0 flex items-center gap-2.5">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSongStar(song);
+                      }}
+                      className={`w-7 h-7 rounded-full flex items-center justify-center transition-opacity ${
+                        isSongStarred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 text-white/40 hover:text-white'
+                      }`}
+                      title={isSongStarred ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <Heart
+                        className={`w-3.5 h-3.5 ${isSongStarred ? 'fill-[#ff375f] text-[#ff375f]' : 'text-white/40'}`}
+                      />
+                    </button>
+
                     <span className="text-xs text-white/40 font-mono tracking-tight">
                       {formatDuration(song.duration)}
                     </span>
