@@ -41,7 +41,7 @@ export function BottomNavigation() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[50] overflow-hidden bg-black/45 backdrop-blur-2xl backdrop-saturate-[180%] border-t border-white/15 shadow-[0_-8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.18)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/[0.08] before:to-transparent before:pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 z-[50] bg-background/80 backdrop-blur-md border-t border-border">
       <div className="flex items-center justify-around px-2 py-2 pb-safe mb-2">
         {navigationItems.map((item) => {
           const isItemActive = isActive(item.href);
