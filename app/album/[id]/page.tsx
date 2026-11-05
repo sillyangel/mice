@@ -384,7 +384,7 @@ export default function AlbumPage() {
 
         {/* Tracklist Table */}
         <div className="mt-8">
-          <div className="divide-y divide-white/[0.07] border-t border-white/[0.07]">
+          <div className="border-t border-white/[0.07]">
             {tracklist.map((song, index) => {
               const playing = isCurrentlyPlaying(song);
               const isHovered = hoveredTrackId === song.id;
@@ -399,7 +399,7 @@ export default function AlbumPage() {
                   className={`group relative flex items-center h-12 px-3 rounded-md transition-colors cursor-pointer ${
                     playing
                       ? 'bg-white/10 text-white'
-                      : 'hover:bg-white/[0.06] text-white/80 hover:text-white'
+                      : 'hover:bg-white/[0.06] text-white hover:text-white'
                   }`}
                 >
                   {/* Track Number / Play / Pause / Equalizer Button */}
@@ -417,7 +417,7 @@ export default function AlbumPage() {
                     ) : isHovered ? (
                       <Play className="w-3.5 h-3.5 fill-white text-white" />
                     ) : (
-                      <span className="text-white/40 text-sm font-normal">
+                      <span className="text-white/60 text-sm font-normal">
                         {song.track || index + 1}
                       </span>
                     )}
@@ -426,7 +426,7 @@ export default function AlbumPage() {
                   {/* Song Title and (if applicable) Feat Artist */}
                   <div className="flex-1 min-w-0 pr-4">
                     <span className={`text-[15px] font-normal truncate block ${
-                      playing ? 'text-primary font-medium' : 'text-white/90'
+                      playing ? 'text-primary font-medium' : 'text-white'
                     }`}>
                       {song.title}
                     </span>
@@ -440,16 +440,16 @@ export default function AlbumPage() {
                         handleSongStar(song);
                       }}
                       className={`w-7 h-7 rounded-full flex items-center justify-center transition-opacity ${
-                        isSongStarred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 text-white/40 hover:text-white'
+                        isSongStarred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 text-white/50 hover:text-white'
                       }`}
                       title={isSongStarred ? 'Remove from favorites' : 'Add to favorites'}
                     >
                       <Heart
-                        className={`w-3.5 h-3.5 ${isSongStarred ? 'fill-primary text-primary' : 'text-white/40'}`}
+                        className={`w-3.5 h-3.5 ${isSongStarred ? 'fill-primary text-primary' : 'text-white/50'}`}
                       />
                     </button>
 
-                    <span className="text-xs text-white/40 font-mono tracking-tight">
+                    <span className="text-xs text-white/60 font-mono tracking-tight">
                       {formatDuration(song.duration)}
                     </span>
 
@@ -485,6 +485,8 @@ export default function AlbumPage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
+                  {/* Flat horizontal separator between rows - independent of row rounded border */}
+                  <div className="absolute bottom-0 left-3 right-3 h-px bg-white/[0.06] pointer-events-none group-last:hidden" />
                 </div>
               );
             })}

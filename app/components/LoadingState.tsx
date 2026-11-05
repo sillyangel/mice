@@ -15,12 +15,12 @@ export function LoadingState({ label = 'Loading', className }: LoadingStateProps
       aria-live="polite"
     >
       <div className="flex flex-col items-center gap-4">
-        <div className="relative h-14 w-14">
-          <div className="absolute inset-0 rounded-full border-2 border-muted" />
+        <div className="relative h-14 w-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-white/10" />
           <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          <Music className="absolute inset-0 m-auto h-6 w-6 text-primary" />
+          <Music className="h-6 w-6 text-primary shrink-0" />
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm font-medium text-white/70">
           {label}
           <span className="animate-pulse">...</span>
         </p>
@@ -28,3 +28,5 @@ export function LoadingState({ label = 'Loading', className }: LoadingStateProps
     </div>
   );
 }
+
+export default LoadingState;

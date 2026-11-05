@@ -130,7 +130,7 @@ export default function LibraryPage() {
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="bg-muted rounded-lg h-16"></div>
+                  <div className="bg-white/[0.06] rounded-lg h-14"></div>
                 </div>
               ))}
             </div>
@@ -139,12 +139,14 @@ export default function LibraryPage() {
           {/* Loading skeleton for recent albums */}
           <div>
             <h2 className="text-lg font-semibold mb-3">Recently Added</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-muted rounded-lg aspect-square mb-2"></div>
-                  <div className="bg-muted h-4 rounded mb-1"></div>
-                  <div className="bg-muted h-3 rounded w-3/4"></div>
+                <div key={i} className="animate-pulse space-y-2">
+                  <div className="bg-white/[0.06] rounded-lg aspect-square"></div>
+                  <div className="space-y-1.5 pt-1">
+                    <div className="bg-white/[0.08] h-3.5 rounded w-3/4"></div>
+                    <div className="bg-white/[0.05] h-3 rounded w-1/2"></div>
+                  </div>
                 </div>
               ))}
             </div>

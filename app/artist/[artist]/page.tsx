@@ -31,10 +31,65 @@ export default function ArtistPage() {
   const [isPlayingArtist, setIsPlayingArtist] = useState(false);
   const [showBioModal, setShowBioModal] = useState(false);
   const [hoveredSongId, setHoveredSongId] = useState<string | null>(null);
+  const [dominantColor, setDominantColor] = useState<string>('#1f1d1c');
 
   const { getArtist, starItem, unstarItem } = useNavidrome();
   const { playTrack, playArtist, playAlbum, addAlbumToQueue, currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
   const api = getNavidromeAPI();
+
+  // Extract dominant color from artist image to match album background
+  useEffect(() => {
+    const imgUrl = artist?.coverArt && api
+      ? api.getCoverArtUrl(artist.coverArt, 300)
+      : (artistAlbums[0]?.coverArt && api ? api.getCoverArtUrl(artistAlbums[0].coverArt, 300) : null);
+
+    if (!imgUrl) return;
+
+    const img = document.createElement('img');
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          canvas.width = 64;
+          canvas.height = 64;
+          ctx.drawImage(img, 0, 0, 64, 64);
+          const imageData = ctx.getImageData(0, 0, 64, 64);
+          const data = imageData.data;
+          let r = 0, g = 0, b = 0, count = 0;
+
+          for (let i = 0; i < data.length; i += 4) {
+            const pr = data[i];
+            const pg = data[i + 1];
+            const pb = data[i + 2];
+            const brightness = (pr + pg + pb) / 3;
+            if (brightness > 20 && brightness < 240) {
+              r += pr;
+              g += pg;
+              b += pb;
+              count++;
+            }
+          }
+
+          if (count > 0) {
+            r = Math.floor(r / count);
+            g = Math.floor(g / count);
+            b = Math.floor(b / count);
+            const targetR = Math.max(16, Math.floor(r * 0.45));
+            const targetG = Math.max(14, Math.floor(g * 0.40));
+            const targetB = Math.max(14, Math.floor(b * 0.38));
+            setDominantColor(`rgb(${targetR}, ${targetG}, ${targetB})`);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not extract artist color:', e);
+      }
+    };
+
+    img.src = imgUrl;
+  }, [artist?.coverArt, artistAlbums, api]);
 
   useEffect(() => {
     let isMounted = true;
@@ -141,7 +196,13 @@ export default function ArtistPage() {
     : null;
 
   return (
-    <div className="min-h-full pb-36 text-[#e1deda] bg-[#141517]">
+    <div
+      className="min-h-full pb-36 text-[#e1deda] transition-colors duration-700"
+      style={{
+        backgroundColor: dominantColor,
+        backgroundImage: `radial-gradient(ellipse 90% 70% at 20% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 80%), linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 100%)`
+      }}
+    >
       {/* Apple Music Full-Bleed Cinematic Artist Header */}
       <div className="relative w-full h-[360px] md:h-[460px] lg:h-[500px] overflow-hidden select-none">
         {/* Background Artwork Image with Apple Music Fog & Edge Gradients */}
@@ -150,24 +211,11 @@ export default function ArtistPage() {
           style={{ backgroundImage: `url(${artistImageUrl})` }}
         />
         {/* Ambient Overlay Vignette */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#141517] via-[#141517]/50 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#141517]/60 via-transparent to-[#141517]/60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60" />
 
         {/* Top Floating Utility Controls */}
         <div className="absolute top-6 right-6 lg:right-12 z-20 flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({ title: artist.name, url: window.location.href }).catch(() => {});
-              }
-            }}
-            className="w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md"
-            title="Share"
-          >
-            <Share2 className="w-4 h-4" />
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -244,7 +292,7 @@ export default function ArtistPage() {
                     alt={latestRelease.name}
                     width={112}
                     height={112}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover/cover:scale-[1.02]"
+                    className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-end justify-between p-2">
                     <button

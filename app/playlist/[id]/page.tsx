@@ -24,7 +24,7 @@ export default function PlaylistPage() {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [tracklist, setTracklist] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dominantColor, setDominantColor] = useState<string>('#1b2024');
+  const [dominantColor, setDominantColor] = useState<string>('#1f1d1c');
   const [starredSongs, setStarredSongs] = useState<Set<string>>(new Set());
   const [hoveredTrackId, setHoveredTrackId] = useState<string | null>(null);
 
@@ -99,9 +99,9 @@ export default function PlaylistPage() {
             r = Math.floor(r / count);
             g = Math.floor(g / count);
             b = Math.floor(b / count);
-            const targetR = Math.max(16, Math.floor(r * 0.40));
-            const targetG = Math.max(18, Math.floor(g * 0.42));
-            const targetB = Math.max(22, Math.floor(b * 0.46));
+            const targetR = Math.max(16, Math.floor(r * 0.45));
+            const targetG = Math.max(14, Math.floor(g * 0.40));
+            const targetB = Math.max(14, Math.floor(b * 0.38));
             setDominantColor(`rgb(${targetR}, ${targetG}, ${targetB})`);
           }
         }
@@ -232,25 +232,12 @@ export default function PlaylistPage() {
       className="min-h-full transition-colors duration-700 pb-36 text-[#e1deda]"
       style={{
         backgroundColor: dominantColor,
-        backgroundImage: `radial-gradient(ellipse 90% 70% at 20% 0%, rgba(255, 255, 255, 0.05) 0%, transparent 80%), linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 100%)`
+        backgroundImage: `radial-gradient(ellipse 90% 70% at 20% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 80%), linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 100%)`
       }}
     >
       <div className="max-w-[1340px] mx-auto px-6 lg:px-12 pt-8">
         {/* Top Header Utilities */}
         <div className="flex justify-end items-center gap-2 mb-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({ title: playlist.name, url: window.location.href }).catch(() => {});
-              }
-            }}
-            className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 text-white/80 hover:text-white"
-            title="Share"
-          >
-            <Share2 className="w-4 h-4" />
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -329,14 +316,14 @@ export default function PlaylistPage() {
         {/* Playlist Table */}
         <div className="mt-8">
           {/* Table Header Bar */}
-          <div className="grid grid-cols-[1fr_80px] md:grid-cols-[5fr_3fr_80px] lg:grid-cols-[4fr_3fr_3fr_80px] items-center px-4 pb-3 text-xs font-medium text-white/40 uppercase tracking-wider border-b border-white/[0.07]">
+          <div className="grid grid-cols-[1fr_80px] md:grid-cols-[5fr_3fr_80px] lg:grid-cols-[4fr_3fr_3fr_80px] items-center px-4 pb-3 text-xs font-semibold text-white/60 uppercase tracking-wider border-b border-white/[0.07]">
             <div className="text-left">Song</div>
             <div className="hidden md:block text-left">Artist</div>
             <div className="hidden lg:block text-left">Album</div>
             <div className="text-right pr-7">Time</div>
           </div>
 
-          <div className="divide-y divide-white/[0.05]">
+          <div className="relative">
             {tracklist.map((song, index) => {
               const playing = isCurrentlyPlaying(song);
               const isHovered = hoveredTrackId === song.id;
@@ -350,7 +337,7 @@ export default function PlaylistPage() {
                   className={`group relative grid grid-cols-[1fr_80px] md:grid-cols-[5fr_3fr_80px] lg:grid-cols-[4fr_3fr_3fr_80px] items-center h-14 px-4 rounded-md transition-colors cursor-pointer ${
                     playing
                       ? 'bg-white/10 text-white'
-                      : 'hover:bg-white/[0.06] text-white/80 hover:text-white'
+                      : 'hover:bg-white/[0.06] text-white hover:text-white'
                   }`}
                 >
                   {/* Song (Artwork + Title) */}
@@ -407,7 +394,7 @@ export default function PlaylistPage() {
                   </div>
 
                   {/* Album (Desktop column) */}
-                  <div className="hidden lg:block truncate pr-4 text-sm text-white/50">
+                  <div className="hidden lg:block truncate pr-4 text-sm text-white/70">
                     <Link
                       href={`/album/${song.albumId}`}
                       onClick={(e) => e.stopPropagation()}
@@ -425,23 +412,23 @@ export default function PlaylistPage() {
                         handleSongStar(song);
                       }}
                       className={`w-7 h-7 rounded-full flex items-center justify-center transition-opacity ${
-                        starredSongs.has(song.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 text-white/40 hover:text-white'
+                        starredSongs.has(song.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 text-white/50 hover:text-white'
                       }`}
                       title={starredSongs.has(song.id) ? 'Remove from favorites' : 'Add to favorites'}
                     >
                       <Heart
-                        className={`w-3.5 h-3.5 ${starredSongs.has(song.id) ? 'fill-primary text-primary' : 'text-white/40'}`}
+                        className={`w-3.5 h-3.5 ${starredSongs.has(song.id) ? 'fill-primary text-primary' : 'text-white/50'}`}
                       />
                     </button>
 
-                    <span className="text-xs text-white/40 font-mono tracking-tight">
+                    <span className="text-xs text-white/60 font-mono tracking-tight">
                       {formatDuration(song.duration)}
                     </span>
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <button
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-white/40 hover:text-white transition-opacity ${
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-opacity ${
                             isHovered || playing ? 'opacity-100' : 'opacity-0'
                           }`}
                         >
@@ -470,6 +457,8 @@ export default function PlaylistPage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
+                  {/* Flat horizontal separator between rows */}
+                  <div className="absolute bottom-0 left-4 right-4 h-px bg-white/[0.05] pointer-events-none group-last:hidden" />
                 </div>
               );
             })}

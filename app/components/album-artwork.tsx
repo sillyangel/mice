@@ -168,7 +168,7 @@ export function AlbumArtwork({
                   src={coverArtUrl}
                   alt={`${album.name} by ${album.artist.split(";")[0]}`}
                   fill
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover/cover:scale-[1.02]"
+                  className="w-full h-full object-cover"
                   sizes="(max-width: 768px) 50vw, 300px"
                   onLoad={handleImageLoad}
                   onError={handleImageError}

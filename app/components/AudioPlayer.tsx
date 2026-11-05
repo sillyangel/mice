@@ -17,6 +17,7 @@ import { useGlobalSearch } from './GlobalSearchProvider';
 import { getNavidromeAPI } from '@/lib/navidrome';
 import { selectStreamFormat } from '@/lib/stream-format';
 import { devLog } from '@/lib/logger';
+import { extractDominantColor } from '@/lib/image-utils';
 
 // Lazy-load the full-screen player until it's actually opened
 const FullScreenPlayer = dynamic(
@@ -72,8 +73,20 @@ export const AudioPlayer: React.FC = () => {
   const [lastNotifiedTrackId, setLastNotifiedTrackId] = useState<string | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [audioInitialized, setAudioInitialized] = useState(false);
+  const [dominantColor, setDominantColor] = useState<string | null>(null);
   const audioCurrent = audioRef.current;
   const { toast } = useToast();
+
+  // Extract dominant color from cover art to tint the player
+  useEffect(() => {
+    if (!currentTrack?.coverArt) {
+      setDominantColor(null);
+      return;
+    }
+    extractDominantColor(currentTrack.coverArt)
+      .then((color) => setDominantColor(color))
+      .catch(() => setDominantColor(null));
+  }, [currentTrack?.coverArt]);
 
   // Codec fallback: when the browser can't play the original file (e.g. ALAC or
   // AAC in m4a on Chrome), ask Navidrome to transcode it to MP3 and reload.
@@ -825,7 +838,17 @@ export const AudioPlayer: React.FC = () => {
   if (isMobile) {
     return (
       <>
-        <div className="fixed bottom-16 left-0 right-0 z-[60] bg-background/80 backdrop-blur-md border-t shadow-lg mobile-audio-player mobile-safe-bottom">
+        <div
+          className="fixed bottom-16 left-0 right-0 z-[60] backdrop-blur-md border-t shadow-lg mobile-audio-player mobile-safe-bottom transition-colors duration-500"
+          style={{
+            backgroundColor: dominantColor 
+              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.85)')}`
+              : 'rgba(20, 21, 23, 0.90)',
+            borderTopColor: dominantColor 
+              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.35)')}`
+              : 'rgba(255, 255, 255, 0.1)',
+          }}
+        >
           <div className="px-4 py-3">
             {/* Progress bar at top for mobile */}
             <div className="mb-3">
@@ -944,7 +967,20 @@ export const AudioPlayer: React.FC = () => {
   return (
     <>
       <div className="fixed bottom-4 left-4 right-4 z-50">
-        <div className="bg-background/80 backdrop-blur-md border rounded-lg shadow-lg p-3 cursor-pointer hover:scale-[1.01] transition-transform">
+        <div 
+          className="backdrop-blur-md border rounded-lg shadow-2xl p-3 cursor-pointer hover:scale-[1.008] transition-all duration-500"
+          style={{
+            backgroundColor: dominantColor 
+              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.60)')}`
+              : 'rgba(20, 21, 23, 0.88)',
+            borderColor: dominantColor 
+              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.35)')}`
+              : 'rgba(255, 255, 255, 0.1)',
+            boxShadow: dominantColor
+              ? `0 16px 40px -10px ${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.45)')}`
+              : undefined,
+          }}
+        >
           <div className="flex items-center">
             {/* Track info */}
             <div className="flex items-center flex-1 min-w-0">
@@ -958,19 +994,19 @@ export const AudioPlayer: React.FC = () => {
                 alt={currentTrack.name} 
                 width={48} 
                 height={48} 
-                className="w-12 h-12 rounded-md mr-4 shrink-0" 
+                className="w-12 h-12 rounded-md mr-4 shrink-0 shadow-md object-cover" 
               />
               <div className="flex-1 min-w-0">
                 <Link
                   href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
-                  className="font-semibold truncate text-base block hover:underline hover:text-white transition-colors"
+                  className="font-semibold truncate text-base block hover:underline text-white transition-colors"
                   title={`Go to album: ${currentTrack.album || currentTrack.name}`}
                 >
                   {currentTrack.name}
                 </Link>
                 <Link
                   href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
-                  className="text-sm text-muted-foreground truncate block hover:underline hover:text-foreground transition-colors"
+                  className="text-sm text-white/70 hover:text-white truncate block hover:underline transition-colors"
                   title={`Go to artist: ${currentTrack.artist}`}
                 >
                   {currentTrack.artist}

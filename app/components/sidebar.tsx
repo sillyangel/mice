@@ -26,6 +26,7 @@ import { useNavidrome } from "./NavidromeContext";
 import { useRecentlyPlayedAlbums } from "@/hooks/use-recently-played-albums";
 import { useSidebarShortcuts } from "@/hooks/use-sidebar-shortcuts";
 import { useSidebarLayout, SidebarItem } from "@/hooks/use-sidebar-layout";
+import { useAudioPlayer } from "@/app/components/AudioPlayerContext";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -60,6 +61,7 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
   const { recentAlbums } = useRecentlyPlayedAlbums();
   const { shortcutType } = useSidebarShortcuts();
   const { settings } = useSidebarLayout();
+  const { currentTrack } = useAudioPlayer();
 
   if (!visible) {
     return null;
@@ -75,7 +77,10 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
   const visibleItems = settings.items.filter(item => item.visible);
 
   return (
-    <div className={cn("relative w-16 z-50 bg-background/80 backdrop-blur-md border rounded-2xl shadow-2xl mt-3 ml-3 mb-3", className)} style={{ height: 'calc(100% - 1.5rem)' }}>
+    <div
+      className={cn("relative w-16 z-50 bg-background/80 backdrop-blur-md border rounded-2xl shadow-2xl mt-3 ml-3 mb-3 transition-[height] duration-300 ease-out", className)}
+      style={{ height: currentTrack ? 'calc(100% - 7rem)' : 'calc(100% - 1.5rem)' }}
+    >
       <div className="space-y-4 py-4 h-full overflow-y-auto">
         <div className="px-3 py-2">
           <div className="space-y-1">
