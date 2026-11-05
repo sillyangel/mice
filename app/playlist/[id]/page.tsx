@@ -8,107 +8,167 @@ import { Playlist, Song } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { getNavidromeAPI } from '@/lib/navidrome';
-import { Play, Heart, Plus, User, Disc } from 'lucide-react';
+import { Play, Pause, Heart, Shuffle, MoreHorizontal, Share2, Plus, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Loading from "@/app/components/loading";
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function PlaylistPage() {
   const { id } = useParams();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [tracklist, setTracklist] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
-  const { getPlaylist } = useNavidrome();
-  const { playTrack, addToQueue, currentTrack } = useAudioPlayer();
+  const [dominantColor, setDominantColor] = useState<string>('#1b2024');
+  const [starredSongs, setStarredSongs] = useState<Set<string>>(new Set());
+  const [hoveredTrackId, setHoveredTrackId] = useState<string | null>(null);
+
+  const { getPlaylist, starItem, unstarItem } = useNavidrome();
+  const { playTrack, addToQueue, currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
   const api = getNavidromeAPI();
 
   useEffect(() => {
-    const fetchPlaylist = async () => {
+    let isMounted = true;
+    const fetchPlaylistData = async () => {
       setLoading(true);
-      
       try {
         const playlistData = await getPlaylist(id as string);
+        if (!isMounted) return;
         setPlaylist(playlistData.playlist);
         setTracklist(playlistData.songs);
+
+        const starred = new Set(
+          playlistData.songs.filter(s => s.starred).map(s => s.id)
+        );
+        setStarredSongs(starred);
       } catch (error) {
         console.error('Failed to fetch playlist:', error);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     if (id) {
-      fetchPlaylist();
+      fetchPlaylistData();
     }
+    return () => {
+      isMounted = false;
+    };
   }, [id, getPlaylist]);
-  const handlePlayClick = (song: Song) => {
-    if (!api) {
-      console.error('Navidrome API not available');
-      return;
-    }
-    
-    const track = {
-      id: song.id,
-      name: song.title,
-      url: api.getStreamUrlForSong(song),
-      artist: song.artist,
-      album: song.album,
-      duration: song.duration,
-  coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
-      albumId: song.albumId,
-      artistId: song.artistId,
-      starred: !!song.starred
-    };
-    playTrack(track);
-  };
-  const handleAddToQueue = (song: Song) => {
-    if (!api) {
-      console.error('Navidrome API not available');
-      return;
-    }
-    
-    const track = {
-      id: song.id,
-      name: song.title,
-      url: api.getStreamUrlForSong(song),
-      artist: song.artist,
-      album: song.album,
-      duration: song.duration,
-  coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
-      albumId: song.albumId,
-      artistId: song.artistId,
-      starred: !!song.starred
-    };
-    addToQueue(track);
-  };
-  const handlePlayPlaylist = () => {
-    if (tracklist.length === 0 || !api) {
-      if (!api) console.error('Navidrome API not available');
-      return;
-    }
-    
-    // Convert all songs to tracks
-    const tracks = tracklist.map(song => ({
-      id: song.id,
-      name: song.title,
-      url: api.getStreamUrlForSong(song),
-      artist: song.artist,
-      album: song.album,
-      duration: song.duration,
-  coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
-      albumId: song.albumId,
-      artistId: song.artistId,
-      starred: !!song.starred
-    }));
 
-    // Play the first track and add the rest to queue
-    if (tracks.length > 0) {
-      playTrack(tracks[0], true); // Enable autoplay
-      if (tracks.length > 1) {
-        // Add remaining tracks to queue
-        tracks.slice(1).forEach(track => addToQueue(track));
+  // Extract Apple-like dominant background color from playlist cover artwork
+  useEffect(() => {
+    const coverArt = playlist?.coverArt || (tracklist.length > 0 ? tracklist[0].coverArt : null);
+    if (!coverArt || !api) return;
+
+    const imgUrl = api.getCoverArtUrl(coverArt, 300);
+    const img = document.createElement('img');
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          canvas.width = 64;
+          canvas.height = 64;
+          ctx.drawImage(img, 0, 0, 64, 64);
+          const imageData = ctx.getImageData(0, 0, 64, 64);
+          const data = imageData.data;
+          let r = 0, g = 0, b = 0, count = 0;
+
+          for (let i = 0; i < data.length; i += 4) {
+            const pr = data[i];
+            const pg = data[i + 1];
+            const pb = data[i + 2];
+            const brightness = (pr + pg + pb) / 3;
+            if (brightness > 20 && brightness < 240) {
+              r += pr;
+              g += pg;
+              b += pb;
+              count++;
+            }
+          }
+
+          if (count > 0) {
+            r = Math.floor(r / count);
+            g = Math.floor(g / count);
+            b = Math.floor(b / count);
+            const targetR = Math.max(16, Math.floor(r * 0.40));
+            const targetG = Math.max(18, Math.floor(g * 0.42));
+            const targetB = Math.max(22, Math.floor(b * 0.46));
+            setDominantColor(`rgb(${targetR}, ${targetG}, ${targetB})`);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not extract playlist color:', e);
       }
+    };
+
+    img.src = imgUrl;
+  }, [playlist?.coverArt, tracklist, api]);
+
+  const songToTrack = (song: Song) => {
+    if (!api) throw new Error('Navidrome API not configured');
+    return {
+      id: song.id,
+      name: song.title,
+      url: api.getStreamUrlForSong(song),
+      artist: song.artist,
+      album: song.album,
+      duration: song.duration,
+      coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
+      albumId: song.albumId,
+      artistId: song.artistId,
+      starred: !!song.starred
+    };
+  };
+
+  const handlePlayClick = (song: Song) => {
+    if (currentTrack?.id === song.id) {
+      togglePlayPause();
+      return;
+    }
+    const track = songToTrack(song);
+    playTrack(track, true);
+  };
+
+  const handlePlayPlaylist = () => {
+    if (!tracklist.length || !api) return;
+    const tracks = tracklist.map(songToTrack);
+    playTrack(tracks[0], true);
+    tracks.slice(1).forEach(track => addToQueue(track));
+  };
+
+  const handleShufflePlaylist = () => {
+    if (!tracklist.length || !api) return;
+    const shuffled = [...tracklist].sort(() => Math.random() - 0.5);
+    const tracks = shuffled.map(songToTrack);
+    playTrack(tracks[0], true);
+    tracks.slice(1).forEach(track => addToQueue(track));
+  };
+
+  const handleSongStar = async (song: Song) => {
+    try {
+      const isStarred = starredSongs.has(song.id);
+      if (isStarred) {
+        await unstarItem(song.id, 'song');
+        setStarredSongs(prev => {
+          const next = new Set(prev);
+          next.delete(song.id);
+          return next;
+        });
+      } else {
+        await starItem(song.id, 'song');
+        setStarredSongs(prev => new Set(prev).add(song.id));
+      }
+    } catch (e) {
+      console.error('Failed to star/unstar song:', e);
     }
   };
 
@@ -116,164 +176,271 @@ export default function PlaylistPage() {
     return currentTrack?.id === song.id;
   };
 
-  const formatDuration = (duration: number): string => {
-    const minutes = Math.floor(duration / 60);
-    const seconds = duration % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  const formatDuration = (
+    duration: number,
+    style: 'clock' | 'human' = 'clock'
+  ): string => {
+    if (style === 'clock') {
+      const minutes = Math.floor(duration / 60);
+      const seconds = duration % 60;
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    const totalMinutes = Math.floor(duration / 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (hours === 0) {
+      return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+    if (minutes === 0) {
+      return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    }
+    return `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
   };
 
-  if (loading) {
-    return <Loading />;
-  }
+  const getPlaylistCoverUrl = () => {
+    if (playlist?.coverArt && api) {
+      return api.getCoverArtUrl(playlist.coverArt, 600);
+    }
+    if (tracklist.length > 0 && tracklist[0].coverArt && api) {
+      return api.getCoverArtUrl(tracklist[0].coverArt, 600);
+    }
+    return '/default-user.jpg';
+  };
 
-  if (!playlist) {
-    return (
-      <div className="h-full px-4 py-6 lg:px-8">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold">Playlist not found</h2>
-          <p className="text-muted-foreground">The playlist you&apos;re looking for doesn&apos;t exist.</p>
-        </div>
-      </div>
-    );
-  }
-  // Get playlist cover art URL with fallback
-  const playlistCoverUrl = playlist.coverArt && api
-    ? api.getCoverArtUrl(playlist.coverArt, 300)
-    : '/default-user.jpg';
+  if (loading) return <Loading />;
+  if (!playlist) return <div className="p-8 text-center text-muted-foreground">Playlist not found</div>;
 
   return (
-    <div className="h-full px-4 py-6 lg:px-8">
-      <div className="space-y-4">
-        <div className="flex items-start gap-6">
-          <div className="w-[300px] h-[300px] bg-muted rounded-md overflow-hidden">
+    <div
+      className="min-h-full transition-colors duration-700 pb-36 text-[#e1deda]"
+      style={{
+        backgroundColor: dominantColor,
+        backgroundImage: `radial-gradient(ellipse 90% 70% at 20% 0%, rgba(255, 255, 255, 0.05) 0%, transparent 80%), linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 100%)`
+      }}
+    >
+      <div className="max-w-[1340px] mx-auto px-6 lg:px-12 pt-8">
+        {/* Top Header Utilities */}
+        <div className="flex justify-end items-center gap-2 mb-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({ title: playlist.name, url: window.location.href }).catch(() => {});
+              }
+            }}
+            className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 text-white/80 hover:text-white"
+            title="Share"
+          >
+            <Share2 className="w-4 h-4" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 text-white/80 hover:text-white"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-[#1f1d1c]/95 border-white/10 text-white">
+              <DropdownMenuItem onClick={handlePlayPlaylist} className="cursor-pointer">
+                <Play className="w-4 h-4 mr-2" /> Play Next
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleShufflePlaylist} className="cursor-pointer">
+                <Shuffle className="w-4 h-4 mr-2" /> Shuffle Playlist
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Hero Section */}
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-8 lg:gap-10 mb-10">
+          {/* Playlist Artwork */}
+          <div className="shrink-0 group relative">
             <Image
-              src={playlistCoverUrl}
+              src={getPlaylistCoverUrl()}
               alt={playlist.name}
-              width={300}
-              height={300}
-              className="w-full h-full object-cover"
+              width={270}
+              height={270}
               priority
+              className="rounded-lg shadow-[0_20px_50px_rgba(0,0,0,0.5)] object-cover aspect-square"
             />
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center space-x-4">
-              <p className="text-3xl font-semibold tracking-tight">{playlist.name}</p>
-            </div>
+
+          {/* Playlist Info */}
+          <div className="flex-1 min-w-0 text-center md:text-left flex flex-col justify-start">
+            <h1 className="text-3xl lg:text-[40px] font-bold tracking-tight text-white leading-tight mb-2">
+              {playlist.name}
+            </h1>
+
+            <p className="text-xl lg:text-[22px] font-semibold text-white/90 mb-2">
+              {playlist.owner || 'Apple Music'}
+            </p>
+
+            <p className="text-sm text-white/60 mb-5 font-normal tracking-wide">
+              {playlist.songCount} songs • {formatDuration(playlist.duration || 0, 'human')}
+            </p>
+
             {playlist.comment && (
-              <p className="text-xl text-muted-foreground mt-0 mb-4">{playlist.comment}</p>
+              <p className="mb-6 max-w-2xl text-[14px] leading-relaxed text-white/70">
+                {playlist.comment}
+              </p>
             )}
-            <Button className="px-5" onClick={() => handlePlayPlaylist()}>
-              <Play />
-              Play Playlist
-            </Button>
-            <div className="text-sm text-muted-foreground">
-              <p>{playlist.songCount} songs • Duration: {formatDuration(playlist.duration || 0)}</p>
-              {playlist.public !== undefined && (
-                <p>{playlist.public ? 'Public' : 'Private'} playlist</p>
-              )}
+
+            {/* Apple Music Pill Buttons */}
+            <div className="flex items-center justify-center md:justify-start gap-3 mt-auto">
+              <button
+                onClick={handlePlayPlaylist}
+                className="inline-flex items-center justify-center gap-2 h-10 px-7 rounded-full bg-white text-black font-semibold text-sm hover:bg-white/90 active:scale-95 transition-all shadow-md"
+              >
+                <Play className="w-4 h-4 fill-black" />
+                Play
+              </button>
+              <button
+                onClick={handleShufflePlaylist}
+                className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-full bg-white/10 hover:bg-white/15 text-white font-semibold text-sm active:scale-95 transition-all backdrop-blur-md"
+              >
+                <Shuffle className="w-4 h-4" />
+                Shuffle
+              </button>
             </div>
           </div>
         </div>
-        <div className="space-y-4">
-          <Separator />
-          <ScrollArea className="h-[calc(100vh-500px)]">
-            {tracklist.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">This playlist is empty.</p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {tracklist.map((song, index) => (
-                  <div
-                    key={song.id}
-                    className={`group flex items-center p-3 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors ${
-                      isCurrentlyPlaying(song) ? 'bg-accent/50 border-l-4 border-primary' : ''
-                    }`}
-                    onClick={() => handlePlayClick(song)}
-                  >
-                    {/* Track Number / Play Indicator */}
-                    <div className="w-8 text-center text-sm text-muted-foreground mr-3">
-                      {isCurrentlyPlaying(song) ? (
-                        <div className="w-4 h-4 mx-auto">
-                          <div className="w-full h-full bg-primary rounded-full animate-pulse" />
-                        </div>
+
+        {/* Playlist Table */}
+        <div className="mt-8">
+          {/* Table Header Bar */}
+          <div className="flex items-center px-3 pb-3 text-xs font-medium text-white/40 uppercase tracking-wider border-b border-white/[0.07]">
+            <div className="w-12 text-left">Song</div>
+            <div className="flex-1 min-w-0 pl-1"></div>
+            <div className="w-1/4 hidden md:block pl-4">Artist</div>
+            <div className="w-1/4 hidden lg:block pl-4">Album</div>
+            <div className="w-16 text-right pr-2">Time</div>
+          </div>
+
+          <div className="divide-y divide-white/[0.05]">
+            {tracklist.map((song, index) => {
+              const playing = isCurrentlyPlaying(song);
+              const isHovered = hoveredTrackId === song.id;
+
+              return (
+                <div
+                  key={song.id}
+                  onMouseEnter={() => setHoveredTrackId(song.id)}
+                  onMouseLeave={() => setHoveredTrackId(null)}
+                  onClick={() => handlePlayClick(song)}
+                  className={`group relative flex items-center h-14 px-3 rounded-md transition-colors cursor-pointer ${
+                    playing
+                      ? 'bg-white/10 text-white'
+                      : 'hover:bg-white/[0.06] text-white/80 hover:text-white'
+                  }`}
+                >
+                  {/* Thumbnail / Play Button */}
+                  <div className="relative w-10 h-10 rounded overflow-hidden shrink-0 mr-3.5 bg-black/30">
+                    <Image
+                      src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 80) : '/default-user.jpg'}
+                      alt={song.album}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${
+                      playing || isHovered ? 'opacity-100' : 'opacity-0'
+                    }`}>
+                      {playing && isPlaying ? (
+                        <Volume2 className="w-4 h-4 text-white animate-pulse" />
                       ) : (
-                        <>
-                          <span className="group-hover:hidden">{index + 1}</span>
-                          <Play className="w-4 h-4 mx-auto hidden group-hover:block" />
-                        </>
+                        <Play className="w-4 h-4 fill-white text-white" />
                       )}
                     </div>
-
-                    {/* Album Art */}
-                    <div className="w-12 h-12 mr-4 shrink-0">                      <Image
-                        src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 48) : '/default-user.jpg'}
-                        alt={song.album}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover rounded-md"
-                      />
-                    </div>
-
-                    {/* Song Info */}
-                    <div className="flex-1 min-w-0 mr-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className={`font-semibold truncate ${
-                          isCurrentlyPlaying(song) ? 'text-primary' : ''
-                        }`}>
-                          {song.title}
-                        </p>
-                      </div>
-                      <div className="flex items-center text-sm text-muted-foreground space-x-4">
-                        <div className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          <Link 
-                            href={`/artist/${song.artistId}`} 
-                            className="truncate hover:text-primary hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {song.artist}
-                          </Link>
-                        </div>
-                        {song.album && (
-                          <div className="flex items-center gap-1">
-                            <Disc className="w-3 h-3" />
-                            <Link 
-                              href={`/album/${song.albumId}`} 
-                              className="truncate hover:text-primary hover:underline"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {song.album}
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Duration */}
-                    <div className="flex items-center text-sm text-muted-foreground mr-4">
-                      {formatDuration(song.duration)}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddToQueue(song);
-                        }}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
-                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
+
+                  {/* Song Title */}
+                  <div className="flex-1 min-w-0 pr-4">
+                    <span className={`text-[15px] font-normal truncate block ${
+                      playing ? 'text-[#ff375f] font-medium' : 'text-white/90'
+                    }`}>
+                      {song.title}
+                    </span>
+                    {/* Mobile fallback artist subtitle */}
+                    <span className="text-xs text-white/50 truncate block md:hidden">
+                      {song.artist}
+                    </span>
+                  </div>
+
+                  {/* Artist (Desktop column) */}
+                  <div className="w-1/4 hidden md:block truncate pr-4 text-sm text-white/60">
+                    <Link
+                      href={`/artist/${song.artistId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:text-white hover:underline truncate"
+                    >
+                      {song.artist}
+                    </Link>
+                  </div>
+
+                  {/* Album (Desktop column) */}
+                  <div className="w-1/4 hidden lg:block truncate pr-4 text-sm text-white/50">
+                    <Link
+                      href={`/album/${song.albumId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:text-white hover:underline truncate"
+                    >
+                      {song.album}
+                    </Link>
+                  </div>
+
+                  {/* Duration + More menu */}
+                  <div className="w-16 shrink-0 flex items-center justify-end gap-2 pr-1">
+                    <span className="text-xs text-white/40 font-mono tracking-tight">
+                      {formatDuration(song.duration)}
+                    </span>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-white/40 hover:text-white transition-opacity ${
+                            isHovered || playing ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-[#1f1d1c]/95 border-white/10 text-white">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePlayClick(song);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <Play className="w-4 h-4 mr-2" /> Play
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSongStar(song);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <Heart className="w-4 h-4 mr-2" /> {starredSongs.has(song.id) ? 'Favorited' : 'Favorite'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Footer Metadata */}
+          <div className="mt-10 pt-6 border-t border-white/[0.07] text-xs text-white/50 space-y-1 pb-16 font-normal">
+            <p>{playlist.songCount} songs, {formatDuration(playlist.duration || 0, 'human')}</p>
+          </div>
         </div>
       </div>
     </div>
