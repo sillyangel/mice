@@ -314,12 +314,11 @@ export default function PlaylistPage() {
         {/* Playlist Table */}
         <div className="mt-8">
           {/* Table Header Bar */}
-          <div className="flex items-center px-3 pb-3 text-xs font-medium text-white/40 uppercase tracking-wider border-b border-white/[0.07]">
-            <div className="w-12 text-left">Song</div>
-            <div className="flex-1 min-w-0 pl-1"></div>
-            <div className="w-1/4 hidden md:block pl-4">Artist</div>
-            <div className="w-1/4 hidden lg:block pl-4">Album</div>
-            <div className="w-16 text-right pr-2">Time</div>
+          <div className="grid grid-cols-[1fr_80px] md:grid-cols-[5fr_3fr_80px] lg:grid-cols-[4fr_3fr_3fr_80px] items-center px-4 pb-3 text-xs font-medium text-white/40 uppercase tracking-wider border-b border-white/[0.07]">
+            <div className="text-left">Song</div>
+            <div className="hidden md:block text-left">Artist</div>
+            <div className="hidden lg:block text-left">Album</div>
+            <div className="text-right pr-7">Time</div>
           </div>
 
           <div className="divide-y divide-white/[0.05]">
@@ -333,47 +332,48 @@ export default function PlaylistPage() {
                   onMouseEnter={() => setHoveredTrackId(song.id)}
                   onMouseLeave={() => setHoveredTrackId(null)}
                   onClick={() => handlePlayClick(song)}
-                  className={`group relative flex items-center h-14 px-3 rounded-md transition-colors cursor-pointer ${
+                  className={`group relative grid grid-cols-[1fr_80px] md:grid-cols-[5fr_3fr_80px] lg:grid-cols-[4fr_3fr_3fr_80px] items-center h-14 px-4 rounded-md transition-colors cursor-pointer ${
                     playing
                       ? 'bg-white/10 text-white'
                       : 'hover:bg-white/[0.06] text-white/80 hover:text-white'
                   }`}
                 >
-                  {/* Thumbnail / Play Button */}
-                  <div className="relative w-10 h-10 rounded overflow-hidden shrink-0 mr-3.5 bg-black/30">
-                    <Image
-                      src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 80) : '/default-user.jpg'}
-                      alt={song.album}
-                      width={40}
-                      height={40}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${
-                      playing || isHovered ? 'opacity-100' : 'opacity-0'
-                    }`}>
-                      {playing && isPlaying ? (
-                        <Volume2 className="w-4 h-4 text-white animate-pulse" />
-                      ) : (
-                        <Play className="w-4 h-4 fill-white text-white" />
-                      )}
+                  {/* Song (Artwork + Title) */}
+                  <div className="flex items-center min-w-0 pr-4">
+                    <div className="relative w-10 h-10 rounded overflow-hidden shrink-0 mr-3.5 bg-black/30">
+                      <Image
+                        src={song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 80) : '/default-user.jpg'}
+                        alt={song.album}
+                        width={40}
+                        height={40}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${
+                        playing || isHovered ? 'opacity-100' : 'opacity-0'
+                      }`}>
+                        {playing && isPlaying ? (
+                          <Volume2 className="w-4 h-4 text-white animate-pulse" />
+                        ) : (
+                          <Play className="w-4 h-4 fill-white text-white" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <span className={`text-[15px] font-normal truncate block ${
+                        playing ? 'text-[#ff375f] font-medium' : 'text-white/90'
+                      }`}>
+                        {song.title}
+                      </span>
+                      {/* Mobile fallback artist subtitle */}
+                      <span className="text-xs text-white/50 truncate block md:hidden">
+                        {song.artist}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Song Title */}
-                  <div className="flex-1 min-w-0 pr-4">
-                    <span className={`text-[15px] font-normal truncate block ${
-                      playing ? 'text-[#ff375f] font-medium' : 'text-white/90'
-                    }`}>
-                      {song.title}
-                    </span>
-                    {/* Mobile fallback artist subtitle */}
-                    <span className="text-xs text-white/50 truncate block md:hidden">
-                      {song.artist}
-                    </span>
-                  </div>
-
                   {/* Artist (Desktop column) */}
-                  <div className="w-1/4 hidden md:block truncate pr-4 text-sm text-white/60">
+                  <div className="hidden md:block truncate pr-4 text-sm text-white/60">
                     <Link
                       href={`/artist/${song.artistId}`}
                       onClick={(e) => e.stopPropagation()}
@@ -384,7 +384,7 @@ export default function PlaylistPage() {
                   </div>
 
                   {/* Album (Desktop column) */}
-                  <div className="w-1/4 hidden lg:block truncate pr-4 text-sm text-white/50">
+                  <div className="hidden lg:block truncate pr-4 text-sm text-white/50">
                     <Link
                       href={`/album/${song.albumId}`}
                       onClick={(e) => e.stopPropagation()}
@@ -395,7 +395,7 @@ export default function PlaylistPage() {
                   </div>
 
                   {/* Duration + More menu */}
-                  <div className="w-16 shrink-0 flex items-center justify-end gap-2 pr-1">
+                  <div className="flex items-center justify-end gap-1.5">
                     <span className="text-xs text-white/40 font-mono tracking-tight">
                       {formatDuration(song.duration)}
                     </span>
