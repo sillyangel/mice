@@ -64,6 +64,20 @@ const AUTH_PARAMS = new Set(['u', 't', 's', 'v', 'c', 'f', '_']);
 
 const now = () => Date.now();
 
+// When true, all caching is bypassed and requests pass directly through to network.
+let cachingDisabled = true;
+
+self.addEventListener('message', (event) => {
+	if (event.data && event.data.type === 'SET_CACHE_ENABLED') {
+		cachingDisabled = !event.data.enabled;
+		if (cachingDisabled) {
+			caches.delete(CACHE_NAME).catch(() => {});
+		}
+	} else if (event.data && event.data.type === 'CLEAR_CACHE') {
+		caches.delete(CACHE_NAME).catch(() => {});
+	}
+});
+
 self.addEventListener('install', (event) => {
 	// Take over as soon as this SW is finished installing.
 	event.waitUntil(self.skipWaiting());
@@ -147,6 +161,12 @@ async function purgeLibraryData(cache) {
 self.addEventListener('fetch', (event) => {
 	const req = event.request;
 	const url = new URL(req.url);
+
+	// If caching is disabled by settings flag, immediately pass through to network
+	if (cachingDisabled) {
+		event.respondWith(fetch(req));
+		return;
+	}
 
 	// Images: cache-first, revalidate when older than an hour.
 	if (isCoverRequest(req)) {

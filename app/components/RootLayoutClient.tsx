@@ -15,15 +15,44 @@ import Image from "next/image";
 import PageTransition from "./PageTransition";
 import { GlobalSearchProvider } from "./GlobalSearchProvider";
 
-// ServiceWorkerRegistration component to handle registration
+// ServiceWorkerRegistration component to handle registration and sync cache preference
 function ServiceWorkerRegistration() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
+      const isCacheEnabled = localStorage.getItem('sw-caching-enabled') === 'true';
+
       navigator.serviceWorker.register('/sw.js')
-        .then(() => {})
+        .then((reg) => {
+          const sw = reg.active || reg.installing || reg.waiting;
+          if (sw) {
+            sw.postMessage({ type: 'SET_CACHE_ENABLED', enabled: isCacheEnabled });
+          }
+        })
         .catch((error) => {
           console.error('Service Worker registration failed:', error);
         });
+
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'SET_CACHE_ENABLED',
+          enabled: isCacheEnabled,
+        });
+      }
+
+      const handleCacheToggle = (e: Event) => {
+        const customEvent = e as CustomEvent<{ enabled: boolean }>;
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SET_CACHE_ENABLED',
+            enabled: customEvent.detail.enabled,
+          });
+        }
+      };
+
+      window.addEventListener('sw-cache-toggle', handleCacheToggle);
+      return () => {
+        window.removeEventListener('sw-cache-toggle', handleCacheToggle);
+      };
     }
   }, []);
   

@@ -68,6 +68,7 @@ const SettingsPage = () => {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [sidebarVisible, setSidebarVisible] = useState(true);
     const [notifyNowPlaying, setNotifyNowPlaying] = useState(false);
+    const [offlineCacheEnabled, setOfflineCacheEnabled] = useState(false);
 
     // Initialize client-side state after hydration
     useEffect(() => {
@@ -107,6 +108,12 @@ const SettingsPage = () => {
         const savedNotify = localStorage.getItem('playback-notifications-enabled');
         if (savedNotify !== null) {
             setNotifyNowPlaying(savedNotify === 'true');
+        }
+
+        // Cache preference (defaults to false / disabled)
+        const savedCacheEnabled = localStorage.getItem('sw-caching-enabled');
+        if (savedCacheEnabled !== null) {
+            setOfflineCacheEnabled(savedCacheEnabled === 'true');
         }
 
         // Load Last.fm credentials
@@ -319,6 +326,20 @@ const SettingsPage = () => {
         toast({
             title: enabled ? 'Notifications Enabled' : 'Notifications Disabled',
             description: enabled ? 'You will be notified when a new song starts.' : 'Now playing notifications are off.',
+        });
+    };
+
+    const handleCacheToggle = (enabled: boolean) => {
+        setOfflineCacheEnabled(enabled);
+        if (isClient) {
+            localStorage.setItem('sw-caching-enabled', enabled.toString());
+            window.dispatchEvent(new CustomEvent('sw-cache-toggle', { detail: { enabled } }));
+        }
+        toast({
+            title: enabled ? 'Offline Caching Enabled' : 'Offline Caching Disabled',
+            description: enabled 
+                ? 'Covers and library read requests will be cached locally.' 
+                : 'All caching disabled; requests will fetch fresh from the network.',
         });
     };
 
@@ -588,6 +609,28 @@ const SettingsPage = () => {
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={handleTestNotification}>Test notification</Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Cache & Offline Storage */}
+                <Card className="mb-6 break-inside-avoid py-5">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <FaServer className="w-5 h-5" />
+                            Cache & Offline Storage
+                        </CardTitle>
+                        <CardDescription>Control service worker caching and offline behavior</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-medium">Enable offline data & image caching</p>
+                                <p className="text-sm text-muted-foreground">
+                                    When disabled, nothing is cached and all requests fetch directly from the network.
+                                </p>
+                            </div>
+                            <Switch checked={offlineCacheEnabled} onCheckedChange={handleCacheToggle} />
                         </div>
                     </CardContent>
                 </Card>
