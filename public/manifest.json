@@ -6,8 +6,8 @@
   "categories": ["music", "entertainment"],
   "display_override": ["window-controls-overlay"],
   "display": "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color": "#0f0f0f",
+  "background_color": "#141517",
+  "theme_color": "#141517",
   "icons": [
     { 
       "src": "/favicon.ico", 

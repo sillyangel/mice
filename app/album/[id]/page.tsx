@@ -6,7 +6,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Album, Song, AlbumInfo } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
-import { Play, Pause, Heart, Shuffle, MoreHorizontal, Share2, Plus, Volume2 } from 'lucide-react';
+import { Play, Pause, Heart, Shuffle, MoreHorizontal, Share2, Plus } from 'lucide-react';
+import { EqualizerBars } from '@/app/components/EqualizerBars';
 import { Button } from '@/components/ui/button';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import Loading from "@/app/components/loading";
@@ -135,6 +136,21 @@ export default function AlbumPage() {
 
     img.src = imgUrl;
   }, [album?.coverArt, api]);
+
+  // Synchronize dominant background color with theme-color meta tag for WCO titlebar
+  useEffect(() => {
+    if (!dominantColor) return;
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+    const prevColor = metaThemeColor?.content || '#141517';
+    if (metaThemeColor) {
+      metaThemeColor.content = dominantColor;
+    }
+    return () => {
+      if (metaThemeColor) {
+        metaThemeColor.content = prevColor;
+      }
+    };
+  }, [dominantColor]);
 
   const handleStar = async () => {
     if (!album) return;
@@ -389,12 +405,20 @@ export default function AlbumPage() {
                       : 'hover:bg-white/[0.06] text-white/80 hover:text-white'
                   }`}
                 >
-                  {/* Track Number / Play Button */}
+                  {/* Track Number / Play / Pause / Equalizer Button */}
                   <div className="w-8 shrink-0 flex items-center justify-start text-sm">
-                    {playing && isPlaying ? (
-                      <Volume2 className="w-4 h-4 text-[#ff375f] animate-pulse" />
+                    {playing ? (
+                      isHovered ? (
+                        isPlaying ? (
+                          <Pause className="w-3.5 h-3.5 fill-white text-white" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5 fill-white text-white" />
+                        )
+                      ) : (
+                        <EqualizerBars className="w-3.5 h-3.5 text-white" isAnimating={isPlaying} />
+                      )
                     ) : isHovered ? (
-                      <Play className="w-3.5 h-3.5 fill-current text-white" />
+                      <Play className="w-3.5 h-3.5 fill-white text-white" />
                     ) : (
                       <span className="text-white/40 text-sm font-normal">
                         {song.track || index + 1}

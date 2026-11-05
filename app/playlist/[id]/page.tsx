@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Playlist, Song } from '@/lib/navidrome';
+import { Playlist, Song, getNavidromeAPI } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
-import { getNavidromeAPI } from '@/lib/navidrome';
-import { Play, Pause, Heart, Shuffle, MoreHorizontal, Share2, Plus, Volume2 } from 'lucide-react';
+import { Play, Pause, Heart, Shuffle, MoreHorizontal, Share2, Plus } from 'lucide-react';
+import { EqualizerBars } from '@/app/components/EqualizerBars';
 import { Button } from '@/components/ui/button';
 import Loading from "@/app/components/loading";
 import {
@@ -112,6 +112,21 @@ export default function PlaylistPage() {
 
     img.src = imgUrl;
   }, [playlist?.coverArt, tracklist, api]);
+
+  // Synchronize dominant background color with theme-color meta tag for WCO titlebar
+  useEffect(() => {
+    if (!dominantColor) return;
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+    const prevColor = metaThemeColor?.content || '#141517';
+    if (metaThemeColor) {
+      metaThemeColor.content = dominantColor;
+    }
+    return () => {
+      if (metaThemeColor) {
+        metaThemeColor.content = prevColor;
+      }
+    };
+  }, [dominantColor]);
 
   const songToTrack = (song: Song) => {
     if (!api) throw new Error('Navidrome API not configured');
@@ -351,8 +366,16 @@ export default function PlaylistPage() {
                       <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${
                         playing || isHovered ? 'opacity-100' : 'opacity-0'
                       }`}>
-                        {playing && isPlaying ? (
-                          <Volume2 className="w-4 h-4 text-white animate-pulse" />
+                        {playing ? (
+                          isHovered ? (
+                            isPlaying ? (
+                              <Pause className="w-4 h-4 fill-white text-white" />
+                            ) : (
+                              <Play className="w-4 h-4 fill-white text-white" />
+                            )
+                          ) : (
+                            <EqualizerBars className="w-4 h-4 text-white" isAnimating={isPlaying} />
+                          )
                         ) : (
                           <Play className="w-4 h-4 fill-white text-white" />
                         )}

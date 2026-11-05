@@ -74,6 +74,8 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: '#141517',
+  colorScheme: 'dark',
 };
 
 const geistSans = localFont({
@@ -95,18 +97,21 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", inter.variable)}>
       <head>
+        <meta name="theme-color" content="#141517" />
+        <meta name="color-scheme" content="dark" />
         <link rel="manifest" href="/manifest.json" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 const savedTheme = localStorage.getItem('theme');
-                const theme = (savedTheme === 'blue' || savedTheme === 'violet' || savedTheme === 'red' || savedTheme === 'rose' || savedTheme === 'orange' || savedTheme === 'green' || savedTheme === 'yellow') ? savedTheme : 'blue';
-                document.documentElement.classList.add('theme-' + theme);
+                const theme = (savedTheme === 'blue' || savedTheme === 'violet' || savedTheme === 'red' || savedTheme === 'rose' || savedTheme === 'orange' || savedTheme === 'green' || savedTheme === 'yellow') ? savedTheme : 'default';
+                document.documentElement.classList.add('theme-' + (theme === 'default' ? 'blue' : theme));
                 if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
                   document.documentElement.classList.add('dark');
                 }
                 const themeColors = {
+                  default: '#141517',
                   blue: '#09090b',
                   violet: '#030712',
                   red: '#0a0a0a',
@@ -115,10 +120,13 @@ export default function Layout({ children }: LayoutProps) {
                   green: '#0c0a09',
                   yellow: '#0c0a09'
                 };
-                const metaThemeColor = document.createElement('meta');
-                metaThemeColor.name = 'theme-color';
-                metaThemeColor.content = themeColors[theme];
-                document.head.appendChild(metaThemeColor);
+                let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+                if (!metaThemeColor) {
+                  metaThemeColor = document.createElement('meta');
+                  metaThemeColor.name = 'theme-color';
+                  document.head.appendChild(metaThemeColor);
+                }
+                metaThemeColor.content = themeColors[theme] || '#141517';
               })();
             `,
           }}

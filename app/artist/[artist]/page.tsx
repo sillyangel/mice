@@ -4,15 +4,15 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Album, Artist, Song } from '@/lib/navidrome';
+import { Album, Artist, Song, getNavidromeAPI } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { AlbumArtwork } from '@/app/components/album-artwork';
 import { ArtistBio } from '@/app/components/ArtistBio';
 import { SimilarArtists } from '@/app/components/SimilarArtists';
 import Loading from '@/app/components/loading';
-import { getNavidromeAPI } from '@/lib/navidrome';
-import { Play, Heart, Shuffle, MoreHorizontal, Share2, Info, ChevronRight, Volume2 } from 'lucide-react';
+import { Play, Pause, Heart, Shuffle, MoreHorizontal, Share2, Info, ChevronRight } from 'lucide-react';
+import { EqualizerBars } from '@/app/components/EqualizerBars';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -288,8 +288,16 @@ export default function ArtistPage() {
                     >
                       {/* Track number / Play icon */}
                       <div className="w-7 shrink-0 text-xs text-white/40 font-mono">
-                        {playing && isPlaying ? (
-                          <Volume2 className="w-3.5 h-3.5 text-[#ff375f] animate-pulse" />
+                        {playing ? (
+                          isHovered ? (
+                            isPlaying ? (
+                              <Pause className="w-3.5 h-3.5 fill-white text-white" />
+                            ) : (
+                              <Play className="w-3.5 h-3.5 fill-white text-white" />
+                            )
+                          ) : (
+                            <EqualizerBars className="w-3.5 h-3.5 text-white" isAnimating={isPlaying} />
+                          )
                         ) : isHovered ? (
                           <Play className="w-3.5 h-3.5 fill-white text-white" />
                         ) : (

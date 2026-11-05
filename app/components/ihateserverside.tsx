@@ -57,6 +57,11 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
     // Return a basic layout during SSR to match initial client render
     return (
       <div className="hidden md:flex md:flex-col md:h-screen md:w-screen md:overflow-hidden">
+        {/* Window Controls Overlay Drag & Titlebar Area */}
+        <div
+          className="w-full shrink-0 select-none titlebar-drag"
+          style={{ height: 'env(titlebar-area-height, 0px)' }}
+        />
 
         {/* Main Content Area */}
         <div className="flex-1 flex overflow-hidden w-full">
@@ -110,20 +115,21 @@ const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
 
       {/* Desktop Layout */}
       <div className="hidden md:flex md:flex-col md:h-screen md:w-screen md:overflow-hidden">
-        {/* Top Menu */}
+        {/* Window Controls Overlay Drag & Titlebar Area */}
         <div
-          className="sticky z-10 bg-background border-b w-full"
+          className="w-full shrink-0 select-none titlebar-drag flex items-center justify-between"
           style={{
-            left: 'env(titlebar-area-x, 0)',
-            top: 'env(titlebar-area-y, 0)',
+            height: 'env(titlebar-area-height, 0px)',
           }}
         >
-          <Menu
-            toggleSidebar={toggleSidebarVisibility}
-            isSidebarVisible={isSidebarVisible}
-            toggleStatusBar={() => setIsStatusBarVisible(!isStatusBarVisible)}
-            isStatusBarVisible={isStatusBarVisible}
-          />
+          <div className="titlebar-no-drag">
+            <Menu
+              toggleSidebar={toggleSidebarVisibility}
+              isSidebarVisible={isSidebarVisible}
+              toggleStatusBar={() => setIsStatusBarVisible(!isStatusBarVisible)}
+              isStatusBarVisible={isStatusBarVisible}
+            />
+          </div>
         </div>
 
         {/* Main Content Area */}
