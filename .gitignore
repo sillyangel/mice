@@ -79,3 +79,9 @@ source-map-support/
 certificates
 .vercel
 .env*
+
+# IWA artifacts and private signing key
+iwa-key.pem
+*.wbn
+*.swbn
+iwa-dist/
