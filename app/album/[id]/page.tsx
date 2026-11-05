@@ -87,7 +87,7 @@ export default function AlbumPage() {
   useEffect(() => {
     if (!album?.coverArt || !api) return;
 
-    const imgUrl = api.getCoverArtUrl(album.coverArt, 300);
+    const imgUrl = api.getCoverArtUrl(album.coverArt, 100);
     const img = document.createElement('img');
     img.crossOrigin = 'anonymous';
 
@@ -317,7 +317,7 @@ export default function AlbumPage() {
             <div className="mb-2">
               <Link
                 href={`/artist/${album.artistId}`}
-                className="text-xl lg:text-[22px] font-semibold text-[#ff375f] hover:underline inline-block"
+                className="text-xl lg:text-[22px] font-semibold text-primary hover:underline hover:opacity-80 transition-colors inline-block"
               >
                 {album.artist.split(';').join(', ')}
               </Link>
@@ -370,13 +370,13 @@ export default function AlbumPage() {
                 onClick={handleStar}
                 className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-md ${
                   isStarred 
-                    ? 'bg-[#ff375f]/20 text-[#ff375f] hover:bg-[#ff375f]/30' 
+                    ? 'bg-primary/20 text-primary hover:bg-primary/30' 
                     : 'bg-white/10 hover:bg-white/15 text-white'
                 }`}
                 title={isStarred ? "Remove from Favorites" : "Add to Favorites"}
                 aria-label={isStarred ? "Remove from Favorites" : "Add to Favorites"}
               >
-                <Heart className={`w-4 h-4 ${isStarred ? 'fill-[#ff375f] text-[#ff375f]' : ''}`} />
+                <Heart className={`w-4 h-4 ${isStarred ? 'fill-primary text-primary' : ''}`} />
               </button>
             </div>
           </div>
@@ -426,7 +426,7 @@ export default function AlbumPage() {
                   {/* Song Title and (if applicable) Feat Artist */}
                   <div className="flex-1 min-w-0 pr-4">
                     <span className={`text-[15px] font-normal truncate block ${
-                      playing ? 'text-[#ff375f] font-medium' : 'text-white/90'
+                      playing ? 'text-primary font-medium' : 'text-white/90'
                     }`}>
                       {song.title}
                     </span>
@@ -445,7 +445,7 @@ export default function AlbumPage() {
                       title={isSongStarred ? 'Remove from favorites' : 'Add to favorites'}
                     >
                       <Heart
-                        className={`w-3.5 h-3.5 ${isSongStarred ? 'fill-[#ff375f] text-[#ff375f]' : 'text-white/40'}`}
+                        className={`w-3.5 h-3.5 ${isSongStarred ? 'fill-primary text-primary' : 'text-white/40'}`}
                       />
                     </button>
 

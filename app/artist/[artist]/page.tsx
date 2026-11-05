@@ -217,11 +217,11 @@ export default function ArtistPage() {
             <button
               onClick={handleStar}
               className={`w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center transition-all active:scale-95 shadow-md ${
-                isStarred ? 'text-[#ff375f]' : 'text-white'
+                isStarred ? 'text-primary' : 'text-white'
               }`}
               title={isStarred ? "Favorited" : "Favorite"}
             >
-              <Heart className="w-5 h-5" fill={isStarred ? '#ff375f' : 'none'} />
+              <Heart className={`w-5 h-5 ${isStarred ? 'fill-primary text-primary' : ''}`} />
             </button>
           </div>
         </div>
@@ -349,7 +349,7 @@ export default function ArtistPage() {
                       {/* Song Title & Album */}
                       <div className="flex-1 min-w-0 pr-4">
                         <span className={`text-[14px] truncate block ${
-                          playing ? 'text-[#ff375f] font-medium' : 'text-white/90'
+                          playing ? 'text-primary font-medium' : 'text-white/90'
                         }`}>
                           {song.title}
                         </span>

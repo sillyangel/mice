@@ -66,7 +66,7 @@ export default function PlaylistPage() {
     const coverArt = playlist?.coverArt || (tracklist.length > 0 ? tracklist[0].coverArt : null);
     if (!coverArt || !api) return;
 
-    const imgUrl = api.getCoverArtUrl(coverArt, 300);
+    const imgUrl = api.getCoverArtUrl(coverArt, 100);
     const img = document.createElement('img');
     img.crossOrigin = 'anonymous';
 
@@ -384,7 +384,7 @@ export default function PlaylistPage() {
 
                     <div className="min-w-0 flex-1">
                       <span className={`text-[15px] font-normal truncate block ${
-                        playing ? 'text-[#ff375f] font-medium' : 'text-white/90'
+                        playing ? 'text-primary font-medium' : 'text-white/90'
                       }`}>
                         {song.title}
                       </span>
@@ -430,7 +430,7 @@ export default function PlaylistPage() {
                       title={starredSongs.has(song.id) ? 'Remove from favorites' : 'Add to favorites'}
                     >
                       <Heart
-                        className={`w-3.5 h-3.5 ${starredSongs.has(song.id) ? 'fill-[#ff375f] text-[#ff375f]' : 'text-white/40'}`}
+                        className={`w-3.5 h-3.5 ${starredSongs.has(song.id) ? 'fill-primary text-primary' : 'text-white/40'}`}
                       />
                     </button>
 

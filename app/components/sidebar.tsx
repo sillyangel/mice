@@ -75,27 +75,45 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
   const visibleItems = settings.items.filter(item => item.visible);
 
   return (
-    <div className={cn("relative w-16 z-50 bg-background/95 backdrop-blur-sm border rounded-2xl shadow-2xl mt-3 ml-3 mb-3", className)} style={{ height: 'calc(100% - 1.5rem)' }}>
+    <div 
+      className={cn(
+        "relative w-16 z-50 overflow-hidden rounded-[26px] mt-3 ml-3 mb-3",
+        "bg-black/35 backdrop-blur-2xl backdrop-saturate-[180%]",
+        "border border-white/15",
+        "shadow-[0_16px_40px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.22)]",
+        "before:absolute before:inset-0 before:rounded-[26px] before:bg-gradient-to-b before:from-white/[0.14] before:via-white/[0.02] before:to-transparent before:pointer-events-none",
+        className
+      )} 
+      style={{ height: 'calc(100% - 1.5rem)' }}
+    >
       <div className="space-y-4 py-4 h-full overflow-y-auto">
         <div className="px-3 py-2">
           <div className="space-y-1">
             {/* Main Navigation Items */}
-            {visibleItems.map((item) => (
-              <Link key={item.id} href={item.href}>
-                <Button 
-                  variant={isRouteActive(item.href) ? "secondary" : "ghost"} 
-                  className="w-full justify-center px-1"
-                  title={item.label}
-                >
-                  {settings.showIcons && (iconMap[item.icon] || <div className="h-4 w-4" />)}
-                </Button>
-              </Link>
-            ))}
+            {visibleItems.map((item) => {
+              const active = isRouteActive(item.href);
+              return (
+                <Link key={item.id} href={item.href}>
+                  <Button 
+                    variant="ghost" 
+                    className={cn(
+                      "w-full justify-center px-1 rounded-xl transition-all duration-200",
+                      active
+                        ? "text-primary bg-primary/20 hover:bg-primary/25 hover:text-primary shadow-sm"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
+                    )}
+                    title={item.label}
+                  >
+                    {settings.showIcons && (iconMap[item.icon] || <div className="h-4 w-4" />)}
+                  </Button>
+                </Link>
+              );
+            })}
             
             {/* Dynamic Shortcuts Section */}
             {(shortcutType === 'albums' || shortcutType === 'both') && favoriteAlbums.length > 0 && (
               <>
-                <div className="border-t my-2"></div>
+                <div className="border-t border-white/10 my-2.5"></div>
                 {favoriteAlbums.slice(0, 5).map((album) => (
                   <ContextMenu key={album.id}>
                     <ContextMenuTrigger>
@@ -153,7 +171,7 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
             {/* Recently Played Albums */}
             {(shortcutType === 'albums' || shortcutType === 'both') && recentAlbums.length > 0 && (
               <>
-                <div className="border-t my-2"></div>
+                <div className="border-t border-white/10 my-2.5"></div>
                 {recentAlbums.slice(0, 5).map((album) => (
                   <Link key={album.id} href={`/album/${album.id}`}>
                     <Button 
@@ -195,7 +213,7 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
             {/* Playlists Section */}
             {(shortcutType === 'playlists' || shortcutType === 'both') && playlists.length > 0 && (
               <>
-                <div className="border-t my-2"></div>
+                <div className="border-t border-white/10 my-2.5"></div>
                 {playlists.slice(0, 5).map((playlist) => (
                   <Link key={playlist.id} href={`/playlist/${playlist.id}`}>
                     <Button 

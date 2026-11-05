@@ -213,7 +213,7 @@ export function AlbumArtwork({
                       <PlusCircledIcon className="w-4 h-4 mr-2" /> Add to Queue
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleStar} className="cursor-pointer">
-                      <Heart className={`w-4 h-4 mr-2 ${album.starred ? 'fill-[#ff375f] text-[#ff375f]' : ''}`} />
+                      <Heart className={`w-4 h-4 mr-2 ${album.starred ? 'fill-primary text-primary' : ''}`} />
                       {album.starred ? 'Remove from Favorites' : 'Add to Favorites'}
                     </DropdownMenuItem>
                   </DropdownMenuContent>

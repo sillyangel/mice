@@ -825,13 +825,13 @@ export const AudioPlayer: React.FC = () => {
   if (isMobile) {
     return (
       <>
-        <div className="fixed bottom-16 left-0 right-0 z-[60] bg-background/95 backdrop-blur-sm border-t shadow-lg mobile-audio-player mobile-safe-bottom">
-          <div className="px-4 py-3">
+        <div className="fixed bottom-16 left-2 right-2 z-[60] overflow-hidden rounded-2xl bg-black/45 backdrop-blur-2xl backdrop-saturate-[180%] border border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] mobile-audio-player mobile-safe-bottom before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-b before:from-white/[0.12] before:via-white/[0.02] before:to-transparent before:pointer-events-none">
+          <div className="px-4 py-2.5">
             {/* Progress bar at top for mobile */}
-            <div className="mb-3">
+            <div className="mb-2">
               <Progress 
                 value={progress} 
-                className="h-1 cursor-pointer progress-mobile" 
+                className="h-1 cursor-pointer progress-mobile bg-white/10" 
                 onClick={handleProgressClick}
               />
             </div>
@@ -850,7 +850,7 @@ export const AudioPlayer: React.FC = () => {
                   alt={currentTrack.name} 
                   width={48} 
                   height={48} 
-                  className="w-12 h-12 rounded-lg mr-3 shrink-0 shadow-sm" 
+                  className="w-11 h-11 rounded-xl mr-3 shrink-0 shadow-md ring-1 ring-white/10 object-cover" 
                 />
                 <div className="flex-1 min-w-0">
                   <Link
@@ -864,7 +864,7 @@ export const AudioPlayer: React.FC = () => {
                   <Link
                     href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="text-xs text-muted-foreground truncate block hover:underline hover:text-foreground transition-colors"
+                    className="text-xs text-white/60 truncate block hover:underline hover:text-foreground transition-colors"
                     title={`Go to artist: ${currentTrack.artist}`}
                   >
                     {currentTrack.artist}
@@ -873,9 +873,9 @@ export const AudioPlayer: React.FC = () => {
               </div>
 
               {/* Mobile controls - Only heart and play/pause */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1">
                 <button 
-                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 touch-manipulation" 
+                  className="p-2.5 hover:bg-white/10 rounded-full transition-all duration-200 active:scale-95 touch-manipulation text-white/80 hover:text-white" 
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleCurrentTrackStar();
@@ -889,14 +889,14 @@ export const AudioPlayer: React.FC = () => {
                   />
                 </button>
                 <button 
-                  className="p-4 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 bg-primary/10 touch-manipulation" 
+                  className="p-3 hover:bg-white/90 rounded-full transition-all duration-200 active:scale-95 bg-white text-black shadow-md touch-manipulation flex items-center justify-center" 
                   onClick={togglePlayPause}
                   style={{ touchAction: 'manipulation' }}
                   type="button"
                   data-testid="play-pause-button"
                   aria-label={isPlaying ? 'Pause' : 'Play'}
                 >
-                  {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
+                  {isPlaying ? <FaPause className="w-4 h-4 fill-black" /> : <FaPlay className="w-4 h-4 fill-black translate-x-0.5" />}
                 </button>
               </div>
             </div>
@@ -940,11 +940,11 @@ export const AudioPlayer: React.FC = () => {
     );
   }
 
-  // Desktop compact floating player (default state)
+  // Desktop compact floating player (Apple Music glossy liquid glass pill)
   return (
     <>
-      <div className="fixed bottom-4 left-4 right-4 z-50">
-        <div className="bg-background/95 backdrop-blur-xs border rounded-lg shadow-lg p-3 cursor-pointer hover:scale-[1.01] transition-transform">
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-4xl pointer-events-none">
+        <div className="pointer-events-auto relative overflow-hidden bg-black/45 backdrop-blur-2xl backdrop-saturate-[180%] border border-white/20 rounded-full shadow-[0_16px_48px_rgba(0,0,0,0.55),inset_0_1px_1px_rgba(255,255,255,0.25)] px-4 py-2 hover:scale-[1.008] transition-all duration-300 before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-b before:from-white/[0.14] before:via-white/[0.02] before:to-transparent before:pointer-events-none">
           <div className="flex items-center">
             {/* Track info */}
             <div className="flex items-center flex-1 min-w-0">
@@ -956,21 +956,21 @@ export const AudioPlayer: React.FC = () => {
                     : '/default-user.jpg'
                 } 
                 alt={currentTrack.name} 
-                width={48} 
-                height={48} 
-                className="w-12 h-12 rounded-md mr-4 shrink-0" 
+                width={44} 
+                height={44} 
+                className="w-11 h-11 rounded-full mr-3.5 shrink-0 shadow-md ring-1 ring-white/15 object-cover" 
               />
               <div className="flex-1 min-w-0">
                 <Link
                   href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
-                  className="font-semibold truncate text-base block hover:underline hover:text-white transition-colors"
+                  className="font-semibold truncate text-[14px] text-white block hover:underline transition-colors"
                   title={`Go to album: ${currentTrack.album || currentTrack.name}`}
                 >
                   {currentTrack.name}
                 </Link>
                 <Link
                   href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
-                  className="text-sm text-muted-foreground truncate block hover:underline hover:text-foreground transition-colors"
+                  className="text-xs text-white/60 truncate block hover:underline hover:text-white transition-colors"
                   title={`Go to artist: ${currentTrack.artist}`}
                 >
                   {currentTrack.artist}
@@ -981,25 +981,25 @@ export const AudioPlayer: React.FC = () => {
             {/* Center section with controls and progress */}
             <div className="flex flex-col items-center flex-1 justify-center">
               {/* Control buttons */}  
-              <div className="flex items-center justify-center space-x-3">
+              <div className="flex items-center justify-center space-x-2">
                 <button
                   onClick={toggleShuffle} 
-                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${shuffle ? 'text-primary bg-primary/20' : ''}`} 
+                  className={`p-2 hover:bg-white/10 rounded-full transition-colors ${shuffle ? 'text-primary bg-primary/20' : 'text-white/80 hover:text-white'}`} 
                   title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
                 >
-                  <FaShuffle className="w-4 h-4" />
+                  <FaShuffle className="w-3.5 h-3.5" />
                 </button>
-                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
+                <button className="p-2 hover:bg-white/10 text-white/80 hover:text-white rounded-full transition-colors" onClick={playPreviousTrack}>
                   <FaBackward className="w-4 h-4" />
                 </button>
-                <button className="p-3 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
-                  {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
+                <button className="p-2.5 bg-white text-black hover:bg-white/90 rounded-full shadow-md active:scale-95 transition-all flex items-center justify-center" onClick={togglePlayPause}>
+                  {isPlaying ? <FaPause className="w-4 h-4 fill-black" /> : <FaPlay className="w-4 h-4 fill-black translate-x-0.5" />}
                 </button>
-                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
+                <button className="p-2 hover:bg-white/10 text-white/80 hover:text-white rounded-full transition-colors" onClick={playNextTrack}>
                   <FaForward className="w-4 h-4" />
                 </button>
                 <button 
-                  className="p-2 hover:bg-gray-700/50 rounded-full transition-colors flex items-center justify-center" 
+                  className="p-2 hover:bg-white/10 text-white/80 hover:text-white rounded-full transition-colors flex items-center justify-center" 
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleCurrentTrackStar();
@@ -1007,38 +1007,27 @@ export const AudioPlayer: React.FC = () => {
                   title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
                 >
                   <Heart 
-                    className={`w-5 h-5 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`} 
+                    className={`w-4 h-4 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`} 
                   />
                 </button>
               </div>
-              
-              {/* Progress bar */}
-              {/* <div className="flex items-center space-x-2 w-80">
-                <span className="text-xs text-muted-foreground w-8 text-right">
-                  {formatTime(audioCurrent?.currentTime ?? 0)}
-                </span>
-                <Progress value={progress} className="flex-1 cursor-pointer h-1" onClick={handleProgressClick}/>
-                <span className="text-xs text-muted-foreground w-8">
-                  {formatTime(audioCurrent?.duration ?? 0)}
-                </span>
-              </div> */}
             </div>
 
             {/* Right side buttons */}
-            <div className="flex items-center justify-end space-x-2 flex-1">
+            <div className="flex items-center justify-end space-x-1 flex-1">
               <button 
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
+                className="p-2 hover:bg-white/10 text-white/70 hover:text-white rounded-full transition-colors" 
                 onClick={() => setIsFullScreen(true)}
                 title="Full Screen"
               >
-                <FaExpand className="w-4 h-4" />
+                <FaExpand className="w-3.5 h-3.5" />
               </button>
               <button 
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
+                className="p-2 hover:bg-white/10 text-white/70 hover:text-white rounded-full transition-colors" 
                 onClick={() => setIsMinimized(true)}
                 title="Minimize"
               >
-                <FaCompress className="w-4 h-4" />
+                <FaCompress className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

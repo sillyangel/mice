@@ -316,14 +316,14 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
         onClick={handleContainerClick}
       >
         <div 
-          className="backdrop-blur-sm border rounded-lg shadow-xl hover:shadow-2xl transition-shadow p-3 w-[280px]"
+          className="relative overflow-hidden backdrop-blur-2xl backdrop-saturate-[180%] border rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.55),inset_0_1px_1px_rgba(255,255,255,0.25)] hover:shadow-2xl transition-all p-3 w-[290px] before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-b before:from-white/[0.14] before:via-white/[0.02] before:to-transparent before:pointer-events-none"
           style={{
             backgroundColor: dominantColor 
-              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.15)')}` 
-              : 'var(--background-color, rgba(0, 0, 0, 0.8))',
+              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.35)')}` 
+              : 'rgba(18, 18, 20, 0.65)',
             borderColor: dominantColor 
-              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.3)')}` 
-              : 'var(--border-color, rgba(255, 255, 255, 0.1))'
+              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.45)')}` 
+              : 'rgba(255, 255, 255, 0.2)'
           }}
         >
           {/* Progress bar at the top */}
