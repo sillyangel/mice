@@ -124,84 +124,184 @@ export function useOptimalImageSize(
   return divisions.find(size => size >= optimalSize) || 1200;
 }
 
+const dominantColorCache = new Map<string, string>();
+const dominantColorInFlight = new Map<string, Promise<string>>();
+const ambientColorCache = new Map<string, string>();
+const ambientColorInFlight = new Map<string, Promise<string>>();
+
+function setBoundedCache(cache: Map<string, string>, key: string, value: string, maxEntries = 500) {
+  if (cache.size >= maxEntries) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
+  cache.set(key, value);
+}
+
 /**
- * Extract dominant color from an image
+ * Extract dominant color from an image (cached in memory & downsampled to 32x32)
  * @param imageUrl - URL of the image to analyze
  * @returns Promise that resolves to CSS color string (rgb format)
  */
 export async function extractDominantColor(imageUrl: string): Promise<string> {
-  return new Promise((resolve, reject) => {
+  const cached = dominantColorCache.get(imageUrl);
+  if (cached) return cached;
+
+  const pending = dominantColorInFlight.get(imageUrl);
+  if (pending) return pending;
+
+  const promise = new Promise<string>((resolve) => {
     try {
       const img = document.createElement('img');
       img.crossOrigin = 'anonymous';
-      
+      img.decoding = 'async';
+
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
           if (!ctx) {
-            resolve('rgb(25, 25, 25)'); // Fallback dark color
+            resolve('rgb(25, 25, 25)');
             return;
           }
-          
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          
-          // Simple dominant color extraction
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imageData.data;
+
+          // Downsample onto a tiny 32x32 canvas instead of allocating full image dimensions
+          canvas.width = 32;
+          canvas.height = 32;
+          ctx.drawImage(img, 0, 0, 32, 32);
+
+          const data = ctx.getImageData(0, 0, 32, 32).data;
           let r = 0, g = 0, b = 0;
-          
-          // Sample points across the image (for performance, not using all pixels)
-          const sampleSize = Math.max(1, Math.floor(data.length / 4000)); 
           let sampleCount = 0;
-          
-          for (let i = 0; i < data.length; i += 4 * sampleSize) {
+
+          for (let i = 0; i < data.length; i += 4) {
             r += data[i];
             g += data[i + 1];
             b += data[i + 2];
             sampleCount++;
           }
-          
+
+          if (sampleCount === 0) {
+            resolve('rgb(25, 25, 25)');
+            return;
+          }
+
           r = Math.floor(r / sampleCount);
           g = Math.floor(g / sampleCount);
           b = Math.floor(b / sampleCount);
-          
-          // Adjust brightness to ensure readability
+
           const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-          
-          // For very light colors, darken them
           if (brightness > 200) {
-            const darkFactor = 0.7;
-            r = Math.floor(r * darkFactor);
-            g = Math.floor(g * darkFactor);
-            b = Math.floor(b * darkFactor);
+            r = Math.floor(r * 0.7);
+            g = Math.floor(g * 0.7);
+            b = Math.floor(b * 0.7);
+          } else if (brightness < 50) {
+            r = Math.min(255, Math.floor(r * 1.3));
+            g = Math.min(255, Math.floor(g * 1.3));
+            b = Math.min(255, Math.floor(b * 1.3));
           }
-          
-          // For very dark colors, lighten them slightly
-          if (brightness < 50) {
-            const lightFactor = 1.3;
-            r = Math.min(255, Math.floor(r * lightFactor));
-            g = Math.min(255, Math.floor(g * lightFactor));
-            b = Math.min(255, Math.floor(b * lightFactor));
-          }
-          
-          resolve(`rgb(${r}, ${g}, ${b})`);
-        } catch (error) {
-          console.error('Error extracting color:', error);
-          resolve('rgb(25, 25, 25)'); // Fallback dark color
+
+          const color = `rgb(${r}, ${g}, ${b})`;
+          setBoundedCache(dominantColorCache, imageUrl, color);
+          resolve(color);
+        } catch {
+          resolve('rgb(25, 25, 25)');
         }
       };
-      
+
       img.onerror = () => {
-        resolve('rgb(25, 25, 25)'); // Fallback dark color
+        resolve('rgb(25, 25, 25)');
       };
-      
+
       img.src = imageUrl;
-    } catch (error) {
-      console.error('Error loading image for color extraction:', error);
-      resolve('rgb(25, 25, 25)'); // Fallback dark color
+    } catch {
+      resolve('rgb(25, 25, 25)');
     }
+  }).finally(() => {
+    dominantColorInFlight.delete(imageUrl);
   });
+
+  dominantColorInFlight.set(imageUrl, promise);
+  return promise;
 }
+
+/**
+ * Extract Apple Music-style ambient dark background tint from cover artwork.
+ * Results are cached by URL so revisiting albums/playlists/artists is instantaneous.
+ */
+export function getCachedAmbientColor(imageUrl: string | null | undefined): string | undefined {
+  if (!imageUrl) return undefined;
+  return ambientColorCache.get(imageUrl);
+}
+
+export async function extractAmbientColor(imageUrl: string, fallback = '#1f1d1c'): Promise<string> {
+  const cached = ambientColorCache.get(imageUrl);
+  if (cached) return cached;
+
+  const pending = ambientColorInFlight.get(imageUrl);
+  if (pending) return pending;
+
+  const promise = new Promise<string>((resolve) => {
+    try {
+      const img = document.createElement('img');
+      img.crossOrigin = 'anonymous';
+      img.decoding = 'async';
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (!ctx) {
+            resolve(fallback);
+            return;
+          }
+
+          canvas.width = 32;
+          canvas.height = 32;
+          ctx.drawImage(img, 0, 0, 32, 32);
+          const data = ctx.getImageData(0, 0, 32, 32).data;
+          let r = 0, g = 0, b = 0, count = 0;
+
+          for (let i = 0; i < data.length; i += 4) {
+            const pr = data[i];
+            const pg = data[i + 1];
+            const pb = data[i + 2];
+            const brightness = (pr + pg + pb) / 3;
+            if (brightness > 20 && brightness < 240) {
+              r += pr;
+              g += pg;
+              b += pb;
+              count++;
+            }
+          }
+
+          if (count > 0) {
+            r = Math.floor(r / count);
+            g = Math.floor(g / count);
+            b = Math.floor(b / count);
+            const targetR = Math.max(16, Math.floor(r * 0.45));
+            const targetG = Math.max(14, Math.floor(g * 0.40));
+            const targetB = Math.max(14, Math.floor(b * 0.38));
+            const color = `rgb(${targetR}, ${targetG}, ${targetB})`;
+            setBoundedCache(ambientColorCache, imageUrl, color);
+            resolve(color);
+          } else {
+            resolve(fallback);
+          }
+        } catch {
+          resolve(fallback);
+        }
+      };
+
+      img.onerror = () => resolve(fallback);
+      img.src = imageUrl;
+    } catch {
+      resolve(fallback);
+    }
+  }).finally(() => {
+    ambientColorInFlight.delete(imageUrl);
+  });
+
+  ambientColorInFlight.set(imageUrl, promise);
+  return promise;
+}
+

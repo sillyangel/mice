@@ -58,36 +58,32 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
       });
   }, [currentTrack?.coverArt]);
 
-  // Track progress from main audio player
+  // Track progress from main audio player via native media events (zero idle CPU)
   useEffect(() => {
+    const audioElement = document.querySelector('audio') as HTMLAudioElement | null;
+    if (!audioElement) return;
+
     const updateProgress = () => {
-      const audioElement = document.querySelector('audio') as HTMLAudioElement | null;
-      if (audioElement && audioElement.duration) {
+      if (audioElement.duration) {
         setProgress((audioElement.currentTime / audioElement.duration) * 100);
       }
     };
-    
+
     const updateVolume = () => {
-      const audioElement = document.querySelector('audio') as HTMLAudioElement | null;
-      if (audioElement) {
-        setVolume(audioElement.volume);
-      }
+      setVolume(audioElement.volume);
     };
-    
-    const interval = setInterval(updateProgress, 250);
-    updateVolume(); // Initial volume
-    
-    // Set up event listener for volume changes
-    const audioElement = document.querySelector('audio');
-    if (audioElement) {
-      audioElement.addEventListener('volumechange', updateVolume);
-    }
-    
+
+    updateProgress();
+    updateVolume();
+
+    audioElement.addEventListener('timeupdate', updateProgress);
+    audioElement.addEventListener('loadedmetadata', updateProgress);
+    audioElement.addEventListener('volumechange', updateVolume);
+
     return () => {
-      clearInterval(interval);
-      if (audioElement) {
-        audioElement.removeEventListener('volumechange', updateVolume);
-      }
+      audioElement.removeEventListener('timeupdate', updateProgress);
+      audioElement.removeEventListener('loadedmetadata', updateProgress);
+      audioElement.removeEventListener('volumechange', updateVolume);
     };
   }, [currentTrack]);
 

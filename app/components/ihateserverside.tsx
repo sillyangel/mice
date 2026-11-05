@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Menu } from "@/app/components/menu";
 import { Sidebar } from "@/app/components/sidebar";
 import { useNavidrome } from "@/app/components/NavidromeContext";
@@ -16,146 +16,72 @@ interface IhateserversideProps {
 const Ihateserverside: React.FC<IhateserversideProps> = ({ children }) => {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [isStatusBarVisible, setIsStatusBarVisible] = useState(true);
-  const [isSidebarHidden, setIsSidebarHidden] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const { playlists } = useNavidrome();
   const { favoriteAlbums, removeFavoriteAlbum } = useFavoriteAlbums();
 
-  // Handle client-side hydration
   useEffect(() => {
-    setIsClient(true);
-    const savedCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-    const savedVisible = localStorage.getItem('sidebar-visible') !== 'false'; // Default to true
-    setIsSidebarCollapsed(savedCollapsed);
+    const savedVisible = localStorage.getItem('sidebar-visible') !== 'false';
     setIsSidebarVisible(savedVisible);
   }, []);
 
-  const toggleSidebarCollapse = () => {
-    const newCollapsed = !isSidebarCollapsed;
-    setIsSidebarCollapsed(newCollapsed);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('sidebar-collapsed', newCollapsed.toString());
-    }
-  };
+  const toggleSidebarVisibility = useCallback(() => {
+    setIsSidebarVisible((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sidebar-visible', next.toString());
+      }
+      return next;
+    });
+  }, []);
 
-  const toggleSidebarVisibility = () => {
-    const newVisible = !isSidebarVisible;
-    setIsSidebarVisible(newVisible);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('sidebar-visible', newVisible.toString());
-    }
-  };
+  const toggleStatusBar = useCallback(() => {
+    setIsStatusBarVisible((prev) => !prev);
+  }, []);
 
-  const handleTransitionEnd = () => {
-    if (!isSidebarVisible) {
-      setIsSidebarHidden(true); // This will fully hide the sidebar after transition
-    }
-  };
-
-  if (!isClient) {
-    // Return a basic layout during SSR to match initial client render
-    return (
-      <div className="hidden md:flex md:flex-col md:h-screen md:w-screen md:overflow-hidden">
-        {/* Window Controls Overlay Drag & Titlebar Area */}
-        <div
-          className="w-full shrink-0 select-none titlebar-drag"
-          style={{ height: 'env(titlebar-area-height, 0px)' }}
-        />
-
-        {/* Main Content Area */}
-        <div className="flex-1 flex overflow-hidden w-full">
-          {isSidebarVisible && (
-            <div className="w-16 shrink-0 transition-all duration-200">
-              <Sidebar
-                playlists={playlists}
-                className="overflow-y-auto"
-                visible={isSidebarVisible}
-                favoriteAlbums={favoriteAlbums}
-                onRemoveFavoriteAlbum={removeFavoriteAlbum}
-              />
-            </div>
-          )}
-          <div className="flex-1 overflow-y-auto min-w-0">
-            <div>{children}</div>
-          </div>
-        </div>
-
-        {/* Floating Audio Player */}
-        <AudioPlayer />
-        <Toaster />
-      </div>
-    );
-  }
-  
   return (
-    <>
-      {/* Mobile Layout */}
-      <div className="flex md:hidden flex-col h-screen w-screen overflow-hidden">
-        {/* Top Menu */}
-        <div className="shrink-0 bg-background border-b w-full">
+    <div className="flex flex-col h-screen w-screen overflow-hidden">
+      {/* Top Menu / Window Controls Overlay Titlebar Area (single Menu instance) */}
+      <div
+        className="w-full shrink-0 bg-background border-b md:bg-transparent md:border-b-0 select-none md:titlebar-drag flex items-center justify-between"
+        style={{ minHeight: 'env(titlebar-area-height, 0px)' }}
+      >
+        <div className="w-full md:w-auto titlebar-no-drag">
           <Menu
             toggleSidebar={toggleSidebarVisibility}
             isSidebarVisible={isSidebarVisible}
-            toggleStatusBar={() => setIsStatusBarVisible(!isStatusBarVisible)}
+            toggleStatusBar={toggleStatusBar}
             isStatusBarVisible={isStatusBarVisible}
           />
         </div>
-
-        {/* Main Content Area with bottom padding for audio player and bottom nav */}
-        <div className="flex-1 overflow-y-auto pb-40">
-          <div>{children}</div>
-        </div>
-
-        {/* Bottom Navigation for Mobile */}
-        <BottomNavigation />
-
-        <Toaster />
       </div>
 
-      {/* Desktop Layout */}
-      <div className="hidden md:flex md:flex-col md:h-screen md:w-screen md:overflow-hidden">
-        {/* Window Controls Overlay Drag & Titlebar Area */}
-        <div
-          className="w-full shrink-0 select-none titlebar-drag flex items-center justify-between"
-          style={{
-            height: 'env(titlebar-area-height, 0px)',
-          }}
-        >
-          <div className="titlebar-no-drag">
-            <Menu
-              toggleSidebar={toggleSidebarVisibility}
-              isSidebarVisible={isSidebarVisible}
-              toggleStatusBar={() => setIsStatusBarVisible(!isStatusBarVisible)}
-              isStatusBarVisible={isStatusBarVisible}
+      {/* Main Content Area — single {children} tree across all viewports */}
+      <div className="flex-1 flex overflow-hidden w-full min-h-0">
+        {isSidebarVisible && (
+          <div className="hidden md:block w-16 shrink-0 h-full transition-all duration-200">
+            <Sidebar
+              playlists={playlists}
+              className="overflow-y-auto"
+              visible={isSidebarVisible}
+              favoriteAlbums={favoriteAlbums}
+              onRemoveFavoriteAlbum={removeFavoriteAlbum}
             />
           </div>
-        </div>
-
-        {/* Main Content Area */}
-          <div className="flex-1 flex overflow-hidden w-full">
-            {isSidebarVisible && (
-              <div className="w-16 shrink-0 h-full transition-all duration-200">
-                <Sidebar
-                  playlists={playlists}
-                  className="overflow-y-auto"
-                  visible={isSidebarVisible}
-                  favoriteAlbums={favoriteAlbums}
-                  onRemoveFavoriteAlbum={removeFavoriteAlbum}
-                />
-              </div>
-            )}
-            <div className="flex-1 overflow-y-auto min-w-0">
-              <div>{children}</div>
-            </div>
-          </div>
-
-        <Toaster />
+        )}
+        <main className="flex-1 overflow-y-auto min-w-0 pb-40 md:pb-0">
+          {children}
+        </main>
       </div>
-      
-      {/* Single Shared Audio Player - shows on all layouts */}
+
+      {/* Bottom Navigation for Mobile only */}
+      <div className="md:hidden">
+        <BottomNavigation />
+      </div>
+
+      {/* Single Shared Audio Player & Toaster */}
       <AudioPlayer />
-    </>
+      <Toaster />
+    </div>
   );
 };
 

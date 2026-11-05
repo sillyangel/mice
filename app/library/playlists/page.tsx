@@ -55,13 +55,13 @@ const PlaylistsPage: React.FC = () => {
           <div className="relative">
             <ScrollArea className="h-full">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-5 pb-12">
-                {playlists.map((playlist) => {
+                {playlists.map((playlist, idx) => {
                   const playlistCoverUrl = playlist.coverArt && api
-                    ? api.getCoverArtUrl(playlist.coverArt, 600)
+                    ? api.getCoverArtUrl(playlist.coverArt, 300)
                     : null;
                   
                   return (
-                    <Link key={playlist.id} href={`/playlist/${playlist.id}`} className="group block space-y-2">
+                    <Link key={playlist.id} href={`/playlist/${playlist.id}`} prefetch={false} className="group block space-y-2">
                       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white/[0.04] shadow-md border border-white/[0.06]">
                         {playlistCoverUrl ? (
                           <Image
@@ -70,6 +70,8 @@ const PlaylistsPage: React.FC = () => {
                             fill
                             sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
                             className="object-cover"
+                            loading={idx < 14 ? 'eager' : 'lazy'}
+                            decoding="async"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-white/[0.04] text-white/30">

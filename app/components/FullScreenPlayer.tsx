@@ -13,6 +13,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { useGlobalSearch } from './GlobalSearchProvider';
 import { AudioSettingsDialog } from './AudioSettingsDialog';
+import { extractDominantColor } from '@/lib/image-utils';
 import { 
   FaPlay, 
   FaPause, 
@@ -88,8 +89,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     } catch {}
   }, [isOpen]);
 
-  // Load lyrics when track changes
+  // Load lyrics when track changes (only while FullScreenPlayer is open)
   useEffect(() => {
+    if (!isOpen) return;
     const loadLyrics = async () => {
       if (!currentTrack) {
         setLyrics([]);
@@ -142,7 +144,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     };
 
     loadLyrics();
-  }, [currentTrack]);
+  }, [isOpen, currentTrack?.id]);
 
   // Update current lyric index based on time (with optimization to prevent unnecessary updates)
   useEffect(() => {
@@ -247,45 +249,19 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     }
   }, [isOpen, currentTrack]); // React to track changes
 
-  // Extract dominant color from cover art
+  // Extract dominant color from cover art (cached 32x32, only while open)
   useEffect(() => {
-    if (!currentTrack?.coverArt) return;
-
-    const img = document.createElement('img');
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          
-          // Simple dominant color extraction
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imageData.data;
-          let r = 0, g = 0, b = 0;
-          
-          for (let i = 0; i < data.length; i += 4) {
-            r += data[i];
-            g += data[i + 1];
-            b += data[i + 2];
-          }
-          
-          const pixelCount = data.length / 4;
-          r = Math.floor(r / pixelCount);
-          g = Math.floor(g / pixelCount);
-          b = Math.floor(b / pixelCount);
-          
-          setDominantColor(`rgb(${r}, ${g}, ${b})`);
-        }
-      } catch (error) {
-        console.warn('Failed to extract color:', error);
-      }
+    if (!isOpen || !currentTrack?.coverArt) return;
+    let cancelled = false;
+    extractDominantColor(currentTrack.coverArt)
+      .then((color) => {
+        if (!cancelled) setDominantColor(color);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
     };
-    img.src = currentTrack.coverArt;
-  }, [currentTrack]);
+  }, [isOpen, currentTrack?.coverArt]);
 
   const togglePlayPause = () => {
     // Find the main audio player's play/pause button and click it

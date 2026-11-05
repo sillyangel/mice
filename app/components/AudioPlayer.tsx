@@ -72,6 +72,7 @@ export const AudioPlayer: React.FC = () => {
   // Notifications and title management
   const [lastNotifiedTrackId, setLastNotifiedTrackId] = useState<string | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [hasOpenedFullScreen, setHasOpenedFullScreen] = useState(false);
   const [audioInitialized, setAudioInitialized] = useState(false);
   const [dominantColor, setDominantColor] = useState<string | null>(null);
   const audioCurrent = audioRef.current;
@@ -863,7 +864,10 @@ export const AudioPlayer: React.FC = () => {
               {/* Track info with swipe gestures */}
               <div 
                 className="flex items-center flex-1 min-w-0 cursor-pointer"
-                onClick={() => setIsFullScreen(true)}
+                onClick={() => {
+                  setHasOpenedFullScreen(true);
+                  setIsFullScreen(true);
+                }}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
@@ -926,12 +930,14 @@ export const AudioPlayer: React.FC = () => {
           </div>
         </div>
         
-        {/* Full Screen Player for mobile - rendered outside mini player */}
-        <FullScreenPlayer 
-          isOpen={isFullScreen} 
-          onClose={() => setIsFullScreen(false)} 
-          onOpenQueue={handleOpenQueue}
-        />
+        {/* Full Screen Player for mobile - lazy mounted once opened */}
+        {hasOpenedFullScreen && (
+          <FullScreenPlayer 
+            isOpen={isFullScreen} 
+            onClose={() => setIsFullScreen(false)} 
+            onOpenQueue={handleOpenQueue}
+          />
+        )}
         
         {/* Single audio element - shared across all UI states */}
         <audio 
@@ -1053,7 +1059,10 @@ export const AudioPlayer: React.FC = () => {
             <div className="flex items-center justify-end space-x-2 flex-1">
               <button 
                 className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
-                onClick={() => setIsFullScreen(true)}
+                onClick={() => {
+                  setHasOpenedFullScreen(true);
+                  setIsFullScreen(true);
+                }}
                 title="Full Screen"
               >
                 <FaExpand className="w-4 h-4" />
@@ -1069,12 +1078,14 @@ export const AudioPlayer: React.FC = () => {
           </div>
         </div>
         
-        {/* Full Screen Player */}
-        <FullScreenPlayer 
-          isOpen={isFullScreen} 
-          onClose={() => setIsFullScreen(false)} 
-          onOpenQueue={handleOpenQueue}
-        />
+        {/* Full Screen Player - lazy mounted once opened */}
+        {hasOpenedFullScreen && (
+          <FullScreenPlayer 
+            isOpen={isFullScreen} 
+            onClose={() => setIsFullScreen(false)} 
+            onOpenQueue={handleOpenQueue}
+          />
+        )}
       </div>
       
       {/* Single audio element - shared across all UI states with mobile support */}

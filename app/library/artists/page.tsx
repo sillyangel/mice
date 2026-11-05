@@ -2,65 +2,63 @@
 'use client';
 
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArtistIcon } from '@/app/components/artist-icon';
 import { useNavidrome } from '@/app/components/NavidromeContext';
-import { Artist } from '@/lib/navidrome';
 import Loading from '@/app/components/loading';
 import { Search } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+
+const ARTISTS_BATCH_SIZE = 48;
 
 export default function ArtistPage() {
-  const { artists, isLoading, api, starItem, unstarItem } = useNavidrome();
-  const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
+  const { artists, artistsLoading } = useNavidrome();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'albumCount'>('name');
-  const router = useRouter();
-
-  const toggleFavorite = async (artistId: string, isStarred: boolean) => {
-    if (isStarred) {
-      await unstarItem(artistId, 'artist');
-    } else {
-      await starItem(artistId, 'artist');
-    }
-  };
-
-  const handleViewArtist = (artist: Artist) => {
-    router.push(`/artist/${artist.id}`);
-  };
+  const [visibleCount, setVisibleCount] = useState(ARTISTS_BATCH_SIZE);
 
   useEffect(() => {
-    if (artists.length > 0) {
-      let filtered = [...artists];
-      
-      // Filter by search query
-      if (searchQuery) {
-        filtered = filtered.filter(artist =>
-          artist.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+    setVisibleCount(ARTISTS_BATCH_SIZE);
+  }, [searchQuery, sortBy]);
+
+  const filteredArtists = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const base = q
+      ? artists.filter(artist => artist.name.toLowerCase().includes(q))
+      : artists;
+
+    return [...base].sort((a, b) => {
+      if (sortBy === 'name') {
+        return a.name.localeCompare(b.name);
       }
-      
-      // Sort artists
-      filtered.sort((a, b) => {
-        if (sortBy === 'name') {
-          return a.name.localeCompare(b.name);
-        } else {
-          return (b.albumCount || 0) - (a.albumCount || 0);
-        }
-      });
-      
-      setFilteredArtists(filtered);
-    }
+      return (b.albumCount || 0) - (a.albumCount || 0);
+    });
   }, [artists, searchQuery, sortBy]);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (visibleCount >= filteredArtists.length) return;
+    const scrollEl = document.querySelector('main');
+    if (!scrollEl) return;
+
+    const handleScroll = () => {
+      if (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 400) {
+        setVisibleCount(prev => Math.min(prev + ARTISTS_BATCH_SIZE, filteredArtists.length));
+      }
+    };
+
+    scrollEl.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollEl.removeEventListener('scroll', handleScroll);
+  }, [visibleCount, filteredArtists.length]);
+
+  if (artistsLoading && artists.length === 0) {
     return <Loading />;
   }
+
+  const displayedArtists = filteredArtists.slice(0, visibleCount);
 
   return (
     <div className="h-full px-4 py-6 lg:px-8 mb-24">
@@ -102,11 +100,26 @@ export default function ArtistPage() {
           <Separator className="my-4" />
           <div className="relative">
             <ScrollArea>
-              <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 cursor-pointer">
-                {filteredArtists.map((artist) => (
-                  <ArtistIcon key={artist.id} artist={artist} responsive />
+              <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 cursor-pointer">
+                {displayedArtists.map((artist, idx) => (
+                  <ArtistIcon
+                    key={artist.id}
+                    artist={artist}
+                    responsive
+                    loading={idx < 12 ? 'eager' : 'lazy'}
+                  />
                 ))}
               </div>
+              {visibleCount < filteredArtists.length && (
+                <div className="flex justify-center pt-6 pb-8">
+                  <Button
+                    variant="outline"
+                    onClick={() => setVisibleCount(prev => Math.min(prev + ARTISTS_BATCH_SIZE, filteredArtists.length))}
+                  >
+                    Load More Artists ({filteredArtists.length - visibleCount} remaining)
+                  </Button>
+                </div>
+              )}
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </div>

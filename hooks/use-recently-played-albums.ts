@@ -14,8 +14,8 @@ export function useRecentlyPlayedAlbums() {
     
     try {
       setLoading(true);
-      const albums = await api.getAlbums('recent', 5, 0);
-      setRecentAlbums(albums);
+      const albums = await api.getAlbums('recent', 24);
+      setRecentAlbums(albums.slice(0, 5));
     } catch (error) {
       console.error('Failed to fetch recent albums:', error);
       setRecentAlbums([]);

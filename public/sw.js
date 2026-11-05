@@ -93,12 +93,18 @@ self.addEventListener('activate', (event) => {
 	);
 });
 
+let writesSinceEvictionCheck = 0;
+
 // Persist a response plus its fetch-time metadata under `key` + `key:meta`.
 async function putTimed(cache, key, response, ttlMs) {
 	if (!response || response.status >= 400) return;
 	await cache.put(key, response.clone());
 	await cache.put(key + ':meta', new Response(JSON.stringify({ ts: now(), ttl: ttlMs })));
-	enforceLimit(cache).catch(() => {});
+	writesSinceEvictionCheck += 1;
+	if (writesSinceEvictionCheck >= 25) {
+		writesSinceEvictionCheck = 0;
+		enforceLimit(cache).catch(() => {});
+	}
 }
 
 // Keep the cache bounded: evict the oldest entries (data + their meta) once
@@ -155,43 +161,47 @@ function isCoverRequest(req) {
 
 async function purgeLibraryData(cache) {
 	const keys = await cache.keys();
-	await Promise.all(keys.filter((k) => k.url.includes('/rest/')).map((k) => cache.delete(k)));
+	await Promise.all(keys.filter((k) => k.url.includes('/rest/') && !k.url.includes('/rest/getCoverArt')).map((k) => cache.delete(k)));
 }
 
 self.addEventListener('fetch', (event) => {
-	const req = event.request;
-	const url = new URL(req.url);
-
-	// If caching is disabled by settings flag, immediately pass through to network
+	// If caching is disabled, return without calling respondWith so the browser
+	// handles requests natively without Service Worker IPC overhead.
 	if (cachingDisabled) {
-		event.respondWith(fetch(req));
 		return;
 	}
 
-	// Images: cache-first, revalidate when older than an hour.
+	const req = event.request;
+	if (req.method !== 'GET') {
+		return;
+	}
+
+	const url = new URL(req.url);
+
+	// Images: cache-first using auth-stripped key, revalidate when older than 24h.
 	if (isCoverRequest(req)) {
+		const key = url.pathname.includes('/rest/getCoverArt') ? libraryKey(req) : url.href;
+		const coverTtl = 24 * HOUR;
 		event.respondWith(
 			(async () => {
 				const cache = await caches.open(CACHE_NAME);
-				const hit = await readTimed(cache, url.href);
+				const hit = await readTimed(cache, key);
 				if (hit) {
 					if (hit.fresh) return hit.res;
-					// Stale: refresh in the background, still serve the cached copy.
 					fetch(req)
-						.then((res) => putTimed(cache, url.href, res, HOUR))
+						.then((res) => putTimed(cache, key, res, coverTtl))
 						.catch(() => {});
 					return hit.res;
 				}
 				try {
 					const res = await fetch(req);
 					if (res.status < 400) {
-						await putTimed(cache, url.href, res, HOUR);
+						await putTimed(cache, key, res, coverTtl);
 						return res;
 					}
 					return res;
 				} catch {
-					// Offline: fall back to whatever we have cached.
-					const fallback = await cache.match(url.href);
+					const fallback = await cache.match(key);
 					return fallback || Response.error();
 				}
 			})()
@@ -201,11 +211,9 @@ self.addEventListener('fetch', (event) => {
 
 	// Library data: GET /rest/<read endpoint>. Serve from cache while fresh,
 	// refetch when stale, fall back to cached when offline.
-	if (req.method === 'GET' && url.pathname.includes('/rest/')) {
+	if (url.pathname.includes('/rest/')) {
 		const endpoint = restEndpoint(req);
 		if (endpoint && MUTATING_ENDPOINTS.has(endpoint)) {
-			// Mutations: never cache; purge stale cached reads in the background.
-			event.respondWith(fetch(req));
 			caches.open(CACHE_NAME).then(purgeLibraryData).catch(() => {});
 			return;
 		}
@@ -218,7 +226,6 @@ self.addEventListener('fetch', (event) => {
 					const hit = await readTimed(cache, key);
 					if (hit) {
 						if (hit.fresh) return hit.res;
-						// Stale: revalidate in the background, serve cached copy now.
 						fetch(req).then((res) => putTimed(cache, key, res, ttl)).catch(() => {});
 						return hit.res;
 					}
@@ -236,6 +243,5 @@ self.addEventListener('fetch', (event) => {
 		}
 	}
 
-	// HTML, JS, CSS, fonts, next assets, streams, downloads, POSTs: network only.
-	event.respondWith(fetch(req));
+	// HTML, JS, CSS, fonts, next assets, audio streams, downloads: let browser handle natively.
 });
