@@ -43,13 +43,13 @@
       "purpose": "any"
     },
     { 
-      "src": "/icon-192.png", 
+      "src": "/icon-152.png", 
       "type": "image/png", 
       "sizes": "152x152",
       "purpose": "any"
     },
     { 
-      "src": "/icon-192.png", 
+      "src": "/icon-120.png", 
       "type": "image/png", 
       "sizes": "120x120",
       "purpose": "any"
@@ -57,29 +57,36 @@
   ],
   "screenshots": [
     {
+      "src": "/home-preview-narrow.png",
+      "sizes": "432x768",
+      "type": "image/png",
+      "label": "Mobile Home Screen",
+      "form_factor": "narrow"
+    },
+    {
       "src": "/home-preview.png",
-      "sizes": "1920x1020",
+      "sizes": "1366x768",
       "type": "image/png",
       "label": "Home Preview",
       "form_factor": "wide"
     },
     {
       "src": "/browse-preview.png",
-      "sizes": "1920x1020",
+      "sizes": "1366x768",
       "type": "image/png",
       "label": "Browse Preview",
       "form_factor": "wide"
     },
     {
       "src": "/album-preview.png",
-      "sizes": "1920x1020",
+      "sizes": "1366x768",
       "type": "image/png",
       "label": "Album Preview",
       "form_factor": "wide"
     },
     {
       "src": "/fullscreen-preview.png",
-      "sizes": "1920x1020",
+      "sizes": "1366x768",
       "type": "image/png",
       "label": "Fullscreen Preview",
       "form_factor": "wide"
