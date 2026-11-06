@@ -459,17 +459,22 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
             <FaListUl className="w-3.5 h-3.5" />
           </button>
 
-          {/* Volume Control with Popover / Inline Slider */}
+          {/* Volume Control with Floating Overlay (doesn't push/shift pill layout) */}
           <div className="relative flex items-center" ref={volumeContainerRef}>
-            {/* Inline Volume Capsule */}
+            {/* Floating Volume Overlay Bubble */}
             {showVolumeSlider && (
               <div 
-                className="mr-1.5 px-2 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150"
+                className="absolute right-0 bottom-full mb-3 px-3 py-2 bg-neutral-900/95 backdrop-blur-xl rounded-full border border-white/15 shadow-2xl flex items-center gap-2.5 z-[60] animate-in fade-in zoom-in-95 duration-150"
                 onClick={(e) => e.stopPropagation()}
+                style={{
+                  boxShadow: dominantColor
+                    ? `0 12px 28px -6px ${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.45)')}, 0 8px 18px rgba(0,0,0,0.6)`
+                    : '0 12px 28px -6px rgba(0,0,0,0.7), 0 8px 18px rgba(0,0,0,0.5)',
+                }}
               >
-                <div className="relative w-16 sm:w-20 h-1.5 bg-white/25 rounded-full overflow-hidden">
+                <div className="relative w-24 h-2 bg-white/20 rounded-full overflow-hidden cursor-pointer">
                   <div 
-                    className="h-full bg-white rounded-full" 
+                    className="h-full bg-white rounded-full transition-[width] duration-75" 
                     style={{ width: `${volume * 100}%` }}
                   />
                   <input
@@ -483,6 +488,9 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
                     title={`Volume: ${Math.round(volume * 100)}%`}
                   />
                 </div>
+                <span className="text-[10px] font-medium text-white/80 tabular-nums select-none min-w-[24px] text-right">
+                  {Math.round(volume * 100)}%
+                </span>
               </div>
             )}
 

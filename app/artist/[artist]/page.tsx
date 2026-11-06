@@ -158,11 +158,50 @@ export default function ArtistPage() {
     ? api.getCoverArtUrl(artist.coverArt, 1400)
     : (artistAlbums[0]?.coverArt && api ? api.getCoverArtUrl(artistAlbums[0].coverArt, 1400) : '/default-user.jpg');
 
-  // Segregate albums and singles/EPs like Apple Music
-  const fullAlbums = artistAlbums.filter(a => (a.songCount || 0) >= 6);
-  const singlesAndEPs = artistAlbums.filter(a => (a.songCount || 0) < 6);
+  // Segregate albums and singles/EPs like Apple Music, sorted newest first (descending by year)
+  const getAlbumYear = (album: Album): number => {
+    if (typeof album.year === 'number' && album.year > 0) return album.year;
+    if (album.releaseDate) {
+      if (typeof album.releaseDate === 'object' && typeof album.releaseDate.year === 'number') {
+        return album.releaseDate.year;
+      }
+      if (typeof album.releaseDate === 'string') {
+        const parsed = parseInt(album.releaseDate.slice(0, 4), 10);
+        if (!isNaN(parsed)) return parsed;
+      }
+    }
+    if (album.originalReleaseDate) {
+      if (typeof album.originalReleaseDate === 'object' && typeof album.originalReleaseDate.year === 'number') {
+        return album.originalReleaseDate.year;
+      }
+      if (typeof album.originalReleaseDate === 'string') {
+        const parsed = parseInt(album.originalReleaseDate.slice(0, 4), 10);
+        if (!isNaN(parsed)) return parsed;
+      }
+    }
+    return 0;
+  };
+
+  const sortByYearDesc = (a: Album, b: Album) => {
+    const yearA = getAlbumYear(a);
+    const yearB = getAlbumYear(b);
+    if (yearB !== yearA) {
+      return yearB - yearA;
+    }
+    // Fallback to created date or name if years match
+    return (b.created || '').localeCompare(a.created || '');
+  };
+
+  const fullAlbums = artistAlbums
+    .filter(a => (a.songCount || 0) >= 6)
+    .sort(sortByYearDesc);
+
+  const singlesAndEPs = artistAlbums
+    .filter(a => (a.songCount || 0) < 6)
+    .sort(sortByYearDesc);
+
   const latestRelease = artistAlbums.length > 0
-    ? [...artistAlbums].sort((a, b) => (b.year || 0) - (a.year || 0))[0]
+    ? [...artistAlbums].sort(sortByYearDesc)[0]
     : null;
 
   return (
