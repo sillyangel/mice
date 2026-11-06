@@ -50,6 +50,8 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isHoveringScrubber, setIsHoveringScrubber] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const isDraggingRef = useRef(false);
   const volumeContainerRef = useRef<HTMLDivElement>(null);
   const scrubberRef = useRef<HTMLDivElement>(null);
 
@@ -209,21 +211,80 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
     };
   }, [showVolumeSlider]);
 
-  // Seeking in track via the scrubber line
-  const handleScrubberClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
+  // Seeking in track via the scrubber line (click or drag)
+  const seekToClientX = useCallback((clientX: number) => {
     const audio = document.querySelector('audio');
     const totalDuration = audio?.duration || duration || currentTrack?.duration || 0;
     if (!audio || !totalDuration || !scrubberRef.current) return;
 
     const rect = scrubberRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
+    if (rect.width === 0) return;
+    const clickX = clientX - rect.left;
     const ratio = Math.max(0, Math.min(1, clickX / rect.width));
     const newTime = ratio * totalDuration;
     audio.currentTime = newTime;
     setCurrentTime(newTime);
     setProgress(ratio * 100);
+    try {
+      localStorage.setItem('navidrome-current-track-time', newTime.toString());
+    } catch {}
+  }, [duration, currentTrack?.duration]);
+
+  const handleScrubberMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    setIsDragging(true);
+    isDraggingRef.current = true;
+    seekToClientX(e.clientX);
   };
+
+  const handleScrubberTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (e.touches.length > 0) {
+      setIsDragging(true);
+      isDraggingRef.current = true;
+      seekToClientX(e.touches[0].clientX);
+    }
+  };
+
+  // Window listeners for dragging scrubber smoothly across the entire screen
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      seekToClientX(e.clientX);
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      if (scrubberRef.current && !scrubberRef.current.contains(e.target as Node)) {
+        setIsHoveringScrubber(false);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDraggingRef.current || e.touches.length === 0) return;
+      seekToClientX(e.touches[0].clientX);
+    };
+
+    const handleTouchEnd = () => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      setIsHoveringScrubber(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [seekToClientX]);
 
   // Handle volume change
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -257,6 +318,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
   if (!currentTrack) return null;
 
   const remainingTime = Math.max(0, duration - currentTime);
+  const isScrubberActive = isHoveringScrubber || isDragging;
 
   return (
     <div 
@@ -350,22 +412,22 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
         </div>
 
         {/* Center: Track Display & Interactive Apple Music Scrubber */}
-        <div 
-          className="flex-1 min-w-0 max-w-[420px] mx-1 relative h-11 flex flex-col justify-center px-1.5 group/scrubber cursor-pointer"
-          onMouseEnter={() => setIsHoveringScrubber(true)}
-          onMouseLeave={() => setIsHoveringScrubber(false)}
-          onClick={handleScrubberClick}
-          ref={scrubberRef}
-        >
-          {/* Main Info Layer: Artwork, Title/Artist, and Ellipsis (...) button
-              On hover: softly blurs and fades slightly (blur-[1.5px] opacity-35), remaining exactly in place */}
-          <div className="flex items-center justify-between gap-2 transition-all duration-200">
+        <div className="flex-1 min-w-0 max-w-[420px] mx-1 relative h-11 flex items-center px-1.5">
+          {/* Main Info Layer: Artwork, Title/Artist Links, and Ellipsis (...) button
+              Unhovered: crystal-clear, comfortable full-height sizing.
+              When scrubber is hovered/dragged: softly blurs so timestamps can be read easily. */}
+          <div 
+            className="flex items-center justify-between gap-2.5 w-full h-full transition-all duration-200"
+            onMouseEnter={() => {
+              if (!isDragging) setIsHoveringScrubber(false);
+            }}
+          >
             {/* Artwork + Title/Artist block */}
-            <div className={`flex items-center gap-2 min-w-0 flex-1 transition-all duration-200 ${
-              isHoveringScrubber ? 'filter blur-[2px] opacity-30 select-none' : 'opacity-100'
+            <div className={`flex items-center gap-2.5 min-w-0 flex-1 transition-all duration-200 ${
+              isScrubberActive ? 'filter blur-[2px] opacity-30 select-none pointer-events-none' : 'opacity-100'
             }`}>
               <div 
-                className="relative w-7 h-7 rounded-md overflow-hidden shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                className="relative w-8 h-8 rounded-md overflow-hidden shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleExpand();
@@ -382,35 +444,39 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
                   alt={currentTrack.name}
                   fill
                   className="object-cover"
-                  sizes="28px"
+                  sizes="32px"
                   priority
                 />
               </div>
 
-              <div className="flex flex-col min-w-0 flex-1">
-                <span 
-                  className="font-semibold text-xs text-white truncate leading-tight block hover:underline"
-                  title={currentTrack.name}
+              <div className="flex flex-col min-w-0 flex-1 justify-center">
+                <Link
+                  href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-semibold text-[13px] text-white truncate leading-tight block hover:underline"
+                  title={`Go to album: ${currentTrack.album || currentTrack.name}`}
                 >
                   {currentTrack.name}
-                </span>
-                <span 
-                  className="text-[11px] text-white/60 truncate leading-tight block"
-                  title={`${currentTrack.artist} — ${currentTrack.album || currentTrack.name}`}
+                </Link>
+                <Link
+                  href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-xs text-white/70 hover:text-white truncate leading-tight block hover:underline transition-colors mt-0.5"
+                  title={`Go to artist: ${currentTrack.artist}`}
                 >
-                  {currentTrack.artist} — {currentTrack.album || currentTrack.name}
-                </span>
+                  {currentTrack.artist}
+                </Link>
               </div>
             </div>
 
-            {/* More options (...) button: sits within info area so it blurs along with it on hover */}
+            {/* More options (...) button */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 toggleCurrentTrackStar();
               }}
               className={`p-1 text-white/60 hover:text-white transition-all duration-200 shrink-0 ${
-                isHoveringScrubber ? 'filter blur-[2px] opacity-30 select-none pointer-events-none' : 'opacity-100'
+                isScrubberActive ? 'filter blur-[2px] opacity-30 select-none pointer-events-none' : 'opacity-100'
               }`}
               title={currentTrack.starred ? 'Starred' : 'More'}
             >
@@ -418,9 +484,9 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
             </button>
           </div>
 
-          {/* Hover Time Labels Overlay: Positioned directly above the scrubber bar */}
-          <div className={`absolute inset-x-1.5 bottom-[11px] flex items-end justify-between pointer-events-none transition-opacity duration-200 z-10 ${
-            isHoveringScrubber ? 'opacity-100' : 'opacity-0'
+          {/* Hover Time Labels Overlay: Positioned directly above the scrubber line */}
+          <div className={`absolute inset-x-1.5 bottom-[9px] flex items-end justify-between pointer-events-none transition-opacity duration-200 z-10 ${
+            isScrubberActive ? 'opacity-100' : 'opacity-0'
           }`}>
             <span className="text-[11px] font-medium text-white tabular-nums leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] select-none">
               {formatTime(currentTime)}
@@ -430,16 +496,28 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
             </span>
           </div>
 
-          {/* Scrubber Bar: Spans below artwork, metadata, and ellipsis.
-              Normal state: subtle 2px hairline.
-              Hover state: expands height to 6px exclusively towards the top (anchored at bottom) without moving surrounding elements. */}
-          <div className="w-full h-[8px] flex items-end mt-1 relative z-10">
-            <div className={`w-full rounded-full overflow-hidden transition-all duration-150 cursor-pointer ${
-              isHoveringScrubber ? 'h-[6px] bg-white/35' : 'h-[2px] bg-white/20'
+          {/* Scrubber Bar: Anchored at bottom with a dedicated hit area.
+              Does NOT consume pre-space from the info above.
+              Hover state: expands height to 5.5px upwards without shifting layout.
+              Drag enabled across the full track width. */}
+          <div 
+            ref={scrubberRef}
+            className="absolute bottom-0 inset-x-1.5 h-3.5 cursor-pointer flex items-end z-20 group/scrubber"
+            onMouseEnter={() => setIsHoveringScrubber(true)}
+            onMouseLeave={() => {
+              if (!isDragging) setIsHoveringScrubber(false);
+            }}
+            onMouseDown={handleScrubberMouseDown}
+            onTouchStart={handleScrubberTouchStart}
+          >
+            <div className={`w-full rounded-full overflow-hidden transition-all duration-150 ${
+              isScrubberActive ? 'h-[5.5px] bg-white/35' : 'h-[2px] bg-white/20'
             }`}>
               <div 
-                className={`h-full rounded-full transition-[width] duration-75 ${
-                  isHoveringScrubber ? 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]' : 'bg-white'
+                className={`h-full rounded-full ${
+                  isDragging ? 'transition-none' : 'transition-[width] duration-75'
+                } ${
+                  isScrubberActive ? 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]' : 'bg-white'
                 }`}
                 style={{ width: `${progress}%` }}
               />
