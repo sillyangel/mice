@@ -305,13 +305,27 @@ class NavidromeAPI {
   private config: NavidromeConfig;
   private clientName = 'miceclient';
   private version = '1.16.1';
+  private coverSalt: string;
+  private coverToken: string;
 
   private requestCache = new Map<string, { expiry: number; response: Record<string, unknown> }>();
   private inFlight = new Map<string, Promise<Record<string, unknown>>>();
+  private coverUrlCache = new Map<string, string>();
   private extensionsPromise: Promise<OpenSubsonicExtension[]> | null = null;
 
   constructor(config: NavidromeConfig) {
     this.config = config;
+    // Deterministic salt/token for immutable cover-art URLs so the browser HTTP
+    // cache and decoded image cache can reuse cover art across renders & reloads.
+    this.coverSalt = md5(`mice-cover:${config.username}`).slice(0, 12);
+    this.coverToken = md5(config.password + this.coverSalt);
+  }
+
+  private normalizeCoverSize(size?: number): number {
+    if (!size) return 300;
+    if (size <= 96) return 96;
+    if (size <= 360) return 300;
+    return 600;
   }
 
   private cacheKey(endpoint: string, params: Record<string, string | number>): string {
@@ -593,23 +607,28 @@ class NavidromeAPI {
   }
 
   getCoverArtUrl(coverArtId: string, size?: number): string {
-    const salt = randomHex(8);
-    const token = md5(this.config.password + salt);
+    const bucketSize = this.normalizeCoverSize(size);
+    const cacheKey = `${coverArtId}:${bucketSize}`;
+    const cached = this.coverUrlCache.get(cacheKey);
+    if (cached) return cached;
 
     const params = new URLSearchParams({
       u: this.config.username,
-      t: token,
-      s: salt,
+      t: this.coverToken,
+      s: this.coverSalt,
       v: this.version,
       c: this.clientName,
-      id: coverArtId
+      id: coverArtId,
+      size: bucketSize.toString(),
     });
 
-    if (size) {
-      params.append('size', size.toString());
+    const url = `${this.config.serverUrl}/rest/getCoverArt?${params.toString()}`;
+    if (this.coverUrlCache.size >= 2000) {
+      const oldestKey = this.coverUrlCache.keys().next().value;
+      if (oldestKey !== undefined) this.coverUrlCache.delete(oldestKey);
     }
-
-    return `${this.config.serverUrl}/rest/getCoverArt?${params.toString()}`;
+    this.coverUrlCache.set(cacheKey, url);
+    return url;
   }
 
   async star(id: string, type: 'song' | 'album' | 'artist'): Promise<void> {
@@ -926,6 +945,12 @@ class NavidromeAPI {
     return this.getArtistTopSongsBySearch(artistName, limit);
   }
 
+  async getRandomSongs(size: number = 10): Promise<Song[]> {
+    const response = await this.makeRequest('getRandomSongs', { size }, { cacheMs: 30_000 });
+    const randomData = response.randomSongs as { song?: Song[] };
+    return randomData?.song || [];
+  }
+
   private async getArtistTopSongsBySearch(artistName: string, limit: number): Promise<Song[]> {
     try {
       const searchResult = await this.search2(artistName, 0, 0, limit * 3);
@@ -948,38 +973,35 @@ class NavidromeAPI {
 let navidromeInstance: NavidromeAPI | null = null;
 
 export function getNavidromeAPI(customConfig?: NavidromeConfig): NavidromeAPI | null {
+  if (!customConfig && navidromeInstance) {
+    return navidromeInstance;
+  }
+
   let config: NavidromeConfig;
 
   if (customConfig) {
     config = customConfig;
-  } else {
-    // Try to get config from localStorage first (client-side)
-    if (typeof window !== 'undefined') {
-      const savedConfig = localStorage.getItem('navidrome-config');
-      if (savedConfig) {
-        try {
-          config = JSON.parse(savedConfig);
-        } catch (error) {
-          console.error('Failed to parse saved Navidrome config:', error);
-          config = getEnvConfig();
-        }
-      } else {
+  } else if (typeof window !== 'undefined') {
+    const savedConfig = localStorage.getItem('navidrome-config');
+    if (savedConfig) {
+      try {
+        config = JSON.parse(savedConfig);
+      } catch (error) {
+        console.error('Failed to parse saved Navidrome config:', error);
         config = getEnvConfig();
       }
     } else {
-      // Server-side: use environment variables
       config = getEnvConfig();
     }
+  } else {
+    config = getEnvConfig();
   }
 
   if (!config.serverUrl || !config.username || !config.password) {
     return null;
   }
 
-  if (customConfig || !navidromeInstance) {
-    navidromeInstance = new NavidromeAPI(config);
-  }
-
+  navidromeInstance = new NavidromeAPI(config);
   return navidromeInstance;
 }
 

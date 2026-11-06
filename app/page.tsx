@@ -17,68 +17,52 @@ import { UserProfile } from './components/UserProfile';
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening';
 
-// Only render a subset of home-page cards; the rest are loaded if the user scrolls.
-const HOME_ROW_CAP = 50;
+// Render a lean horizontal row of home-page cards to keep DOM and image requests minimal.
+const HOME_ROW_CAP = 18;
 
 function MusicPageContent() {
   const { api } = useNavidrome();
   const { playAlbum, playTrack, shuffle, toggleShuffle, addToQueue } = useAudioPlayer();
   const searchParams = useSearchParams();
-  const [allAlbums, setAllAlbums] = useState<Album[]>([]);
   const [recentAlbums, setRecentAlbums] = useState<Album[]>([]);
   const [newestAlbums, setNewestAlbums] = useState<Album[]>([]);
   const [favoriteAlbums, setFavoriteAlbums] = useState<Album[]>([]);
   const [albumsLoading, setAlbumsLoading] = useState(true);
   const [favoritesLoading, setFavoritesLoading] = useState(true);
   const [shortcutProcessed, setShortcutProcessed] = useState(false);
-  const isMobile = useIsMobile();
 
-  // Load albums
+  // Load recent, newest, and starred albums in parallel (sharing NavidromeContext's in-flight cache)
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       if (!api) return;
       setAlbumsLoading(true);
+      setFavoritesLoading(true);
       try {
-        const list = await api.getAlbums('newest', 500);
+        const [recent, newest, starred] = await Promise.all([
+          api.getAlbums('recent', 24),
+          api.getAlbums('newest', 24),
+          api.getAlbums('starred', 18),
+        ]);
         if (!mounted) return;
-        setAllAlbums(list || []);
-        // Split albums into two sections
-        const recent = list.slice(0, Math.ceil(list.length / 2));
-        const newest = list.slice(Math.ceil(list.length / 2));
-        setRecentAlbums(recent);
-        setNewestAlbums(newest);
+        setRecentAlbums(recent && recent.length > 0 ? recent : (newest || []));
+        setNewestAlbums(newest || []);
+        setFavoriteAlbums(starred || []);
       } catch (e) {
-        console.error('Failed to load albums:', e);
+        console.error('Failed to load home albums:', e);
         if (mounted) {
-          setAllAlbums([]);
           setRecentAlbums([]);
           setNewestAlbums([]);
+          setFavoriteAlbums([]);
         }
       } finally {
-        if (mounted) setAlbumsLoading(false);
+        if (mounted) {
+          setAlbumsLoading(false);
+          setFavoritesLoading(false);
+        }
       }
     };
     load();
-    return () => { mounted = false; };
-  }, [api]);
-
-  useEffect(() => {
-    let mounted = true;
-    const loadFavoriteAlbums = async () => {
-      if (!api) return;
-      setFavoritesLoading(true);
-      try {
-        const starred = await api.getAlbums('starred', 20);
-        if (mounted) setFavoriteAlbums(starred || []);
-      } catch (error) {
-        console.error('Failed to load favorite albums:', error);
-        if (mounted) setFavoriteAlbums([]);
-      } finally {
-        if (mounted) setFavoritesLoading(false);
-      }
-    };
-    loadFavoriteAlbums();
     return () => { mounted = false; };
   }, [api]);
 
@@ -241,14 +225,15 @@ function MusicPageContent() {
                     </div>
                   ))
                 ) : (
-                  recentAlbums.slice(0, HOME_ROW_CAP).map((album) => (
+                  recentAlbums.slice(0, HOME_ROW_CAP).map((album, idx) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}
                       className="w-[220px] shrink-0"
                       aspectRatio="square"
-                      width={220}
-                      height={220}
+                      width={300}
+                      height={300}
+                      loading={idx < 6 ? 'eager' : 'lazy'}
                     />
                   ))
                 )}

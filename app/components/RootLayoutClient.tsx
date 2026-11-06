@@ -104,9 +104,8 @@ function NavidromeErrorBoundary({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
   
-  // Show start screen ONLY if first-time user (no onboarding completed)
-  // In offline-first mode, we don't need to check for errors since the app works offline
-  const shouldShowStartScreen = !hasCompletedOnboarding;
+  // Show start screen ONLY if first-time user with no saved or .env.local config
+  const shouldShowStartScreen = !hasCompletedOnboarding && !hasAnyConfig;
   
   if (shouldShowStartScreen) {
     return (

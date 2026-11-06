@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
+import { useAudioPlayer, useAudioQueue } from '@/app/components/AudioPlayerContext';
 import { Progress } from '@/components/ui/progress';
 import { lrcLibClient } from '@/lib/lrclib';
 import { getNavidromeAPI } from '@/lib/navidrome';
@@ -13,6 +13,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { useGlobalSearch } from './GlobalSearchProvider';
 import { AudioSettingsDialog } from './AudioSettingsDialog';
+import {
+  DEFAULT_MESH_PALETTE,
+  extractMeshPalette,
+  getCachedMeshPalette,
+  type MeshPalette,
+} from '@/lib/image-utils';
 import { 
   FaPlay, 
   FaPause, 
@@ -35,6 +41,158 @@ interface LyricLine {
   text: string;
 }
 
+interface LyricDisplayItem {
+  id: string;
+  time: number;
+  endTime?: number;
+  text: string;
+  isInterlude: boolean;
+}
+
+const INSTRUMENTAL_PATTERNS = new Set([
+  '',
+  '♪',
+  '♫',
+  '♬',
+  '...',
+  '•••',
+  '[instrumental]',
+  '(instrumental)',
+  '[music]',
+  '(music)',
+]);
+
+function isInstrumentalLine(text: string): boolean {
+  return INSTRUMENTAL_PATTERNS.has(text.trim().toLowerCase());
+}
+
+function buildAppleLyrics(rawLines: LyricLine[]): LyricDisplayItem[] {
+  if (!rawLines.length) return [];
+  const sorted = [...rawLines].sort((a, b) => a.time - b.time);
+
+  // Collapse consecutive empty/instrumental markers so LRC end-of-line tags stay clean
+  const collapsed: LyricLine[] = [];
+  for (const line of sorted) {
+    const prev = collapsed[collapsed.length - 1];
+    if (prev && isInstrumentalLine(prev.text) && isInstrumentalLine(line.text)) {
+      continue;
+    }
+    collapsed.push({ time: Math.max(0, line.time), text: line.text.trim() });
+  }
+
+  const firstVocal = collapsed.find((l) => !isInstrumentalLine(l.text));
+  if (!firstVocal) return [];
+
+  const items: LyricDisplayItem[] = [];
+
+  // Apple Music intro three-dot indicator when vocals begin after an instrumental intro
+  if (firstVocal.time >= 2.5) {
+    items.push({
+      id: 'interlude-intro',
+      time: 0,
+      endTime: firstVocal.time,
+      text: '',
+      isInterlude: true,
+    });
+  }
+
+  for (let i = 0; i < collapsed.length; i++) {
+    const current = collapsed[i];
+    if (current.time < firstVocal.time && isInstrumentalLine(current.text)) {
+      continue;
+    }
+
+    if (!isInstrumentalLine(current.text)) {
+      items.push({
+        id: `lyric-${i}-${current.time}`,
+        time: current.time,
+        text: current.text,
+        isInterlude: false,
+      });
+    } else {
+      // Find next vocal line to decide if this is a real instrumental break or a brief breath
+      let nextVocal: LyricLine | undefined;
+      for (let j = i + 1; j < collapsed.length; j++) {
+        if (!isInstrumentalLine(collapsed[j].text)) {
+          nextVocal = collapsed[j];
+          break;
+        }
+      }
+
+      const prevItem = items[items.length - 1];
+      if (prevItem && !prevItem.isInterlude && prevItem.endTime === undefined) {
+        prevItem.endTime = current.time;
+      }
+
+      if (nextVocal && nextVocal.time - current.time >= 4.5) {
+        items.push({
+          id: `interlude-${i}-${current.time}`,
+          time: current.time,
+          endTime: nextVocal.time,
+          text: '',
+          isInterlude: true,
+        });
+      }
+    }
+  }
+
+  return items;
+}
+
+function getActiveAppleLyricIndex(items: LyricDisplayItem[], currentTime: number): number {
+  if (!items.length) return -1;
+  for (let i = items.length - 1; i >= 0; i--) {
+    if (currentTime >= items[i].time) {
+      const item = items[i];
+      if (item.isInterlude && item.endTime !== undefined && currentTime >= item.endTime) {
+        continue;
+      }
+      return i;
+    }
+  }
+  return -1;
+}
+
+const AppleInterludeDots: React.FC<{
+  startTime: number;
+  endTime?: number;
+  currentTime: number;
+  isPlaying: boolean;
+  onClick: () => void;
+}> = ({ startTime, endTime, currentTime, isPlaying, onClick }) => {
+  const span = endTime && endTime > startTime ? endTime - startTime : 8;
+  const rawProgress = Math.min(1, Math.max(0, (currentTime - startTime) / span));
+
+  return (
+    <motion.div
+      onClick={onClick}
+      className="inline-flex items-center gap-2.5 py-3 px-4 -mx-4 rounded-2xl cursor-pointer select-none"
+      animate={isPlaying ? { scale: [1, 1.05, 1] } : { scale: 1 }}
+      transition={isPlaying ? { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
+      title="Instrumental interlude"
+    >
+      {[0, 1, 2].map((dotIndex) => {
+        const dotFill = Math.min(1, Math.max(0, (rawProgress - dotIndex / 3) * 3));
+        const opacity = 0.26 + dotFill * 0.74;
+        return (
+          <span
+            key={dotIndex}
+            className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-white transition-[opacity,transform,box-shadow] duration-200"
+            style={{
+              opacity,
+              transform: `scale(${0.9 + dotFill * 0.16})`,
+              boxShadow:
+                dotFill > 0.45
+                  ? `0 0 ${Math.round(10 + dotFill * 8)}px rgba(255, 255, 255, ${(0.35 + dotFill * 0.35).toFixed(2)})`
+                  : 'none',
+            }}
+          />
+        );
+      })}
+    </motion.div>
+  );
+};
+
 interface FullScreenPlayerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -43,15 +201,57 @@ interface FullScreenPlayerProps {
 
 type MobileTab = 'player' | 'lyrics' | 'queue';
 
+const MobileQueueList = React.memo(function MobileQueueList({
+  currentTrackId,
+  onSelectQueueId,
+}: {
+  currentTrackId?: string;
+  onSelectQueueId: (queueId: string) => void;
+}) {
+  const { queue } = useAudioQueue();
+  return (
+    <ScrollArea className="flex-1">
+      <div className="space-y-2 py-4">
+        {queue.slice(0, 80).map((track, index) => {
+          const qid = track.queueId || `${track.id}-${index}`;
+          return (
+            <div
+              key={qid}
+              onClick={() => track.queueId && onSelectQueueId(track.queueId)}
+              className={`flex items-center p-3 rounded-lg cursor-pointer hover:bg-white/10 transition-colors ${
+                track.id === currentTrackId ? 'bg-primary/20' : 'bg-gray-800/30'
+              }`}
+            >
+              <img
+                src={track.coverArt || '/default-album.png'}
+                alt={track.album || track.name}
+                width={40}
+                height={40}
+                loading="lazy"
+                decoding="async"
+                className="w-10 h-10 rounded mr-3 object-cover shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">{track.name}</p>
+                <p className="text-xs text-gray-400 truncate">{track.artist}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </ScrollArea>
+  );
+});
+
 export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onClose, onOpenQueue }) => {
   const { 
     currentTrack, 
     playPreviousTrack, 
     playNextTrack, 
+    skipToTrackByQueueId,
     shuffle, 
     toggleShuffle, 
     toggleCurrentTrackStar,
-    queue,
     audioSettings,
     updateAudioSettings
   } = useAudioPlayer();
@@ -65,12 +265,34 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [dominantColor, setDominantColor] = useState('#1a1a1a');
-  const [lyrics, setLyrics] = useState<LyricLine[]>([]);
+  const [meshPalette, setMeshPalette] = useState<MeshPalette>(
+    () => getCachedMeshPalette(currentTrack?.coverArt) ?? DEFAULT_MESH_PALETTE
+  );
+  const [lyrics, setLyrics] = useState<LyricDisplayItem[]>([]);
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
   const [showLyrics, setShowLyrics] = useState(true);
+  const [isUserScrollingLyrics, setIsUserScrollingLyrics] = useState(false);
   const [activeTab, setActiveTab] = useState<MobileTab>('player');
   const lyricsRef = useRef<HTMLDivElement>(null);
+  const userScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleLyricsUserScroll = () => {
+    setIsUserScrollingLyrics(true);
+    if (userScrollTimerRef.current) {
+      clearTimeout(userScrollTimerRef.current);
+    }
+    userScrollTimerRef.current = setTimeout(() => {
+      setIsUserScrollingLyrics(false);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (userScrollTimerRef.current) {
+        clearTimeout(userScrollTimerRef.current);
+      }
+    };
+  }, []);
 
   // Initialize volume from saved preference when fullscreen opens
   useEffect(() => {
@@ -88,8 +310,11 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     } catch {}
   }, [isOpen]);
 
-  // Load lyrics when track changes
+  // Load lyrics when track changes (only while FullScreenPlayer is open)
   useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+
     const loadLyrics = async () => {
       if (!currentTrack) {
         setLyrics([]);
@@ -106,22 +331,19 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             const structured = await api.getLyricsBySongId(currentTrack.id);
             const synced = structured.find((entry) => entry.synced && typeof entry.offset === 'number') || structured.find((entry) => entry.synced);
             if (synced) {
-              // OpenSubsonic structured lyric timestamps are in milliseconds;
-              // the player's LyricLine.time (and getCurrentLyricIndex vs currentTime) is in seconds.
               const offsetMs = typeof synced.offset === 'number' ? synced.offset : 0;
               lines = (synced.line || [])
                 .map((line) => ({
                   time: ((line.start ?? 0) + offsetMs) / 1000,
                   text: line.value || '',
                 }))
-                .filter((line) => line.text)
                 .sort((a, b) => a.time - b.time);
             }
           }
         }
 
-        // 2. Fall back to lrclib.net when the server has no lyrics.
-        if (lines.length === 0) {
+        // 2. Fall back to lrclib.net when the server has no synced lyrics.
+        if (!lines.some((l) => !isInstrumentalLine(l.text))) {
           const lyricsData = await lrcLibClient.searchTrack(
             currentTrack.artist,
             currentTrack.name,
@@ -134,158 +356,157 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
           }
         }
 
-        setLyrics(lines.sort((a, b) => a.time - b.time));
+        if (!cancelled) {
+          setLyrics(buildAppleLyrics(lines));
+        }
       } catch (error) {
         console.warn('Failed to load lyrics:', error);
-        setLyrics([]);
+        if (!cancelled) setLyrics([]);
       }
     };
 
     loadLyrics();
-  }, [currentTrack]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, currentTrack?.id]);
 
-  // Update current lyric index based on time (with optimization to prevent unnecessary updates)
+  // Update current lyric index based on time
   useEffect(() => {
-    const newIndex = lrcLibClient.getCurrentLyricIndex(lyrics, currentTime);
+    const newIndex = getActiveAppleLyricIndex(lyrics, currentTime);
     if (newIndex !== currentLyricIndex) {
       setCurrentLyricIndex(newIndex);
     }
   }, [lyrics, currentTime, currentLyricIndex]);
 
-  // Auto-scroll lyrics using lyricsRef - Disabled on mobile to prevent iOS audio issues
+  // Auto-scroll active lyric smoothly into Apple Music's focal zone (paused briefly during manual wheel/touch scroll)
   useEffect(() => {
-    // Only auto-scroll on desktop to avoid iOS audio interference
-    const shouldScroll = !isMobile && showLyrics && lyrics.length > 0;
-    
+    const shouldScroll =
+      !isUserScrollingLyrics &&
+      lyrics.length > 0 &&
+      (isMobile ? activeTab === 'lyrics' : showLyrics);
+
     if (currentLyricIndex >= 0 && shouldScroll && lyricsRef.current) {
       const scrollTimeout = setTimeout(() => {
         try {
-          const scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-          const currentLyricElement = lyricsRef.current?.querySelector(`[data-lyric-index="${currentLyricIndex}"]`) as HTMLElement;
-          
+          const scrollContainer = (lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') ||
+            lyricsRef.current) as HTMLElement | null;
+          const currentLyricElement = lyricsRef.current?.querySelector(
+            `[data-lyric-index="${currentLyricIndex}"]`
+          ) as HTMLElement | null;
+
           if (scrollContainer && currentLyricElement) {
-            const containerHeight = scrollContainer.clientHeight;
-            const elementTop = currentLyricElement.offsetTop;
-            const elementHeight = currentLyricElement.offsetHeight;
-            // Position the active lyric higher on the screen (~25% from top)
-            const focusFraction = 0.25; // 0.5 would be center
-            const targetScrollTop = elementTop - (containerHeight * focusFraction) + (elementHeight / 2);
-            
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const elementRect = currentLyricElement.getBoundingClientRect();
+            const relativeTop = elementRect.top - containerRect.top + scrollContainer.scrollTop;
+            const focusFraction = isMobile ? 0.28 : 0.32;
+            const targetScrollTop =
+              relativeTop - containerRect.height * focusFraction + elementRect.height * 0.35;
+
             scrollContainer.scrollTo({
               top: Math.max(0, targetScrollTop),
-              behavior: 'smooth'
+              behavior: 'smooth',
             });
           }
         } catch (error) {
           console.warn('Lyrics scroll failed:', error);
         }
-      }, 200);
-      
+      }, 60);
+
       return () => clearTimeout(scrollTimeout);
     }
-  }, [currentLyricIndex, showLyrics, lyrics.length, isMobile]);
+  }, [currentLyricIndex, showLyrics, lyrics.length, isMobile, activeTab, isUserScrollingLyrics]);
 
-  // Reset lyrics to top when song changes - Disabled on mobile to prevent iOS audio issues
+  // Reset lyrics scroll when track changes
   useEffect(() => {
-    // Only reset scroll on desktop to avoid iOS audio interference
-    const shouldReset = !isMobile && showLyrics && lyrics.length > 0;
-    
-    if (currentTrack?.id && shouldReset && lyricsRef.current) {
+    setIsUserScrollingLyrics(false);
+    if (currentTrack?.id && lyricsRef.current) {
       const resetTimeout = setTimeout(() => {
         try {
-          const scrollContainer = lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-          
+          const scrollContainer = (lyricsRef.current?.querySelector('[data-radix-scroll-area-viewport]') ||
+            lyricsRef.current) as HTMLElement | null;
           if (scrollContainer) {
-            scrollContainer.scrollTo({
-              top: 0,
-              behavior: 'instant'
-            });
+            scrollContainer.scrollTo({ top: 0, behavior: 'instant' });
           }
-        } catch (error) {
-          console.warn('Lyrics reset scroll failed:', error);
-        }
+        } catch {}
         setCurrentLyricIndex(-1);
-      }, 50);
-      
+      }, 40);
+
       return () => clearTimeout(resetTimeout);
     }
-  }, [currentTrack?.id, showLyrics, isMobile, lyrics.length]);
+  }, [currentTrack?.id]);
 
-  // Sync with main audio player (improved responsiveness)
+  // Sync with main audio player (~200ms while open + instant native media events)
   useEffect(() => {
+    if (!isOpen || !currentTrack) return;
+
+    const mainAudio = document.querySelector('audio') as HTMLAudioElement | null;
     const syncWithMainPlayer = () => {
-      // Don't burn CPU re-syncing while the tab is in the background.
       if (document.hidden) return;
-      const mainAudio = document.querySelector('audio') as HTMLAudioElement;
-      
-      if (mainAudio && currentTrack) {
-        const newCurrentTime = mainAudio.currentTime;
-        const newDuration = mainAudio.duration || 0;
-        const newIsPlaying = !mainAudio.paused;
-        
-        // Always update playing state immediately
-        setIsPlaying(newIsPlaying);
-        setCurrentTime(newCurrentTime);
-        setDuration(newDuration);
-        setVolume(mainAudio.volume);
-        
-        if (newDuration > 0) {
-          const newProgress = (newCurrentTime / newDuration) * 100;
-          setProgress(newProgress);
-        }
+      const audio = mainAudio || (document.querySelector('audio') as HTMLAudioElement | null);
+      if (!audio) return;
+
+      const newCurrentTime = audio.currentTime || 0;
+      const newDuration = audio.duration || 0;
+      const newIsPlaying = !audio.paused;
+      const newVolume = audio.volume;
+
+      setIsPlaying((prev) => (prev !== newIsPlaying ? newIsPlaying : prev));
+      setCurrentTime((prev) => (Math.abs(prev - newCurrentTime) >= 0.05 ? newCurrentTime : prev));
+      setDuration((prev) => (prev !== newDuration ? newDuration : prev));
+      setVolume((prev) => (prev !== newVolume ? newVolume : prev));
+
+      if (newDuration > 0) {
+        const newProgress = (newCurrentTime / newDuration) * 100;
+        setProgress((prev) => (Math.abs(prev - newProgress) >= 0.05 ? newProgress : prev));
       }
     };
 
-    if (isOpen && currentTrack) {
-      // Initial sync
-      syncWithMainPlayer();
-      
-      // Keep syncing while open — 1s tick is plenty for a progress bar and avoids
-      // the constant React state churn of a 100ms loop.
-      const interval = setInterval(syncWithMainPlayer, 1000);
-      return () => clearInterval(interval);
+    syncWithMainPlayer();
+    if (mainAudio) {
+      mainAudio.addEventListener('play', syncWithMainPlayer);
+      mainAudio.addEventListener('pause', syncWithMainPlayer);
+      mainAudio.addEventListener('seeked', syncWithMainPlayer);
+      mainAudio.addEventListener('volumechange', syncWithMainPlayer);
+      mainAudio.addEventListener('durationchange', syncWithMainPlayer);
     }
-  }, [isOpen, currentTrack]); // React to track changes
+    const interval = setInterval(syncWithMainPlayer, 200);
 
-  // Extract dominant color from cover art
-  useEffect(() => {
-    if (!currentTrack?.coverArt) return;
-
-    const img = document.createElement('img');
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          
-          // Simple dominant color extraction
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imageData.data;
-          let r = 0, g = 0, b = 0;
-          
-          for (let i = 0; i < data.length; i += 4) {
-            r += data[i];
-            g += data[i + 1];
-            b += data[i + 2];
-          }
-          
-          const pixelCount = data.length / 4;
-          r = Math.floor(r / pixelCount);
-          g = Math.floor(g / pixelCount);
-          b = Math.floor(b / pixelCount);
-          
-          setDominantColor(`rgb(${r}, ${g}, ${b})`);
-        }
-      } catch (error) {
-        console.warn('Failed to extract color:', error);
+    return () => {
+      clearInterval(interval);
+      if (mainAudio) {
+        mainAudio.removeEventListener('play', syncWithMainPlayer);
+        mainAudio.removeEventListener('pause', syncWithMainPlayer);
+        mainAudio.removeEventListener('seeked', syncWithMainPlayer);
+        mainAudio.removeEventListener('volumechange', syncWithMainPlayer);
+        mainAudio.removeEventListener('durationchange', syncWithMainPlayer);
       }
     };
-    img.src = currentTrack.coverArt;
-  }, [currentTrack]);
+  }, [isOpen, currentTrack]);
+
+  // Extract Apple Music multi-stop fluid mesh palette from cover art (cached 32x32)
+  useEffect(() => {
+    if (!currentTrack?.coverArt) {
+      setMeshPalette(DEFAULT_MESH_PALETTE);
+      return;
+    }
+    const cached = getCachedMeshPalette(currentTrack.coverArt);
+    if (cached) {
+      setMeshPalette(cached);
+      return;
+    }
+    if (!isOpen) return;
+
+    let cancelled = false;
+    extractMeshPalette(currentTrack.coverArt)
+      .then((palette) => {
+        if (!cancelled) setMeshPalette(palette);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, currentTrack?.coverArt]);
 
   const togglePlayPause = () => {
     // Find the main audio player's play/pause button and click it
@@ -401,6 +622,12 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     const mainAudio = document.querySelector('audio') as HTMLAudioElement;
     if (!mainAudio) return;
 
+    if (userScrollTimerRef.current) {
+      clearTimeout(userScrollTimerRef.current);
+      userScrollTimerRef.current = null;
+    }
+    setIsUserScrollingLyrics(false);
+
     mainAudio.currentTime = time;
     setCurrentTime(time);
     try {
@@ -421,70 +648,200 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const renderAppleLyricsList = (mobileLayout: boolean) => (
+    <div
+      className={
+        mobileLayout
+          ? 'pt-[20vh] pb-[48vh] px-3 sm:px-5 max-w-2xl'
+          : 'pt-[26vh] pb-[52vh] pl-6 pr-8 lg:pl-10 lg:pr-14 max-w-3xl'
+      }
+    >
+      {lyrics.map((item, index) => {
+        const isActive = index === currentLyricIndex;
+
+        if (item.isInterlude) {
+          return (
+            <div
+              key={item.id}
+              data-lyric-index={index}
+              style={{
+                display: 'grid',
+                gridTemplateRows: isActive ? '1fr' : '0fr',
+                opacity: isActive ? 1 : 0,
+                marginBottom: isActive ? '1.25rem' : '0px',
+                transition:
+                  'grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease, margin-bottom 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+              }}
+            >
+              <div className="overflow-hidden">
+                <AppleInterludeDots
+                  startTime={item.time}
+                  endTime={item.endTime}
+                  currentTime={currentTime}
+                  isPlaying={isPlaying}
+                  onClick={() => handleLyricClick(item.endTime ?? item.time)}
+                />
+              </div>
+            </div>
+          );
+        }
+
+        const hasActive = currentLyricIndex >= 0;
+        const dist = hasActive ? Math.abs(index - currentLyricIndex) : index + 1;
+        const isPast = hasActive && index < currentLyricIndex;
+
+        let lineOpacity = 1;
+        let lineBlur = 0;
+
+        if (!isActive) {
+          if (isUserScrollingLyrics) {
+            lineOpacity = isPast ? 0.52 : 0.68;
+            lineBlur = 0;
+          } else if (!hasActive) {
+            lineOpacity = index === 0 ? 0.55 : index === 1 ? 0.42 : index === 2 ? 0.32 : 0.24;
+            lineBlur = index === 0 ? 0.6 : index === 1 ? 1.4 : index === 2 ? 2.2 : 3.2;
+          } else if (dist === 1) {
+            lineOpacity = isPast ? 0.36 : 0.48;
+            lineBlur = 1.0;
+          } else if (dist === 2) {
+            lineOpacity = isPast ? 0.28 : 0.38;
+            lineBlur = 1.9;
+          } else if (dist === 3) {
+            lineOpacity = isPast ? 0.22 : 0.30;
+            lineBlur = 2.8;
+          } else {
+            lineOpacity = isPast ? 0.16 : 0.22;
+            lineBlur = 3.6;
+          }
+        }
+
+        return (
+          <div
+            key={item.id}
+            data-lyric-index={index}
+            onClick={() => handleLyricClick(item.time)}
+            style={
+              {
+                '--lyric-opacity': lineOpacity,
+                '--lyric-blur': `${lineBlur}px`,
+                transform: isActive ? 'scale(1.02) translateZ(0)' : 'scale(1) translateZ(0)',
+                transformOrigin: 'left center',
+                textShadow: isActive
+                  ? '0 4px 28px rgba(255, 255, 255, 0.22), 0 2px 12px rgba(0, 0, 0, 0.28)'
+                  : 'none',
+              } as React.CSSProperties
+            }
+            className={`${
+              mobileLayout
+                ? 'text-[26px] sm:text-[32px] mb-5'
+                : 'text-[28px] lg:text-[34px] xl:text-[38px] mb-6'
+            } font-bold tracking-[-0.025em] leading-[1.22] text-white break-words cursor-pointer select-none rounded-2xl px-4 py-2.5 -mx-4 [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]`}
+            title={`Jump to ${formatTime(item.time)}`}
+          >
+            {item.text}
+          </div>
+        );
+      })}
+    </div>
+  );
+
   if (!currentTrack) return null;
+
+  const meshPlayState = isPlaying ? 'running' : 'paused';
 
   return (
     <>
       <AnimatePresence>
         {isOpen && (
       <motion.div
-        className="fixed inset-0 z-[70] bg-black overflow-hidden"
+        className="dark fixed inset-0 z-[70] text-white overflow-hidden"
+        style={{
+          backgroundColor: meshPalette.base,
+          transition: 'background-color 900ms ease',
+        }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.2, ease: 'easeInOut' }}
+        transition={{ duration: 0.25, ease: 'easeInOut' }}
       >
-      {/* Enhanced Blurred background image */}
-      {currentTrack.coverArt && (
-        <motion.div className="absolute inset-0 w-full h-full" initial={{ scale: 1.02 }} animate={{ scale: 1.08 }} transition={{ duration: 10, ease: 'linear' }}>
-          {/* Main background */}
-          <motion.div 
-            className="absolute inset-0 w-full h-full"
+      {/* Apple Music Ultra-Blurred Fluid Mesh Gradient Background */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none select-none overflow-hidden"
+        style={{ transform: 'translateZ(0)' }}
+      >
+        {/* Softly crossfading heavily blurred saturated cover wash for spatial color continuity */}
+        {currentTrack.coverArt && (
+          <AnimatePresence mode="sync" initial={false}>
+            <motion.div
+              key={currentTrack.coverArt}
+              className="absolute -inset-[18%]"
+              style={{
+                backgroundImage: `url(${currentTrack.coverArt})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                filter: 'blur(110px) saturate(1.85) brightness(0.72)',
+                transform: 'scale(1.2) translateZ(0)',
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.9, ease: 'easeInOut' }}
+            />
+          </AnimatePresence>
+        )}
+
+        {/* Drifting multi-stop fluid color mesh blobs (GPU transform-only, paused when audio pauses) */}
+        <div
+          className="absolute -inset-[22%]"
+          style={{
+            filter: 'blur(115px) saturate(1.45)',
+            transform: 'translateZ(0)',
+          }}
+        >
+          <div
+            className="apple-mesh-blob-1 absolute -top-[12%] -left-[10%] w-[72vw] h-[72vw] min-w-[520px] min-h-[520px] rounded-full opacity-90"
             style={{
-              backgroundImage: `url(${currentTrack.coverArt})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              filter: 'blur(50px) brightness(0.3)',
-              transform: 'scale(1.1)',
+              background: `radial-gradient(circle at center, ${meshPalette.blob1} 0%, transparent 68%)`,
+              animationPlayState: meshPlayState,
+              transition: 'background 900ms ease',
             }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
           />
-          {/* Top gradient blur for mobile */}
-          <motion.div 
-            className="absolute top-0 left-0 right-0 h-32"
+          <div
+            className="apple-mesh-blob-2 absolute -top-[14%] -right-[12%] w-[68vw] h-[68vw] min-w-[500px] min-h-[500px] rounded-full opacity-85"
             style={{
-              background: `linear-gradient(to bottom, 
-                rgba(0,0,0,0.8) 0%, 
-                rgba(0,0,0,0.4) 50%, 
-                transparent 100%)`,
-              backdropFilter: 'blur(10px)',
+              background: `radial-gradient(circle at center, ${meshPalette.blob2} 0%, transparent 68%)`,
+              animationPlayState: meshPlayState,
+              transition: 'background 900ms ease',
             }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.25 }}
           />
-          {/* Bottom gradient blur for mobile */}
-          <motion.div 
-            className="absolute bottom-0 left-0 right-0 h-32"
+          <div
+            className="apple-mesh-blob-3 absolute -bottom-[18%] -left-[8%] w-[70vw] h-[70vw] min-w-[500px] min-h-[500px] rounded-full opacity-85"
             style={{
-              background: `linear-gradient(to top, 
-                rgba(0,0,0,0.8) 0%, 
-                rgba(0,0,0,0.4) 50%, 
-                transparent 100%)`,
-              backdropFilter: 'blur(10px)',
+              background: `radial-gradient(circle at center, ${meshPalette.blob3} 0%, transparent 68%)`,
+              animationPlayState: meshPlayState,
+              transition: 'background 900ms ease',
             }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.25 }}
           />
-        </motion.div>
-      )}
-      
-      {/* Overlay for better contrast */}
-      <motion.div className="absolute inset-0 bg-black/30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
+          <div
+            className="apple-mesh-blob-4 absolute -bottom-[14%] -right-[10%] w-[74vw] h-[74vw] min-w-[520px] min-h-[520px] rounded-full opacity-90"
+            style={{
+              background: `radial-gradient(circle at center, ${meshPalette.blob4} 0%, transparent 70%)`,
+              animationPlayState: meshPlayState,
+              transition: 'background 900ms ease',
+            }}
+          />
+        </div>
+
+        {/* Gentle atmospheric contrast veil so crisp white lyrics pop without muddying colors */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at 28% 50%, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.28) 100%)',
+          }}
+        />
+      </div>
       
       <motion.div className="relative h-full w-full flex flex-col" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 10, opacity: 0 }} transition={{ duration: 0.2, ease: 'easeOut' }}>
         
@@ -678,77 +1035,23 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
                 {activeTab === 'lyrics' && lyrics.length > 0 && (
                   <motion.div key="tab-lyrics" className="h-full flex flex-col px-4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} transition={{ duration: 0.2 }}>
-                    <div 
-                      className="flex-1 overflow-y-auto"
+                    <div
                       ref={lyricsRef}
+                      onWheel={handleLyricsUserScroll}
+                      onTouchMove={handleLyricsUserScroll}
+                      className="apple-lyrics-scroll apple-lyrics-mask flex-1 overflow-y-auto"
                     >
-            <div className="space-y-4 py-10">
-                        {lyrics.map((line, index) => (
-                          <motion.div
-                            key={index}
-                            data-lyric-index={index}
-                            onClick={() => handleLyricClick(line.time)}
-                            initial={false}
-                            animate={index === currentLyricIndex
-                              ? { scale: 1.06, opacity: 1, filter: 'blur(0px)' }
-                              : { scale: 0.98, opacity: 0.65, filter: 'blur(2px)' }}
-                            transition={{ duration: 0.25 }}
-                            className={`text-3xl sm:text-4xl leading-relaxed break-words cursor-pointer hover:text-foreground px-2 ${
-                              index === currentLyricIndex
-                                ? 'text-foreground font-extrabold leading-tight text-5xl sm:text-6xl'
-                                : 'text-foreground/50'
-                            }`}
-                            style={{ 
-                              wordWrap: 'break-word',
-                              overflowWrap: 'break-word',
-                              hyphens: 'auto',
-                              paddingBottom: '4px',
-                              // Subtle glow to make the current line feel elevated
-                              textShadow: index === currentLyricIndex 
-                                ? '0 4px 16px rgba(0,0,0,0.7), 0 0 24px rgba(255,255,255,0.16)'
-                                : undefined
-                            }}
-                            title={`Click to jump to ${formatTime(line.time)}`}
-                          >
-                            {line.text || '♪'}
-                          </motion.div>
-                        ))}
-                        <div style={{ height: '260px' }} />
-                      </div>
+                      {renderAppleLyricsList(true)}
                     </div>
                   </motion.div>
                 )}
 
                 {activeTab === 'queue' && (
                   <motion.div key="tab-queue" className="h-full flex flex-col px-4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} transition={{ duration: 0.2 }}>
-                    <ScrollArea className="flex-1">
-                      <div className="space-y-2 py-4">
-                        {queue.map((track, index) => (
-                          <div
-                            key={`${track.id}-${index}`}
-                            className={`flex items-center p-3 rounded-lg ${
-                              track.id === currentTrack?.id ? 'bg-primary/20' : 'bg-gray-800/30'
-                            }`}
-                          >
-                            <Image
-                              src={track.coverArt || '/default-album.png'}
-                              alt={track.album}
-                              width={40}
-                              height={40}
-                              className="rounded mr-3"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">
-                                {track.name}
-                              </p>
-                              <p className="text-xs text-gray-400 truncate">
-                                {track.artist}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
+                    <MobileQueueList
+                      currentTrackId={currentTrack?.id}
+                      onSelectQueueId={skipToTrackByQueueId}
+                    />
                   </motion.div>
                 )}
                 </AnimatePresence>
@@ -943,48 +1246,19 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               {/* Right Side - Lyrics (Desktop Only) */}
               <AnimatePresence initial={false}>
               {showLyrics && lyrics.length > 0 && (
-                <motion.div className="flex-1 min-w-0 min-h-0 flex flex-col" ref={lyricsRef}
+                <motion.div
+                  className="flex-1 min-w-0 min-h-0 flex flex-col"
+                  ref={lyricsRef}
+                  onWheel={handleLyricsUserScroll}
+                  onTouchMove={handleLyricsUserScroll}
                   initial={{ x: 30, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   exit={{ x: 30, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
                 >
-                  <div className="h-full flex flex-col">
-                    <ScrollArea className="flex-1 min-h-0">
-                      <div className="space-y-3 pl-4 pr-4 py-8">
-                        {lyrics.map((line, index) => (
-                          <motion.div
-                            key={index}
-                            data-lyric-index={index}
-                            onClick={() => handleLyricClick(line.time)}
-                            initial={false}
-                            animate={index === currentLyricIndex
-                              ? { scale: 1.04, opacity: 1, filter: 'blur(0px)' }
-                              : { scale: 0.98, opacity: 0.65, filter: 'blur(2px)' }}
-                            transition={{ duration: 0.25 }}
-                            className={`text-xl leading-relaxed break-words cursor-pointer hover:text-foreground ${
-                              index === currentLyricIndex
-                                ? 'text-foreground font-extrabold leading-tight text-5xl'
-                                : 'text-foreground/50'
-                            }`}
-                            style={{ 
-                              wordWrap: 'break-word',
-                              overflowWrap: 'break-word',
-                              hyphens: 'auto',
-                              paddingBottom: '4px',
-                              paddingLeft: '8px',
-                              // Subtle glow to make the current line feel elevated
-                              textShadow: index === currentLyricIndex 
-                                ? '0 6px 18px rgba(0,0,0,0.7), 0 0 28px rgba(255,255,255,0.18)'
-                                : undefined
-                            }}
-                            title={`Click to jump to ${formatTime(line.time)}`}
-                          >
-                            {line.text || '♪'}
-                          </motion.div>
-                        ))}
-                        <div style={{ height: '240px' }} />
-                      </div>
+                  <div className="h-full flex flex-col min-h-0">
+                    <ScrollArea className="apple-lyrics-scroll apple-lyrics-mask flex-1 min-h-0 [&_[data-radix-scroll-area-scrollbar]]:hidden">
+                      {renderAppleLyricsList(false)}
                     </ScrollArea>
                   </div>
                 </motion.div>

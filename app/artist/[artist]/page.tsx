@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Album, Artist, Song, getNavidromeAPI } from '@/lib/navidrome';
+import { extractAmbientColor, getCachedAmbientColor } from '@/lib/image-utils';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { AlbumArtwork } from '@/app/components/album-artwork';
@@ -37,7 +38,7 @@ export default function ArtistPage() {
   const { playTrack, playArtist, playAlbum, addAlbumToQueue, currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
   const api = getNavidromeAPI();
 
-  // Extract dominant color from artist image to match album background
+  // Extract dominant color from artist image to match album background (cached & canonical 300px)
   useEffect(() => {
     const imgUrl = artist?.coverArt && api
       ? api.getCoverArtUrl(artist.coverArt, 300)
@@ -45,50 +46,19 @@ export default function ArtistPage() {
 
     if (!imgUrl) return;
 
-    const img = document.createElement('img');
-    img.crossOrigin = 'anonymous';
+    const cached = getCachedAmbientColor(imgUrl);
+    if (cached) {
+      setDominantColor(cached);
+      return;
+    }
 
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          canvas.width = 64;
-          canvas.height = 64;
-          ctx.drawImage(img, 0, 0, 64, 64);
-          const imageData = ctx.getImageData(0, 0, 64, 64);
-          const data = imageData.data;
-          let r = 0, g = 0, b = 0, count = 0;
-
-          for (let i = 0; i < data.length; i += 4) {
-            const pr = data[i];
-            const pg = data[i + 1];
-            const pb = data[i + 2];
-            const brightness = (pr + pg + pb) / 3;
-            if (brightness > 20 && brightness < 240) {
-              r += pr;
-              g += pg;
-              b += pb;
-              count++;
-            }
-          }
-
-          if (count > 0) {
-            r = Math.floor(r / count);
-            g = Math.floor(g / count);
-            b = Math.floor(b / count);
-            const targetR = Math.max(16, Math.floor(r * 0.45));
-            const targetG = Math.max(14, Math.floor(g * 0.40));
-            const targetB = Math.max(14, Math.floor(b * 0.38));
-            setDominantColor(`rgb(${targetR}, ${targetG}, ${targetB})`);
-          }
-        }
-      } catch (e) {
-        console.warn('Could not extract artist color:', e);
-      }
+    let cancelled = false;
+    extractAmbientColor(imgUrl, '#1f1d1c').then((color) => {
+      if (!cancelled) setDominantColor(color);
+    });
+    return () => {
+      cancelled = true;
     };
-
-    img.src = imgUrl;
   }, [artist?.coverArt, artistAlbums, api]);
 
   useEffect(() => {

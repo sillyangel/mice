@@ -13,7 +13,7 @@ import Image from "next/image";
 
 const FavoritesPage = () => {
   const { api, isConnected } = useNavidrome();
-  const { playTrack, addToQueue } = useAudioPlayer();
+  const { playTrack, playTracks, addToQueue } = useAudioPlayer();
   const [favoriteAlbums, setFavoriteAlbums] = useState<Album[]>([]);
   const [favoriteSongs, setFavoriteSongs] = useState<Song[]>([]);
   const [favoriteArtists, setFavoriteArtists] = useState<Artist[]>([]);
@@ -58,7 +58,7 @@ const FavoritesPage = () => {
       artistId: song.artistId,
       url: api?.getStreamUrlForSong(song) || '',
       duration: song.duration,
-      coverArt: song.coverArt ? api?.getCoverArtUrl(song.coverArt, 1200) : undefined,
+      coverArt: song.coverArt ? api?.getCoverArtUrl(song.coverArt, 300) : undefined,
       starred: !!song.starred
     });
   };
@@ -78,12 +78,11 @@ const FavoritesPage = () => {
           artistId: song.artistId,
           url: api.getStreamUrlForSong(song),
           duration: song.duration,
-          coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 1200) : undefined,
+          coverArt: song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined,
           starred: !!song.starred
         }));
         
-        playTrack(tracks[0]);
-        tracks.slice(1).forEach((track: Track) => addToQueue(track));
+        playTracks(tracks, 0);
       }
     } catch (error) {
       console.error('Failed to play album:', error);

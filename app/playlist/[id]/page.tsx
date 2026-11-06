@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Playlist, Song, getNavidromeAPI } from '@/lib/navidrome';
+import { extractAmbientColor, getCachedAmbientColor } from '@/lib/image-utils';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Play, Pause, Heart, Shuffle, MoreHorizontal, Share2, Plus } from 'lucide-react';
@@ -29,7 +30,7 @@ export default function PlaylistPage() {
   const [hoveredTrackId, setHoveredTrackId] = useState<string | null>(null);
 
   const { getPlaylist, starItem, unstarItem } = useNavidrome();
-  const { playTrack, addToQueue, currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
+  const { playTrack, playTracks, addToQueue, currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
   const api = getNavidromeAPI();
 
   useEffect(() => {
@@ -61,56 +62,25 @@ export default function PlaylistPage() {
     };
   }, [id, getPlaylist]);
 
-  // Extract Apple-like dominant background color from playlist cover artwork
+  // Extract Apple-like dominant background color from playlist cover artwork (cached & canonical 300px)
   useEffect(() => {
     const coverArt = playlist?.coverArt || (tracklist.length > 0 ? tracklist[0].coverArt : null);
     if (!coverArt || !api) return;
 
-    const imgUrl = api.getCoverArtUrl(coverArt, 100);
-    const img = document.createElement('img');
-    img.crossOrigin = 'anonymous';
+    const imgUrl = api.getCoverArtUrl(coverArt, 300);
+    const cached = getCachedAmbientColor(imgUrl);
+    if (cached) {
+      setDominantColor(cached);
+      return;
+    }
 
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          canvas.width = 64;
-          canvas.height = 64;
-          ctx.drawImage(img, 0, 0, 64, 64);
-          const imageData = ctx.getImageData(0, 0, 64, 64);
-          const data = imageData.data;
-          let r = 0, g = 0, b = 0, count = 0;
-
-          for (let i = 0; i < data.length; i += 4) {
-            const pr = data[i];
-            const pg = data[i + 1];
-            const pb = data[i + 2];
-            const brightness = (pr + pg + pb) / 3;
-            if (brightness > 20 && brightness < 240) {
-              r += pr;
-              g += pg;
-              b += pb;
-              count++;
-            }
-          }
-
-          if (count > 0) {
-            r = Math.floor(r / count);
-            g = Math.floor(g / count);
-            b = Math.floor(b / count);
-            const targetR = Math.max(16, Math.floor(r * 0.45));
-            const targetG = Math.max(14, Math.floor(g * 0.40));
-            const targetB = Math.max(14, Math.floor(b * 0.38));
-            setDominantColor(`rgb(${targetR}, ${targetG}, ${targetB})`);
-          }
-        }
-      } catch (e) {
-        console.warn('Could not extract playlist color:', e);
-      }
+    let cancelled = false;
+    extractAmbientColor(imgUrl, '#1f1d1c').then((color) => {
+      if (!cancelled) setDominantColor(color);
+    });
+    return () => {
+      cancelled = true;
     };
-
-    img.src = imgUrl;
   }, [playlist?.coverArt, tracklist, api]);
 
   // Synchronize dominant background color with theme-color meta tag for WCO titlebar
@@ -155,17 +125,17 @@ export default function PlaylistPage() {
 
   const handlePlayPlaylist = () => {
     if (!tracklist.length || !api) return;
-    const tracks = tracklist.map(songToTrack);
-    playTrack(tracks[0], true);
-    tracks.slice(1).forEach(track => addToQueue(track));
+    playTracks(tracklist.map(songToTrack), 0);
   };
 
   const handleShufflePlaylist = () => {
     if (!tracklist.length || !api) return;
-    const shuffled = [...tracklist].sort(() => Math.random() - 0.5);
-    const tracks = shuffled.map(songToTrack);
-    playTrack(tracks[0], true);
-    tracks.slice(1).forEach(track => addToQueue(track));
+    const shuffled = [...tracklist];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    playTracks(shuffled.map(songToTrack), 0);
   };
 
   const handleSongStar = async (song: Song) => {

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import Loading from "@/app/components/loading";
 import { getNavidromeAPI } from '@/lib/navidrome';
+import { extractAmbientColor, getCachedAmbientColor } from '@/lib/image-utils';
 import { useFavoriteAlbums } from '@/hooks/use-favorite-albums';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -83,58 +84,24 @@ export default function AlbumPage() {
     };
   }, [id, getAlbum, getAlbumInfo2]);
 
-  // Extract Apple-like dominant background color from cover artwork
+  // Extract Apple-like dominant background color from cover artwork (cached & canonical 300px)
   useEffect(() => {
     if (!album?.coverArt || !api) return;
 
-    const imgUrl = api.getCoverArtUrl(album.coverArt, 100);
-    const img = document.createElement('img');
-    img.crossOrigin = 'anonymous';
+    const imgUrl = api.getCoverArtUrl(album.coverArt, 300);
+    const cached = getCachedAmbientColor(imgUrl);
+    if (cached) {
+      setDominantColor(cached);
+      return;
+    }
 
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          canvas.width = 64;
-          canvas.height = 64;
-          ctx.drawImage(img, 0, 0, 64, 64);
-          const imageData = ctx.getImageData(0, 0, 64, 64);
-          const data = imageData.data;
-          let r = 0, g = 0, b = 0;
-          let count = 0;
-
-          for (let i = 0; i < data.length; i += 4) {
-            // Downweight extremely bright/white or dark pixels for rich tinting
-            const pr = data[i];
-            const pg = data[i + 1];
-            const pb = data[i + 2];
-            const brightness = (pr + pg + pb) / 3;
-            if (brightness > 20 && brightness < 240) {
-              r += pr;
-              g += pg;
-              b += pb;
-              count++;
-            }
-          }
-
-          if (count > 0) {
-            r = Math.floor(r / count);
-            g = Math.floor(g / count);
-            b = Math.floor(b / count);
-            // Apply slight darkening/warmth for Apple Music's ambient canvas look
-            const targetR = Math.max(16, Math.floor(r * 0.45));
-            const targetG = Math.max(14, Math.floor(g * 0.40));
-            const targetB = Math.max(14, Math.floor(b * 0.38));
-            setDominantColor(`rgb(${targetR}, ${targetG}, ${targetB})`);
-          }
-        }
-      } catch (e) {
-        console.warn('Could not extract color:', e);
-      }
+    let cancelled = false;
+    extractAmbientColor(imgUrl, '#1a1614').then((color) => {
+      if (!cancelled) setDominantColor(color);
+    });
+    return () => {
+      cancelled = true;
     };
-
-    img.src = imgUrl;
   }, [album?.coverArt, api]);
 
   // Synchronize dominant background color with theme-color meta tag for WCO titlebar

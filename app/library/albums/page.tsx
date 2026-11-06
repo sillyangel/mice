@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -10,24 +10,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { AlbumArtwork } from '@/app/components/album-artwork';
 import { getNavidromeAPI, Album } from '@/lib/navidrome';
-import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
+import { useAudioPlayerActions } from '@/app/components/AudioPlayerContext';
 import { Shuffle, Search } from 'lucide-react';
 import Loading from '@/app/components/loading';
 
 export default function AlbumsPage() {
-  const { shuffleAllAlbums } = useAudioPlayer();
+  const { shuffleAllAlbums } = useAudioPlayerActions();
   const [albums, setAlbums] = useState<Album[]>([]);
-  const [filteredAlbums, setFilteredAlbums] = useState<Album[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoadingAlbums, setIsLoadingAlbums] = useState(false);
   const [hasMoreAlbums, setHasMoreAlbums] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'alphabeticalByName' | 'newest' | 'alphabeticalByArtist'>('alphabeticalByName');
-  const albumsPerPage = 84;
+  const albumsPerPage = 48;
 
   const api = getNavidromeAPI();
 
-  const loadAlbums = async (page: number, append: boolean = false) => {
+  const loadAlbums = useCallback(async (page: number, append: boolean = false) => {
     if (!api) {
       console.error('Navidrome API not available');
       return;
@@ -36,7 +35,6 @@ export default function AlbumsPage() {
     try {
       setIsLoadingAlbums(true);
       const offset = page * albumsPerPage;
-      
       const newAlbums = await api.getAlbums(sortBy, albumsPerPage, offset);
       
       if (append) {
@@ -51,56 +49,46 @@ export default function AlbumsPage() {
     } finally {
       setIsLoadingAlbums(false);
     }
-  };
+  }, [api, sortBy]);
 
   useEffect(() => {
     setCurrentPage(0);
     loadAlbums(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy]);
+  }, [loadAlbums]);
 
-  // Filter albums based on search query
-  useEffect(() => {
-    let filtered = [...albums];
-    
-    if (searchQuery) {
-      filtered = filtered.filter(album =>
-        album.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        album.artist.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    setFilteredAlbums(filtered);
+  const filteredAlbums = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return albums;
+    return albums.filter(album =>
+      album.name.toLowerCase().includes(q) ||
+      album.artist.toLowerCase().includes(q)
+    );
   }, [albums, searchQuery]);
 
-  // Infinite scroll handler
+  const loadMore = useCallback(() => {
+    if (isLoadingAlbums || !hasMoreAlbums || searchQuery) return;
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    loadAlbums(nextPage, true);
+  }, [isLoadingAlbums, hasMoreAlbums, searchQuery, currentPage, loadAlbums]);
+
   useEffect(() => {
     const handleScroll = (e: Event) => {
       const target = e.target as HTMLElement;
       if (!target || isLoadingAlbums || !hasMoreAlbums || searchQuery) return;
       
       const { scrollTop, scrollHeight, clientHeight } = target;
-      const threshold = 200; // Load more when 200px from bottom
-      
-      if (scrollHeight - scrollTop - clientHeight < threshold) {
+      if (scrollHeight - scrollTop - clientHeight < 300) {
         loadMore();
       }
     };
 
-    const scrollArea = document.querySelector('[data-radix-scroll-area-viewport]');
+    const scrollArea = document.querySelector('main') || document.querySelector('[data-radix-scroll-area-viewport]');
     if (scrollArea) {
-      scrollArea.addEventListener('scroll', handleScroll);
+      scrollArea.addEventListener('scroll', handleScroll, { passive: true });
       return () => scrollArea.removeEventListener('scroll', handleScroll);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoadingAlbums, hasMoreAlbums, currentPage, searchQuery]);
-
-  const loadMore = () => {
-    if (isLoadingAlbums || !hasMoreAlbums || searchQuery) return;
-    const nextPage = currentPage + 1;
-    setCurrentPage(nextPage);
-    loadAlbums(nextPage, true);
-  };
+  }, [isLoadingAlbums, hasMoreAlbums, searchQuery, loadMore]);
 
   if (isLoadingAlbums && albums.length === 0) {
     return <Loading />;
@@ -154,14 +142,15 @@ export default function AlbumsPage() {
             <ScrollArea className="h-full">
               <div className="h-full overflow-y-auto">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4 p-4 pb-8">
-                  {filteredAlbums.map((album) => (
+                  {filteredAlbums.map((album, idx) => (
                     <AlbumArtwork
                       key={album.id}
                       album={album}
                       className="w-full"
                       aspectRatio="square"
-                      width={200}
-                      height={200}
+                      width={300}
+                      height={300}
+                      loading={idx < 14 ? 'eager' : 'lazy'}
                     />
                   ))}
                 </div>

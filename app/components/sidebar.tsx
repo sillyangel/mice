@@ -107,7 +107,7 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
                 {favoriteAlbums.slice(0, 5).map((album) => (
                   <ContextMenu key={album.id}>
                     <ContextMenuTrigger>
-                      <Link href={`/album/${album.id}`}>
+                      <Link href={`/album/${album.id}`} prefetch={false}>
                         <Button 
                           variant="ghost" 
                           className="w-full justify-center px-2"
@@ -115,11 +115,12 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
                         >
                           {album.coverArt && api ? (
                             <Image
-                              src={api.getCoverArtUrl(album.coverArt, 150)}
+                              src={album.coverArt.startsWith('http') ? album.coverArt : api.getCoverArtUrl(album.coverArt, 96)}
                               alt={album.name}
                               width={16}
                               height={16}
                               className="rounded"
+                              decoding="async"
                             />
                           ) : (
                             <svg
@@ -163,7 +164,7 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
               <>
                 <div className="border-t my-2"></div>
                 {recentAlbums.slice(0, 5).map((album) => (
-                  <Link key={album.id} href={`/album/${album.id}`}>
+                  <Link key={album.id} href={`/album/${album.id}`} prefetch={false}>
                     <Button 
                       variant="ghost" 
                       className="w-full justify-center px-2"
@@ -171,11 +172,12 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
                     >
                       {album.coverArt && api ? (
                         <Image
-                          src={api.getCoverArtUrl(album.coverArt, 150)}
+                          src={api.getCoverArtUrl(album.coverArt, 96)}
                           alt={album.name}
                           width={16}
                           height={16}
                           className="rounded opacity-70"
+                          decoding="async"
                         />
                       ) : (
                         <svg
@@ -205,7 +207,7 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
               <>
                 <div className="border-t my-2"></div>
                 {playlists.slice(0, 5).map((playlist) => (
-                  <Link key={playlist.id} href={`/playlist/${playlist.id}`}>
+                  <Link key={playlist.id} href={`/playlist/${playlist.id}`} prefetch={false}>
                     <Button 
                       variant="ghost" 
                       className="w-full justify-center px-2"
@@ -213,11 +215,12 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
                     >
                       {playlist.coverArt && api ? (
                         <Image
-                          src={api.getCoverArtUrl(playlist.coverArt, 32)}
+                          src={api.getCoverArtUrl(playlist.coverArt, 96)}
                           alt={playlist.name}
                           width={16}
                           height={16}
                           className="rounded"
+                          decoding="async"
                         />
                       ) : (
                         <svg

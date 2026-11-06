@@ -1,9 +1,31 @@
+import { execSync } from 'node:child_process';
+
 /** @type {import('next').NextConfig} */
 const isStandaloneBuild = process.env.BUILD_STANDALONE === '1';
 
+// Resolve the commit SHA at config time instead of overwriting .env.local
+// (the old predev/prebuild scripts clobbered user credentials stored there).
+function getCommitSha() {
+  if (process.env.NEXT_PUBLIC_COMMIT_SHA) return process.env.NEXT_PUBLIC_COMMIT_SHA;
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
 const nextConfig = {
   poweredByHeader: false,
+  compress: true,
+  reactStrictMode: false,
   output: isStandaloneBuild ? 'standalone' : undefined,
+  env: {
+    NEXT_PUBLIC_COMMIT_SHA: getCommitSha(),
+  },
+  experimental: {
+    // Tree-shake barrel imports from large icon/UI libraries
+    optimizePackageImports: ['lucide-react', 'react-icons', 'framer-motion', '@radix-ui/react-icons', 'date-fns'],
+  },
   images: {
     unoptimized: true,
   },

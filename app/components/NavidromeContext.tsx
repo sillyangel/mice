@@ -1,7 +1,6 @@
 'use client';
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, ReactNode } from 'react';
 import { getNavidromeAPI, Album, Artist, Song, Playlist, AlbumInfo, ArtistInfo } from '@/lib/navidrome';
-import { useCallback } from 'react';
 import { devLog } from '@/lib/logger';
 
 interface NavidromeContextType {
@@ -69,25 +68,32 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       setAlbumsLoading(false);
-      return;
+      return false;
     }
     
     setAlbumsLoading(true);
     setError(null);
     try {
-      const recentAlbums = await api.getAlbums('recent', 50);
-      const newestAlbums = await api.getAlbums('newest', 50);
+      const [recentAlbums, newestAlbums] = await Promise.all([
+        api.getAlbums('recent', 24),
+        api.getAlbums('newest', 24),
+      ]);
       
-      // Combine and deduplicate albums
-      const allAlbums = [...recentAlbums, ...newestAlbums];
-      const uniqueAlbums = allAlbums.filter((album, index, self) =>
-        index === self.findIndex(a => a.id === album.id)
-      );
+      const seen = new Set<string>();
+      const uniqueAlbums: Album[] = [];
+      for (const album of [...recentAlbums, ...newestAlbums]) {
+        if (!seen.has(album.id)) {
+          seen.add(album.id);
+          uniqueAlbums.push(album);
+        }
+      }
       
       setAlbums(uniqueAlbums);
+      return true;
     } catch (err) {
       console.error('Failed to load albums:', err);
       setError('Failed to load albums');
+      return false;
     } finally {
       setAlbumsLoading(false);
     }
@@ -97,7 +103,7 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       setArtistsLoading(false);
-      return;
+      return false;
     }
     
     setArtistsLoading(true);
@@ -105,9 +111,11 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     try {
       const artistList = await api.getArtists();
       setArtists(artistList);
+      return true;
     } catch (err) {
       console.error('Failed to load artists:', err);
       setError('Failed to load artists');
+      return false;
     } finally {
       setArtistsLoading(false);
     }
@@ -117,7 +125,7 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       setPlaylistsLoading(false);
-      return;
+      return false;
     }
     
     setPlaylistsLoading(true);
@@ -125,9 +133,11 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     try {
       const playlistList = await api.getPlaylists();
       setPlaylists(playlistList);
+      return true;
     } catch (err) {
       console.error('Failed to load playlists:', err);
       setError('Failed to load playlists');
+      return false;
     } finally {
       setPlaylistsLoading(false);
     }
@@ -137,7 +147,7 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     await Promise.all([loadAlbums(), loadArtists(), loadPlaylists()]);
   }, [loadAlbums, loadArtists, loadPlaylists]);
 
-  const searchMusic = async (query: string) => {
+  const searchMusic = useCallback(async (query: string) => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       return { artists: [], albums: [], songs: [] };
@@ -151,9 +161,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       setError('Search failed');
       return { artists: [], albums: [], songs: [] };
     }
-  };
+  }, [api]);
 
-  const search2 = async (query: string) => {
+  const search2 = useCallback(async (query: string) => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       return { artists: [], albums: [], songs: [] };
@@ -167,9 +177,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       setError('Search failed');
       return { artists: [], albums: [], songs: [] };
     }
-  };
+  }, [api]);
 
-  const getAlbum = async (albumId: string) => {
+  const getAlbum = useCallback(async (albumId: string) => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       throw new Error('Navidrome is not configured');
@@ -183,9 +193,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       setError('Failed to get album');
       throw err;
     }
-  };
+  }, [api]);
 
-  const getArtist = async (artistId: string) => {
+  const getArtist = useCallback(async (artistId: string) => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       throw new Error('Navidrome is not configured');
@@ -199,9 +209,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       setError('Failed to get artist');
       throw err;
     }
-  };
+  }, [api]);
 
-  const getArtistInfo2 = async (artistId: string) => {
+  const getArtistInfo2 = useCallback(async (artistId: string) => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       throw new Error('Navidrome is not configured');
@@ -215,9 +225,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       setError('Failed to get artist info');
       throw err;
     }
-  };
+  }, [api]);
 
-  const getAlbumInfo2 = async (albumId: string) => {
+  const getAlbumInfo2 = useCallback(async (albumId: string) => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       throw new Error('Navidrome is not configured');
@@ -231,9 +241,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       setError('Failed to get album info');
       throw err;
     }
-  };
+  }, [api]);
 
-  const getPlaylist = async (playlistId: string) => {
+  const getPlaylist = useCallback(async (playlistId: string) => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       throw new Error('Navidrome is not configured');
@@ -247,9 +257,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       setError('Failed to get playlist');
       throw err;
     }
-  };
+  }, [api]);
 
-  const getAllSongs = async () => {
+  const getAllSongs = useCallback(async () => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       throw new Error('Navidrome is not configured');
@@ -263,9 +273,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       setError('Failed to get all songs');
       throw err;
     }
-  };
+  }, [api]);
 
-  const createPlaylist = async (name: string, songIds?: string[]) => {
+  const createPlaylist = useCallback(async (name: string, songIds?: string[]) => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       throw new Error('Navidrome is not configured');
@@ -274,16 +284,16 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     setError(null);
     try {
       const playlist = await api.createPlaylist(name, songIds);
-      await loadPlaylists(); // Refresh playlists
+      await loadPlaylists();
       return playlist;
     } catch (err) {
       console.error('Failed to create playlist:', err);
       setError('Failed to create playlist');
       throw err;
     }
-  };
+  }, [api, loadPlaylists]);
 
-  const updatePlaylist = async (playlistId: string, name?: string, comment?: string, songIds?: string[]) => {
+  const updatePlaylist = useCallback(async (playlistId: string, name?: string, comment?: string, songIds?: string[]) => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       throw new Error('Navidrome is not configured');
@@ -292,15 +302,15 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     setError(null);
     try {
       await api.updatePlaylist(playlistId, name, comment, songIds);
-      await loadPlaylists(); // Refresh playlists
+      await loadPlaylists();
     } catch (err) {
       console.error('Failed to update playlist:', err);
       setError('Failed to update playlist');
       throw err;
     }
-  };
+  }, [api, loadPlaylists]);
 
-  const deletePlaylist = async (playlistId: string) => {
+  const deletePlaylist = useCallback(async (playlistId: string) => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       throw new Error('Navidrome is not configured');
@@ -309,15 +319,15 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     setError(null);
     try {
       await api.deletePlaylist(playlistId);
-      await loadPlaylists(); // Refresh playlists
+      await loadPlaylists();
     } catch (err) {
       console.error('Failed to delete playlist:', err);
       setError('Failed to delete playlist');
       throw err;
     }
-  };
+  }, [api, loadPlaylists]);
 
-  const starItem = async (id: string, type: 'song' | 'album' | 'artist') => {
+  const starItem = useCallback(async (id: string, type: 'song' | 'album' | 'artist') => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       throw new Error('Navidrome is not configured');
@@ -331,9 +341,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       setError('Failed to star item');
       throw err;
     }
-  };
+  }, [api]);
 
-  const unstarItem = async (id: string, type: 'song' | 'album' | 'artist') => {
+  const unstarItem = useCallback(async (id: string, type: 'song' | 'album' | 'artist') => {
     if (!api) {
       setError('Navidrome is not configured. Please go to Settings to configure your Navidrome server.');
       throw new Error('Navidrome is not configured');
@@ -347,9 +357,9 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       setError('Failed to unstar item');
       throw err;
     }
-  };
+  }, [api]);
 
-  const scrobble = async (songId: string) => {
+  const scrobble = useCallback(async (songId: string) => {
     if (!api) {
       devLog('Navidrome is not configured. Skipping scrobble.');
       return;
@@ -359,12 +369,11 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       await api.scrobble(songId);
     } catch (err) {
       console.error('Failed to scrobble:', err);
-      // Don't set error state for scrobbling failures as they're not critical
     }
-  };
+  }, [api]);
 
   useEffect(() => {
-    // Test connection and load initial data
+    let cancelled = false;
     const initialize = async () => {
       if (!api) {
         setIsConnected(false);
@@ -373,45 +382,45 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
       }
       
       try {
-        const connected = await api.ping();
-        setIsConnected(connected);
-        if (connected) {
-          await refreshData();
+        // Fetch initial library data in parallel directly without blocking on a separate ping() waterfall
+        const results = await Promise.all([loadAlbums(), loadArtists(), loadPlaylists()]);
+        if (cancelled) return;
+        if (results.some(Boolean)) {
+          setIsConnected(true);
+          setError(null);
         } else {
-          setError('Failed to connect to Navidrome server');
+          const connected = await api.ping();
+          if (!cancelled) {
+            setIsConnected(connected);
+            if (!connected) setError('Failed to connect to Navidrome server');
+          }
         }
       } catch (err) {
         console.error('Failed to initialize Navidrome:', err);
-        setError('Failed to initialize Navidrome connection');
-        setIsConnected(false);
+        if (!cancelled) {
+          setError('Failed to initialize Navidrome connection');
+          setIsConnected(false);
+        }
       }
     };
 
     initialize();
-  }, [api, refreshData]);
+    return () => {
+      cancelled = true;
+    };
+  }, [api, loadAlbums, loadArtists, loadPlaylists]);
 
-  const value: NavidromeContextType = {
-    // API instance
+  const value: NavidromeContextType = useMemo(() => ({
     api,
-    
-    // Data
     albums,
     artists,
     playlists,
-    
-    // Loading states
     isLoading,
     albumsLoading,
     artistsLoading,
     playlistsLoading,
-    
-    // Connection state
     isConnected,
-    
-    // Error state
     error,
-    
-    // Methods
     searchMusic,
     search2,
     getAlbum,
@@ -426,8 +435,34 @@ export const NavidromeProvider: React.FC<NavidromeProviderProps> = ({ children }
     deletePlaylist,
     starItem,
     unstarItem,
-    scrobble
-  };
+    scrobble,
+  }), [
+    api,
+    albums,
+    artists,
+    playlists,
+    isLoading,
+    albumsLoading,
+    artistsLoading,
+    playlistsLoading,
+    isConnected,
+    error,
+    searchMusic,
+    search2,
+    getAlbum,
+    getArtist,
+    getArtistInfo2,
+    getAlbumInfo2,
+    getPlaylist,
+    getAllSongs,
+    refreshData,
+    createPlaylist,
+    updatePlaylist,
+    deletePlaylist,
+    starItem,
+    unstarItem,
+    scrobble,
+  ]);
 
   return (
     <NavidromeContext.Provider value={value}>
