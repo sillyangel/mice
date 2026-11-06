@@ -1,13 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Song } from '@/lib/navidrome';
-import { getNavidromeAPI } from '@/lib/navidrome';
+import { Song, getNavidromeAPI } from '@/lib/navidrome';
 import { useToast } from "@/hooks/use-toast";
 import { AudioEffects } from '@/lib/audio-effects';
 
 export interface Track {
   id: string;
+  queueId?: string;
   name: string;
   url: string;
   artist: string;
@@ -18,9 +18,9 @@ export interface Track {
   artistId: string;
   autoPlay?: boolean;
   starred?: boolean;
-  replayGain?: number; // Added ReplayGain field
-  suffix?: string; // Original file extension, used for codec-aware transcoding
-  format?: string; // Server-side transcode format if the original isn't browser-playable
+  replayGain?: number;
+  suffix?: string;
+  format?: string;
 }
 
 interface AudioSettings {
@@ -30,11 +30,55 @@ interface AudioSettings {
   gaplessPlayback: boolean;
 }
 
+const MAX_HISTORY = 100;
+let queueSeq = 0;
+
+function ensureQueueId(track: Track): Track {
+  if (track.queueId) return track;
+  queueSeq += 1;
+  return { ...track, queueId: `q_${Date.now().toString(36)}_${queueSeq}` };
+}
+
+function createFreshQueuedTrack(track: Track): Track {
+  queueSeq += 1;
+  return { ...track, queueId: `q_${Date.now().toString(36)}_${queueSeq}` };
+}
+
+function ensureQueueIds(tracks: Track[]): Track[] {
+  let changed = false;
+  const next = tracks.map((t) => {
+    if (t.queueId) return t;
+    changed = true;
+    return ensureQueueId(t);
+  });
+  return changed ? next : tracks;
+}
+
+function fisherYatesShuffle<T>(items: readonly T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function appendHistoryBounded(history: Track[], item: Track): Track[] {
+  const next = [...history, item];
+  return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
+}
+
+export interface AudioQueueContextProps {
+  queue: Track[];
+  playedTracks: Track[];
+}
+
 interface AudioPlayerContextProps {
   currentTrack: Track | null;
   playTrack: (track: Track, autoPlay?: boolean) => void;
-  queue: Track[];
+  playTracks: (tracks: Track[], startIndex?: number) => void;
   addToQueue: (track: Track) => void;
+  addTracksToQueue: (tracks: Track[]) => void;
   insertAtBeginningOfQueue: (track: Track) => void;
   playNextTrack: () => void;
   clearQueue: () => void;
@@ -42,8 +86,12 @@ interface AudioPlayerContextProps {
   playAlbum: (albumId: string) => Promise<void>;
   playAlbumFromTrack: (albumId: string, startingSongId: string) => Promise<void>;
   removeTrackFromQueue: (index: number) => void;
+  removeTrackByQueueId: (queueId: string) => void;
+  moveTrackToTopByQueueId: (queueId: string) => void;
   reorderQueue: (oldIndex: number, newIndex: number) => void;
+  reorderQueueByIds: (activeQueueId: string, overQueueId: string) => void;
   skipToTrackInQueue: (index: number) => void;
+  skipToTrackByQueueId: (queueId: string) => void;
   addArtistToQueue: (artistId: string) => Promise<void>;
   playPreviousTrack: () => void;
   isLoading: boolean;
@@ -51,10 +99,12 @@ interface AudioPlayerContextProps {
   toggleShuffle: () => void;
   shuffleAllAlbums: () => Promise<void>;
   playArtist: (artistId: string) => Promise<void>;
-  playedTracks: Track[];
   clearHistory: () => void;
   toggleCurrentTrackStar: () => Promise<void>;
   updateTrackStarred: (trackId: string, starred: boolean) => void;
+  // Lightweight queue head primitives so AudioPlayer doesn't re-render on mid-queue edits
+  nextTrackUrl: string | null;
+  hasNextTrack: boolean;
   // Audio settings
   audioSettings: AudioSettings;
   updateAudioSettings: (settings: Partial<AudioSettings>) => void;
@@ -68,6 +118,7 @@ interface AudioPlayerContextProps {
 
 export interface AudioPlayerActionsContextProps {
   playTrack: (track: Track, autoPlay?: boolean) => void;
+  playTracks: (tracks: Track[], startIndex?: number) => void;
   addToQueue: (track: Track) => void;
   addTracksToQueue: (tracks: Track[]) => void;
   insertAtBeginningOfQueue: (track: Track) => void;
@@ -82,9 +133,9 @@ export interface AudioPlayerActionsContextProps {
 
 const AudioPlayerContext = createContext<AudioPlayerContextProps | undefined>(undefined);
 const AudioPlayerActionsContext = createContext<AudioPlayerActionsContextProps | undefined>(undefined);
+const AudioQueueContext = createContext<AudioQueueContextProps | undefined>(undefined);
 
-export // Default audio settings
-const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
+export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   crossfadeDuration: 3,
   equalizer: 'normal',
   replayGainEnabled: true,
@@ -100,10 +151,18 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [audioSettings, setAudioSettings] = useState<AudioSettings>(DEFAULT_AUDIO_SETTINGS);
   const [equalizerPreset, setEqualizerPreset] = useState('normal');
   const [audioEffects, setAudioEffects] = useState<AudioEffects | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentTrackRef = useRef<Track | null>(null);
+  const queueRef = useRef<Track[]>([]);
+  const playedTracksRef = useRef<Track[]>([]);
+  const unshuffledQueueRef = useRef<Track[] | null>(null);
   const shuffleRef = useRef<boolean>(false);
+
   currentTrackRef.current = currentTrack;
+  queueRef.current = queue;
+  playedTracksRef.current = playedTracks;
   shuffleRef.current = shuffle;
 
   const { toast } = useToast();
@@ -122,7 +181,10 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const savedQueue = localStorage.getItem('navidrome-audioQueue');
     if (savedQueue) {
       try {
-        setQueue(JSON.parse(savedQueue));
+        const parsed = JSON.parse(savedQueue) as Track[];
+        if (Array.isArray(parsed)) {
+          setQueue(ensureQueueIds(parsed));
+        }
       } catch (error) {
         console.error('Failed to parse saved queue:', error);
       }
@@ -134,7 +196,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       try {
         localStorage.setItem('navidrome-audioQueue', JSON.stringify(queue));
       } catch {}
-    }, 300);
+    }, 400);
     return () => clearTimeout(timer);
   }, [queue]);
 
@@ -168,7 +230,6 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const effects = new AudioEffects(audioElement);
       setAudioEffects(effects);
 
-      // Load saved audio settings
       const savedSettings = localStorage.getItem('navidrome-audio-settings');
       if (savedSettings) {
         try {
@@ -187,14 +248,10 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [audioEffects]);
 
-  // Save all audio-related settings
   const saveSettings = useCallback(() => {
     try {
-      // Save audio settings
       localStorage.setItem('navidrome-audio-settings', JSON.stringify(audioSettings));
-      // Save equalizer preset
       localStorage.setItem('navidrome-equalizer-preset', equalizerPreset);
-      // Save other playback settings
       const playbackSettings = {
         replayGainEnabled: audioSettings.replayGainEnabled,
         gaplessPlayback: audioSettings.gaplessPlayback,
@@ -208,12 +265,10 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [audioSettings, equalizerPreset]);
 
-  // Save settings whenever they change
   useEffect(() => {
     saveSettings();
   }, [audioSettings, equalizerPreset, saveSettings]);
 
-  // Update equalizer when preset changes
   useEffect(() => {
     if (audioEffects) {
       audioEffects.setPreset(equalizerPreset);
@@ -232,13 +287,11 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (!api) {
       throw new Error('Navidrome API not configured');
     }
-    
-    const streamUrl = api.getStreamUrlForSong(song);
-    
+
     return {
       id: song.id,
       name: song.title,
-      url: streamUrl,
+      url: api.getStreamUrlForSong(song),
       artist: song.artist,
       album: song.album,
       duration: song.duration,
@@ -255,52 +308,123 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     localStorage.removeItem('navidrome-current-track-time');
     const prevCurrent = currentTrackRef.current;
     if (prevCurrent) {
-      setPlayedTracks((prev) => [...prev, prevCurrent]);
+      setPlayedTracks((prev) => appendHistoryBounded(prev, prevCurrent));
     }
     setCurrentTrack({ ...track, autoPlay });
   }, []);
 
+  const playTracks = useCallback((tracks: Track[], startIndex: number = 0) => {
+    if (tracks.length === 0) return;
+    const safeStart = Math.max(0, Math.min(startIndex, tracks.length - 1));
+    const first = tracks[safeStart];
+    const remainingOrdered = tracks.slice(safeStart + 1).map(createFreshQueuedTrack);
+
+    playTrack(first, true);
+    if (shuffleRef.current) {
+      unshuffledQueueRef.current = remainingOrdered;
+      setQueue(fisherYatesShuffle(remainingOrdered));
+    } else {
+      unshuffledQueueRef.current = null;
+      setQueue(remainingOrdered);
+    }
+  }, [playTrack]);
+
   const addToQueue = useCallback((track: Track) => {
+    const queuedTrack = createFreshQueuedTrack(track);
+    if (unshuffledQueueRef.current) {
+      unshuffledQueueRef.current = [...unshuffledQueueRef.current, queuedTrack];
+    }
     setQueue((prevQueue) => {
       if (shuffleRef.current && prevQueue.length > 0) {
         const randomIndex = Math.floor(Math.random() * (prevQueue.length + 1));
         const newQueue = [...prevQueue];
-        newQueue.splice(randomIndex, 0, track);
+        newQueue.splice(randomIndex, 0, queuedTrack);
         return newQueue;
       }
-      return [...prevQueue, track];
+      return [...prevQueue, queuedTrack];
     });
   }, []);
 
   const addTracksToQueue = useCallback((tracks: Track[]) => {
     if (tracks.length === 0) return;
+    const queuedTracks = tracks.map(createFreshQueuedTrack);
+    if (unshuffledQueueRef.current) {
+      unshuffledQueueRef.current = [...unshuffledQueueRef.current, ...queuedTracks];
+    }
     setQueue((prevQueue) => {
       if (shuffleRef.current && prevQueue.length > 0) {
-        const newQueue = [...prevQueue];
-        for (const track of tracks) {
-          const randomIndex = Math.floor(Math.random() * (newQueue.length + 1));
-          newQueue.splice(randomIndex, 0, track);
-        }
-        return newQueue;
+        return fisherYatesShuffle([...prevQueue, ...queuedTracks]);
       }
-      return [...prevQueue, ...tracks];
+      return [...prevQueue, ...queuedTracks];
     });
   }, []);
 
   const insertAtBeginningOfQueue = useCallback((track: Track) => {
-    setQueue((prevQueue) => [track, ...prevQueue]);
+    const queuedTrack = createFreshQueuedTrack(track);
+    if (unshuffledQueueRef.current) {
+      unshuffledQueueRef.current = [queuedTrack, ...unshuffledQueueRef.current];
+    }
+    setQueue((prevQueue) => [queuedTrack, ...prevQueue]);
   }, []);
 
   const clearQueue = useCallback(() => {
+    unshuffledQueueRef.current = null;
     setQueue([]);
   }, []);
 
   const removeTrackFromQueue = useCallback((index: number) => {
-    setQueue((prevQueue) => prevQueue.filter((_, i) => i !== index));
+    setQueue((prevQueue) => {
+      if (index < 0 || index >= prevQueue.length) return prevQueue;
+      const removed = prevQueue[index];
+      if (removed?.queueId && unshuffledQueueRef.current) {
+        unshuffledQueueRef.current = unshuffledQueueRef.current.filter((t) => t.queueId !== removed.queueId);
+      }
+      return prevQueue.filter((_, i) => i !== index);
+    });
+  }, []);
+
+  const removeTrackByQueueId = useCallback((queueId: string) => {
+    if (unshuffledQueueRef.current) {
+      unshuffledQueueRef.current = unshuffledQueueRef.current.filter((t) => t.queueId !== queueId);
+    }
+    setQueue((prevQueue) => prevQueue.filter((t) => t.queueId !== queueId));
+  }, []);
+
+  const moveTrackToTopByQueueId = useCallback((queueId: string) => {
+    setQueue((prevQueue) => {
+      const idx = prevQueue.findIndex((t) => t.queueId === queueId);
+      if (idx <= 0) return prevQueue;
+      const next = [...prevQueue];
+      const [item] = next.splice(idx, 1);
+      next.unshift(item);
+      return next;
+    });
   }, []);
 
   const reorderQueue = useCallback((oldIndex: number, newIndex: number) => {
     setQueue((prevQueue) => {
+      if (
+        oldIndex === newIndex ||
+        oldIndex < 0 ||
+        newIndex < 0 ||
+        oldIndex >= prevQueue.length ||
+        newIndex >= prevQueue.length
+      ) {
+        return prevQueue;
+      }
+      const newQueue = [...prevQueue];
+      const [movedItem] = newQueue.splice(oldIndex, 1);
+      newQueue.splice(newIndex, 0, movedItem);
+      return newQueue;
+    });
+  }, []);
+
+  const reorderQueueByIds = useCallback((activeQueueId: string, overQueueId: string) => {
+    if (activeQueueId === overQueueId) return;
+    setQueue((prevQueue) => {
+      const oldIndex = prevQueue.findIndex((t) => t.queueId === activeQueueId);
+      const newIndex = prevQueue.findIndex((t) => t.queueId === overQueueId);
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return prevQueue;
       const newQueue = [...prevQueue];
       const [movedItem] = newQueue.splice(oldIndex, 1);
       newQueue.splice(newIndex, 0, movedItem);
@@ -310,29 +434,85 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const playNextTrack = useCallback(() => {
     localStorage.removeItem('navidrome-current-track-time');
-    
-    if (queue.length > 0) {
-      const nextTrack = queue[0];
+    const curQueue = queueRef.current;
+    if (curQueue.length > 0) {
+      const nextTrack = curQueue[0];
+      if (nextTrack.queueId && unshuffledQueueRef.current) {
+        unshuffledQueueRef.current = unshuffledQueueRef.current.filter((t) => t.queueId !== nextTrack.queueId);
+      }
       setQueue((prevQueue) => prevQueue.slice(1));
       playTrack(nextTrack, true);
     }
-  }, [queue, playTrack]);
+  }, [playTrack]);
 
   const playPreviousTrack = useCallback(() => {
     localStorage.removeItem('navidrome-current-track-time');
-    
-    if (playedTracks.length > 0) {
-      const previousTrack = playedTracks[playedTracks.length - 1];
-      setPlayedTracks((prevPlayedTracks) => prevPlayedTracks.slice(0, -1));
-      
+    const history = playedTracksRef.current;
+    if (history.length > 0) {
+      const previousTrack = history[history.length - 1];
+      setPlayedTracks((prev) => prev.slice(0, -1));
+
       const cur = currentTrackRef.current;
       if (cur) {
-        setQueue((prevQueue) => [cur, ...prevQueue]);
+        const requeued = ensureQueueId(cur);
+        setQueue((prevQueue) => [requeued, ...prevQueue]);
       }
-      
-      playTrack(previousTrack, true);
+
+      localStorage.removeItem('navidrome-current-track-time');
+      setCurrentTrack({ ...previousTrack, autoPlay: true });
     }
-  }, [playedTracks, playTrack]);
+  }, []);
+
+  const skipToTrackInQueue = useCallback((index: number) => {
+    const curQueue = queueRef.current;
+    if (index >= 0 && index < curQueue.length) {
+      const targetTrack = curQueue[index];
+      const skippedIds = new Set(curQueue.slice(0, index + 1).map((t) => t.queueId));
+      if (unshuffledQueueRef.current) {
+        unshuffledQueueRef.current = unshuffledQueueRef.current.filter((t) => !skippedIds.has(t.queueId));
+      }
+      setQueue((prevQueue) => prevQueue.slice(index + 1));
+      playTrack(targetTrack, true);
+    }
+  }, [playTrack]);
+
+  const skipToTrackByQueueId = useCallback((queueId: string) => {
+    const idx = queueRef.current.findIndex((t) => t.queueId === queueId);
+    if (idx !== -1) {
+      skipToTrackInQueue(idx);
+    }
+  }, [skipToTrackInQueue]);
+
+  const toggleShuffle = useCallback(() => {
+    const nextShuffle = !shuffleRef.current;
+    shuffleRef.current = nextShuffle;
+    setShuffle(nextShuffle);
+
+    const curQueue = queueRef.current;
+    if (curQueue.length <= 1) {
+      if (!nextShuffle) unshuffledQueueRef.current = null;
+      return;
+    }
+
+    if (nextShuffle) {
+      unshuffledQueueRef.current = [...curQueue];
+      setQueue(fisherYatesShuffle(curQueue));
+    } else if (unshuffledQueueRef.current) {
+      const remainingById = new Map(curQueue.map((t) => [t.queueId, t]));
+      const restored: Track[] = [];
+      for (const orig of unshuffledQueueRef.current) {
+        const match = remainingById.get(orig.queueId);
+        if (match) {
+          restored.push(match);
+          remainingById.delete(orig.queueId);
+        }
+      }
+      // Preserve any tracks inserted without an original snapshot entry
+      remainingById.forEach((extra) => restored.push(extra));
+      unshuffledQueueRef.current = null;
+      setQueue(restored);
+    }
+  }, []);
 
   const addAlbumToQueue = useCallback(async (albumId: string) => {
     if (!api) {
@@ -347,25 +527,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setIsLoading(true);
     try {
       const { album, songs } = await api.getAlbum(albumId);
-      const tracks = songs.map(songToTrack);
-      
-      setQueue((prevQueue) => {
-        if (shuffleRef.current && prevQueue.length > 0) {
-          const shuffledTracks = [...tracks];
-          for (let i = shuffledTracks.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
-          }
-          const newQueue = [...prevQueue];
-          shuffledTracks.forEach(track => {
-            const randomIndex = Math.floor(Math.random() * (newQueue.length + 1));
-            newQueue.splice(randomIndex, 0, track);
-          });
-          return newQueue;
-        }
-        return [...prevQueue, ...tracks];
-      });
-      
+      addTracksToQueue(songs.map(songToTrack));
+
       toastRef.current({
         title: "Album Added",
         description: `Added "${album.name}" to queue`,
@@ -380,7 +543,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  }, [api, songToTrack]);
+  }, [api, songToTrack, addTracksToQueue]);
 
   const addArtistToQueue = useCallback(async (artistId: string) => {
     if (!api) {
@@ -397,24 +560,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const { artist, albums } = await api.getArtist(artistId);
       const albumResponses = await Promise.all(albums.map((album) => api.getAlbum(album.id)));
       const allTracks = albumResponses.flatMap(({ songs }) => songs.map(songToTrack));
-      
-      setQueue((prevQueue) => {
-        if (shuffleRef.current && prevQueue.length > 0) {
-          const shuffledTracks = [...allTracks];
-          for (let i = shuffledTracks.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
-          }
-          const newQueue = [...prevQueue];
-          shuffledTracks.forEach(track => {
-            const randomIndex = Math.floor(Math.random() * (newQueue.length + 1));
-            newQueue.splice(randomIndex, 0, track);
-          });
-          return newQueue;
-        }
-        return [...prevQueue, ...allTracks];
-      });
-      
+      addTracksToQueue(allTracks);
+
       toastRef.current({
         title: "Artist Added",
         description: `Added all albums by "${artist.name}" to queue`,
@@ -429,7 +576,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  }, [api, songToTrack]);
+  }, [api, songToTrack, addTracksToQueue]);
 
   const playAlbum = useCallback(async (albumId: string) => {
     if (!api) {
@@ -445,19 +592,16 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       const { songs } = await api.getAlbum(albumId);
       const tracks = songs.map(songToTrack);
-      
       if (tracks.length > 0) {
         if (shuffleRef.current) {
-          const shuffledTracks = [...tracks];
-          for (let i = shuffledTracks.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
-          }
-          playTrack(shuffledTracks[0], true);
-          setQueue(shuffledTracks.slice(1));
+          const randomFirstIdx = Math.floor(Math.random() * tracks.length);
+          const first = tracks[randomFirstIdx];
+          const restOrdered = tracks.filter((_, idx) => idx !== randomFirstIdx).map(createFreshQueuedTrack);
+          unshuffledQueueRef.current = restOrdered;
+          playTrack(first, true);
+          setQueue(fisherYatesShuffle(restOrdered));
         } else {
-          playTrack(tracks[0], true);
-          setQueue(tracks.slice(1));
+          playTracks(tracks, 0);
         }
       }
     } catch (error) {
@@ -470,7 +614,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  }, [api, playTrack, songToTrack]);
+  }, [api, playTrack, playTracks, songToTrack]);
 
   const playAlbumFromTrack = useCallback(async (albumId: string, startingSongId: string) => {
     if (!api) {
@@ -487,25 +631,22 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const { album, songs } = await api.getAlbum(albumId);
       const tracks = songs.map(songToTrack);
       const startingIndex = tracks.findIndex(track => track.id === startingSongId);
-      
+
       if (startingIndex === -1) {
         throw new Error('Starting song not found in album');
       }
-      
+
       if (shuffleRef.current) {
-        const remainingTracks = [...tracks];
-        remainingTracks.splice(startingIndex, 1);
-        for (let i = remainingTracks.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [remainingTracks[i], remainingTracks[j]] = [remainingTracks[j], remainingTracks[i]];
-        }
-        setQueue(remainingTracks);
+        const restOrdered = tracks
+          .filter((_, idx) => idx !== startingIndex)
+          .map(createFreshQueuedTrack);
+        unshuffledQueueRef.current = restOrdered;
+        setQueue(fisherYatesShuffle(restOrdered));
         playTrack(tracks[startingIndex], true);
       } else {
-        setQueue(tracks.slice(startingIndex + 1));
-        playTrack(tracks[startingIndex], true);
+        playTracks(tracks, startingIndex);
       }
-      
+
       toastRef.current({
         title: "Playing Album",
         description: `Playing "${album.name}" from "${tracks[startingIndex].name}"${shuffleRef.current ? ' (shuffled)' : ''}`,
@@ -520,32 +661,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  }, [api, playTrack, songToTrack]);
-
-  const skipToTrackInQueue = useCallback((index: number) => {
-    if (index >= 0 && index < queue.length) {
-      const targetTrack = queue[index];
-      setQueue((prevQueue) => prevQueue.slice(index + 1));
-      playTrack(targetTrack, true);
-    }
-  }, [queue, playTrack]);
-
-  const toggleShuffle = useCallback(() => {
-    setShuffle(prev => {
-      const newShuffleState = !prev;
-      if (newShuffleState && queue.length > 0) {
-        setQueue(prevQueue => {
-          const shuffledQueue = [...prevQueue];
-          for (let i = shuffledQueue.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffledQueue[i], shuffledQueue[j]] = [shuffledQueue[j], shuffledQueue[i]];
-          }
-          return shuffledQueue;
-        });
-      }
-      return newShuffleState;
-    });
-  }, [queue.length]);
+  }, [api, playTrack, playTracks, songToTrack]);
 
   const shuffleAllAlbums = useCallback(async () => {
     if (!api) {
@@ -560,9 +676,15 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setIsLoading(true);
     try {
       const songs = await api.getRandomSongs(200);
-      const allTracks = songs.map(songToTrack);
-      setQueue(allTracks);
-      
+      const allTracks = songs.map(songToTrack).map(createFreshQueuedTrack);
+      unshuffledQueueRef.current = null;
+      if (allTracks.length > 0 && !currentTrackRef.current) {
+        playTrack(allTracks[0], true);
+        setQueue(allTracks.slice(1));
+      } else {
+        setQueue(allTracks);
+      }
+
       toastRef.current({
         title: "Shuffle All Albums",
         description: `Shuffled ${allTracks.length} tracks`,
@@ -577,7 +699,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  }, [api, songToTrack]);
+  }, [api, songToTrack, playTrack]);
 
   const playArtist = useCallback(async (artistId: string) => {
     if (!api) {
@@ -594,22 +716,20 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const { artist, albums } = await api.getArtist(artistId);
       const albumResponses = await Promise.all(albums.map((album) => api.getAlbum(album.id)));
       const allTracks = albumResponses.flatMap(({ songs }) => songs.map(songToTrack));
-      
+
       if (allTracks.length > 0) {
         if (shuffleRef.current) {
-          const shuffledTracks = [...allTracks];
-          for (let i = shuffledTracks.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
-          }
-          playTrack(shuffledTracks[0], true);
-          setQueue(shuffledTracks.slice(1));
+          const firstIdx = Math.floor(Math.random() * allTracks.length);
+          const first = allTracks[firstIdx];
+          const restOrdered = allTracks.filter((_, idx) => idx !== firstIdx).map(createFreshQueuedTrack);
+          unshuffledQueueRef.current = restOrdered;
+          playTrack(first, true);
+          setQueue(fisherYatesShuffle(restOrdered));
         } else {
-          playTrack(allTracks[0], true);
-          setQueue(allTracks.slice(1));
+          playTracks(allTracks, 0);
         }
       }
-      
+
       toastRef.current({
         title: "Playing Artist",
         description: `Now playing all albums by "${artist.name}"${shuffleRef.current ? ' (shuffled)' : ''}`,
@@ -624,7 +744,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } finally {
       setIsLoading(false);
     }
-  }, [api, songToTrack, playTrack]);
+  }, [api, songToTrack, playTrack, playTracks]);
 
   const clearHistory = useCallback(() => {
     setPlayedTracks([]);
@@ -636,7 +756,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       try {
         localStorage.setItem('navidrome-playedTracks', JSON.stringify(playedTracks));
       } catch {}
-    }, 300);
+    }, 400);
     return () => clearTimeout(timer);
   }, [playedTracks]);
 
@@ -644,21 +764,22 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const savedPlayedTracks = localStorage.getItem('navidrome-playedTracks');
     if (savedPlayedTracks) {
       try {
-        setPlayedTracks(JSON.parse(savedPlayedTracks));
+        const parsed = JSON.parse(savedPlayedTracks) as Track[];
+        if (Array.isArray(parsed)) {
+          setPlayedTracks(parsed.slice(-MAX_HISTORY));
+        }
       } catch (error) {
         console.error('Failed to parse saved played tracks:', error);
       }
     }
   }, []);
 
-  const [isPlaying, setIsPlaying] = useState(false);
-
   const togglePlayPause = useCallback(async () => {
     const audioElement = audioRef.current;
     if (!audioElement || !currentTrackRef.current) return;
 
     try {
-      if (isPlaying) {
+      if (!audioElement.paused) {
         audioElement.pause();
         setIsPlaying(false);
       } else {
@@ -673,10 +794,83 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         description: "Failed to control playback. Please try again.",
       });
     }
-  }, [isPlaying]);
+  }, []);
+
+  const toggleCurrentTrackStar = useCallback(async () => {
+    const cur = currentTrackRef.current;
+    if (!cur || !api) {
+      toastRef.current({
+        variant: "destructive",
+        title: "Error",
+        description: "No track currently playing or API not configured",
+      });
+      return;
+    }
+
+    const newStarredStatus = !cur.starred;
+    try {
+      if (newStarredStatus) {
+        await api.star(cur.id, 'song');
+      } else {
+        await api.unstar(cur.id, 'song');
+      }
+      setCurrentTrack((prev) => prev ? { ...prev, starred: newStarredStatus } : null);
+    } catch (error) {
+      console.error('Failed to update track starred status:', error);
+      toastRef.current({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update track favorite status",
+      });
+    }
+  }, [api]);
+
+  const updateTrackStarred = useCallback(async (trackId: string, starred: boolean) => {
+    if (!api) {
+      toastRef.current({
+        variant: "destructive",
+        title: "Configuration Required",
+        description: "Please configure Navidrome connection in settings",
+      });
+      return;
+    }
+
+    try {
+      if (starred) {
+        await api.star(trackId, 'song');
+      } else {
+        await api.unstar(trackId, 'song');
+      }
+
+      if (currentTrackRef.current?.id === trackId) {
+        setCurrentTrack((prev) => prev ? { ...prev, starred } : null);
+      }
+
+      setQueue((prev) => {
+        let changed = false;
+        const next = prev.map((track) => {
+          if (track.id !== trackId || track.starred === starred) return track;
+          changed = true;
+          return { ...track, starred };
+        });
+        return changed ? next : prev;
+      });
+    } catch (error) {
+      console.error('Failed to update track starred status:', error);
+      toastRef.current({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update track favorite status",
+      });
+    }
+  }, [api]);
+
+  const nextTrackUrl = queue.length > 0 ? queue[0].url : null;
+  const hasNextTrack = queue.length > 0;
 
   const actionsValue = useMemo<AudioPlayerActionsContextProps>(() => ({
     playTrack,
+    playTracks,
     addToQueue,
     addTracksToQueue,
     insertAtBeginningOfQueue,
@@ -689,6 +883,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     shuffleAllAlbums,
   }), [
     playTrack,
+    playTracks,
     addToQueue,
     addTracksToQueue,
     insertAtBeginningOfQueue,
@@ -701,29 +896,40 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     shuffleAllAlbums,
   ]);
 
-  const contextValue = useMemo(() => ({
-    currentTrack, 
-    playTrack, 
-    queue, 
-    addToQueue, 
+  const queueContextValue = useMemo<AudioQueueContextProps>(() => ({
+    queue,
+    playedTracks,
+  }), [queue, playedTracks]);
+
+  const contextValue = useMemo<AudioPlayerContextProps>(() => ({
+    currentTrack,
+    playTrack,
+    playTracks,
+    addToQueue,
+    addTracksToQueue,
     insertAtBeginningOfQueue,
-    playNextTrack, 
-    clearQueue, 
-    addAlbumToQueue, 
-    removeTrackFromQueue, 
+    playNextTrack,
+    clearQueue,
+    addAlbumToQueue,
+    removeTrackFromQueue,
+    removeTrackByQueueId,
+    moveTrackToTopByQueueId,
     reorderQueue,
-    addArtistToQueue, 
+    reorderQueueByIds,
+    addArtistToQueue,
     playPreviousTrack,
     isLoading,
     playAlbum,
     playAlbumFromTrack,
     skipToTrackInQueue,
+    skipToTrackByQueueId,
     shuffle,
     toggleShuffle,
     shuffleAllAlbums,
     playArtist,
-    playedTracks,
     clearHistory,
+    nextTrackUrl,
+    hasNextTrack,
     audioSettings,
     updateAudioSettings,
     equalizerPreset,
@@ -731,104 +937,54 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     audioEffects,
     isPlaying,
     togglePlayPause,
-    toggleCurrentTrackStar: async () => {
-      if (!currentTrack || !api) {
-        toastRef.current({
-          variant: "destructive",
-          title: "Error",
-          description: "No track currently playing or API not configured",
-        });
-        return;
-      }
-      
-      const newStarredStatus = !currentTrack.starred;
-      
-      try {
-        if (newStarredStatus) {
-          await api.star(currentTrack.id, 'song');
-        } else {
-          await api.unstar(currentTrack.id, 'song');
-        }
-        setCurrentTrack((prev) => prev ? { ...prev, starred: newStarredStatus } : null);
-      } catch (error) {
-        console.error('Failed to update track starred status:', error);
-        toastRef.current({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to update track favorite status",
-        });
-      }
-    },
-    updateTrackStarred: async (trackId: string, starred: boolean) => {
-      if (!api) {
-        toastRef.current({
-          variant: "destructive",
-          title: "Configuration Required",
-          description: "Please configure Navidrome connection in settings",
-        });
-        return;
-      }
-  
-      try {
-        if (starred) {
-          await api.star(trackId, 'song');
-        } else {
-          await api.unstar(trackId, 'song');
-        }
-        
-        if (currentTrack?.id === trackId) {
-          setCurrentTrack((prev) => prev ? { ...prev, starred } : null);
-        }
-        
-        setQueue((prev) => prev.map(track => 
-          track.id === trackId ? { ...track, starred } : track
-        ));
-      } catch (error) {
-        console.error('Failed to update track starred status:', error);
-        toastRef.current({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to update track favorite status",
-        });
-      }
-    }
+    toggleCurrentTrackStar,
+    updateTrackStarred,
   }), [
-    currentTrack, 
-    queue, 
-    isLoading, 
-    playTrack, 
-    addToQueue, 
+    currentTrack,
+    playTrack,
+    playTracks,
+    addToQueue,
+    addTracksToQueue,
     insertAtBeginningOfQueue,
-    playNextTrack, 
-    clearQueue, 
-    addAlbumToQueue, 
-    removeTrackFromQueue, 
+    playNextTrack,
+    clearQueue,
+    addAlbumToQueue,
+    removeTrackFromQueue,
+    removeTrackByQueueId,
+    moveTrackToTopByQueueId,
     reorderQueue,
-    addArtistToQueue, 
+    reorderQueueByIds,
+    addArtistToQueue,
     playPreviousTrack,
+    isLoading,
     playAlbum,
     playAlbumFromTrack,
     skipToTrackInQueue,
+    skipToTrackByQueueId,
     shuffle,
     toggleShuffle,
     shuffleAllAlbums,
     playArtist,
-    playedTracks,
     clearHistory,
-    api,
-    audioEffects,
+    nextTrackUrl,
+    hasNextTrack,
     audioSettings,
-    equalizerPreset,
     updateAudioSettings,
+    equalizerPreset,
     setEqualizerPreset,
+    audioEffects,
     isPlaying,
-    togglePlayPause
+    togglePlayPause,
+    toggleCurrentTrackStar,
+    updateTrackStarred,
   ]);
 
   return (
     <AudioPlayerActionsContext.Provider value={actionsValue}>
       <AudioPlayerContext.Provider value={contextValue}>
-        {children}
+        <AudioQueueContext.Provider value={queueContextValue}>
+          {children}
+        </AudioQueueContext.Provider>
       </AudioPlayerContext.Provider>
     </AudioPlayerActionsContext.Provider>
   );
@@ -846,6 +1002,14 @@ export const useAudioPlayerActions = () => {
   const context = useContext(AudioPlayerActionsContext);
   if (!context) {
     throw new Error('useAudioPlayerActions must be used within an AudioPlayerProvider');
+  }
+  return context;
+};
+
+export const useAudioQueue = () => {
+  const context = useContext(AudioQueueContext);
+  if (!context) {
+    throw new Error('useAudioQueue must be used within an AudioPlayerProvider');
   }
   return context;
 };

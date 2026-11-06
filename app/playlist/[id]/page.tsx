@@ -30,7 +30,7 @@ export default function PlaylistPage() {
   const [hoveredTrackId, setHoveredTrackId] = useState<string | null>(null);
 
   const { getPlaylist, starItem, unstarItem } = useNavidrome();
-  const { playTrack, addToQueue, currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
+  const { playTrack, playTracks, addToQueue, currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
   const api = getNavidromeAPI();
 
   useEffect(() => {
@@ -125,17 +125,17 @@ export default function PlaylistPage() {
 
   const handlePlayPlaylist = () => {
     if (!tracklist.length || !api) return;
-    const tracks = tracklist.map(songToTrack);
-    playTrack(tracks[0], true);
-    tracks.slice(1).forEach(track => addToQueue(track));
+    playTracks(tracklist.map(songToTrack), 0);
   };
 
   const handleShufflePlaylist = () => {
     if (!tracklist.length || !api) return;
-    const shuffled = [...tracklist].sort(() => Math.random() - 0.5);
-    const tracks = shuffled.map(songToTrack);
-    playTrack(tracks[0], true);
-    tracks.slice(1).forEach(track => addToQueue(track));
+    const shuffled = [...tracklist];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    playTracks(shuffled.map(songToTrack), 0);
   };
 
   const handleSongStar = async (song: Song) => {

@@ -38,7 +38,8 @@ export const AudioPlayer: React.FC = () => {
     addToQueue, 
     playNextTrack, 
     clearQueue, 
-    queue, 
+    nextTrackUrl,
+    hasNextTrack,
     toggleShuffle, 
     shuffle, 
     toggleCurrentTrackStar,
@@ -338,15 +339,6 @@ export const AudioPlayer: React.FC = () => {
       if (audioEffects && audioSettings.replayGainEnabled && currentTrack.replayGain) {
         audioEffects.setReplayGain(currentTrack.replayGain);
       }
-
-      // For gapless playback, start preloading the next track
-      if (audioSettings.gaplessPlayback && queue.length > 0) {
-        const nextTrack = queue[0];
-        if (preloadAudioCurrent && nextTrack) {
-          preloadAudioCurrent.src = nextTrack.url;
-          preloadAudioCurrent.load();
-        }
-      }
       
       // Clear any previous error handlers
       audioCurrent.onerror = null;
@@ -420,7 +412,19 @@ export const AudioPlayer: React.FC = () => {
       }
       }
     }
-  }, [currentTrack, onTrackStart, onTrackPlay, isMobile, audioInitialized, audioEffects, handleAudioError, audioSettings.gaplessPlayback, audioSettings.replayGainEnabled, audioSettings.crossfadeDuration, queue]);
+  }, [currentTrack, onTrackStart, onTrackPlay, isMobile, audioInitialized, audioEffects, handleAudioError, audioSettings.replayGainEnabled, audioSettings.crossfadeDuration]);
+
+  // Dedicated gapless preload effect — only updates when the immediate next URL changes
+  useEffect(() => {
+    const preloadAudioCurrent = preloadAudioRef.current;
+    if (!preloadAudioCurrent) return;
+    if (audioSettings.gaplessPlayback && nextTrackUrl) {
+      if (preloadAudioCurrent.src !== nextTrackUrl) {
+        preloadAudioCurrent.src = nextTrackUrl;
+        preloadAudioCurrent.load();
+      }
+    }
+  }, [nextTrackUrl, audioSettings.gaplessPlayback]);
 
   useEffect(() => {
     const audioCurrent = audioRef.current;
@@ -428,7 +432,10 @@ export const AudioPlayer: React.FC = () => {
 
     const updateProgress = () => {
       if (audioCurrent && currentTrack) {
-        setProgress((audioCurrent.currentTime / audioCurrent.duration) * 100);
+        // Only the mobile compact bar renders `progress`; avoid 4x/sec state churn on desktop
+        if (isMobile && audioCurrent.duration) {
+          setProgress((audioCurrent.currentTime / audioCurrent.duration) * 100);
+        }
         
         // Save current time every 10 seconds, but only if we've moved forward significantly
         const currentTime = audioCurrent.currentTime;
@@ -451,7 +458,7 @@ export const AudioPlayer: React.FC = () => {
         onTrackEnd(currentTrack, audioCurrent.currentTime, audioCurrent.duration);
 
         // If crossfade is enabled and we have more tracks in queue
-        if (audioSettings.crossfadeDuration > 0 && queue.length > 0 && audioEffects) {
+        if (audioSettings.crossfadeDuration > 0 && hasNextTrack && audioEffects) {
           // Start fading out current track
           audioEffects.setCrossfadeTime(audioSettings.crossfadeDuration);
         }
@@ -498,7 +505,7 @@ export const AudioPlayer: React.FC = () => {
         audioCurrent.removeEventListener('pause', handlePause);
       }
     };
-  }, [playNextTrack, currentTrack, onTrackProgress, onTrackEnd, onTrackPlay, onTrackPause, audioEffects, audioSettings.crossfadeDuration, queue.length]);
+  }, [playNextTrack, currentTrack, isMobile, onTrackProgress, onTrackEnd, onTrackPlay, onTrackPause, audioEffects, audioSettings.crossfadeDuration, hasNextTrack]);
 
   // Update document title and optionally show a notification when a new song starts
   useEffect(() => {

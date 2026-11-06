@@ -305,3 +305,278 @@ export async function extractAmbientColor(imageUrl: string, fallback = '#1f1d1c'
   return promise;
 }
 
+export interface MeshPalette {
+  base: string;
+  blob1: string;
+  blob2: string;
+  blob3: string;
+  blob4: string;
+}
+
+export const DEFAULT_MESH_PALETTE: MeshPalette = {
+  base: 'rgb(28, 22, 26)',
+  blob1: 'rgb(82, 46, 62)',
+  blob2: 'rgb(56, 38, 74)',
+  blob3: 'rgb(92, 54, 44)',
+  blob4: 'rgb(38, 30, 48)',
+};
+
+const meshPaletteCache = new Map<string, MeshPalette>();
+const meshPaletteInFlight = new Map<string, Promise<MeshPalette>>();
+
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = 0;
+  if (max === rn) {
+    h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
+  } else if (max === gn) {
+    h = ((bn - rn) / d + 2) / 6;
+  } else {
+    h = ((rn - gn) / d + 4) / 6;
+  }
+  return [h * 360, s, l];
+}
+
+function hslToRgbString(h: number, s: number, l: number): string {
+  const hue = ((h % 360) + 360) % 360;
+  const sat = Math.max(0, Math.min(1, s));
+  const light = Math.max(0, Math.min(1, l));
+
+  const c = (1 - Math.abs(2 * light - 1)) * sat;
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = light - c / 2;
+  let r1 = 0, g1 = 0, b1 = 0;
+
+  if (hue < 60) {
+    r1 = c; g1 = x; b1 = 0;
+  } else if (hue < 120) {
+    r1 = x; g1 = c; b1 = 0;
+  } else if (hue < 180) {
+    r1 = 0; g1 = c; b1 = x;
+  } else if (hue < 240) {
+    r1 = 0; g1 = x; b1 = c;
+  } else if (hue < 300) {
+    r1 = x; g1 = 0; b1 = c;
+  } else {
+    r1 = c; g1 = 0; b1 = x;
+  }
+
+  const r = Math.round((r1 + m) * 255);
+  const g = Math.round((g1 + m) * 255);
+  const b = Math.round((b1 + m) * 255);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+export function getCachedMeshPalette(imageUrl: string | null | undefined): MeshPalette | undefined {
+  if (!imageUrl) return undefined;
+  return meshPaletteCache.get(imageUrl);
+}
+
+/**
+ * Extract an Apple Music-style multi-stop fluid mesh palette from cover artwork.
+ * Samples spatial quadrants + vibrant accents from a tiny 32x32 canvas and normalizes
+ * saturation/luminance so white fullscreen lyrics always remain rich and legible.
+ */
+export async function extractMeshPalette(imageUrl: string): Promise<MeshPalette> {
+  const cached = meshPaletteCache.get(imageUrl);
+  if (cached) return cached;
+
+  const pending = meshPaletteInFlight.get(imageUrl);
+  if (pending) return pending;
+
+  const promise = new Promise<MeshPalette>((resolve) => {
+    try {
+      const img = document.createElement('img');
+      img.crossOrigin = 'anonymous';
+      img.decoding = 'async';
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (!ctx) {
+            resolve(DEFAULT_MESH_PALETTE);
+            return;
+          }
+
+          const size = 32;
+          canvas.width = size;
+          canvas.height = size;
+          ctx.drawImage(img, 0, 0, size, size);
+          const data = ctx.getImageData(0, 0, size, size).data;
+
+          // Accumulate weighted RGB for 4 quadrants + overall + top vibrant pixels
+          const quads = [
+            { r: 0, g: 0, b: 0, w: 0 },
+            { r: 0, g: 0, b: 0, w: 0 },
+            { r: 0, g: 0, b: 0, w: 0 },
+            { r: 0, g: 0, b: 0, w: 0 },
+          ];
+          let totalR = 0, totalG = 0, totalB = 0, totalW = 0;
+          let maxSat = 0;
+          let bestVibScore = -1;
+          let vibR = 80, vibG = 45, vibB = 60;
+          let secondVibScore = -1;
+          let vib2R = 60, vib2G = 40, vib2B = 75;
+          let bestVibHue = 0;
+
+          for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+              const idx = (y * size + x) * 4;
+              const a = data[idx + 3];
+              if (a < 128) continue;
+
+              const pr = data[idx];
+              const pg = data[idx + 1];
+              const pb = data[idx + 2];
+              const [h, s, l] = rgbToHsl(pr, pg, pb);
+
+              if (l > 0.08 && l < 0.92 && s > maxSat) {
+                maxSat = s;
+              }
+
+              // Weight chromatic mid-tone pixels higher so artwork accents shine through
+              const midToneWeight = 1 - Math.abs(l - 0.5) * 1.1;
+              const weight = Math.max(0.15, midToneWeight) * (1 + s * 3.0);
+
+              const qIndex = (y >= size / 2 ? 2 : 0) + (x >= size / 2 ? 1 : 0);
+              quads[qIndex].r += pr * weight;
+              quads[qIndex].g += pg * weight;
+              quads[qIndex].b += pb * weight;
+              quads[qIndex].w += weight;
+
+              totalR += pr * weight;
+              totalG += pg * weight;
+              totalB += pb * weight;
+              totalW += weight;
+
+              const vibScore = s * (1 - Math.abs(l - 0.48) * 1.35);
+              if (vibScore > bestVibScore) {
+                bestVibScore = vibScore;
+                vibR = pr;
+                vibG = pg;
+                vibB = pb;
+                bestVibHue = h;
+              }
+            }
+          }
+
+          // Second pass for a distinct secondary accent hue (at least ~25 deg apart if available)
+          for (let i = 0; i < data.length; i += 4) {
+            if (data[i + 3] < 128) continue;
+            const pr = data[i];
+            const pg = data[i + 1];
+            const pb = data[i + 2];
+            const [h, s, l] = rgbToHsl(pr, pg, pb);
+            const hueDiff = Math.min(Math.abs(h - bestVibHue), 360 - Math.abs(h - bestVibHue));
+            const vibScore = s * (1 - Math.abs(l - 0.48) * 1.35) * (hueDiff > 24 ? 1.35 : 0.7);
+            if (vibScore > secondVibScore && hueDiff > 15) {
+              secondVibScore = vibScore;
+              vib2R = pr;
+              vib2G = pg;
+              vib2B = pb;
+            }
+          }
+
+          if (totalW <= 0) {
+            resolve(DEFAULT_MESH_PALETTE);
+            return;
+          }
+
+          const avgR = totalR / totalW;
+          const avgG = totalG / totalW;
+          const avgB = totalB / totalW;
+          const [avgH, avgS, avgL] = rgbToHsl(avgR, avgG, avgB);
+          const isMonochrome = maxSat < 0.11;
+
+          const tuneBlob = (
+            r: number,
+            g: number,
+            b: number,
+            hueShift: number,
+            minLight: number,
+            maxLight: number,
+            satBoost = 1.35
+          ): string => {
+            const [h, s, l] = rgbToHsl(r, g, b);
+            if (isMonochrome) {
+              const monoL = Math.max(minLight * 0.75, Math.min(maxLight * 0.75, l * 0.55));
+              return hslToRgbString(avgH, Math.min(0.06, s), monoL);
+            }
+            const useHue = s < 0.08 ? avgH + hueShift : h + hueShift * 0.35;
+            const boostedS = Math.min(0.88, Math.max(0.38, (s < 0.12 ? Math.max(avgS, maxSat * 0.65) : s) * satBoost));
+            const clampedL = Math.max(minLight, Math.min(maxLight, l * 0.72 + 0.08));
+            return hslToRgbString(useHue, boostedS, clampedL);
+          };
+
+          const qColor = (idx: number) => {
+            const q = quads[idx];
+            return q.w > 0 ? [q.r / q.w, q.g / q.w, q.b / q.w] : [avgR, avgG, avgB];
+          };
+
+          const [q0r, q0g, q0b] = qColor(0);
+          const [q3r, q3g, q3b] = qColor(3);
+
+          const base = isMonochrome
+            ? hslToRgbString(avgH, Math.min(0.05, avgS), Math.max(0.10, Math.min(0.18, avgL * 0.38)))
+            : hslToRgbString(
+                bestVibScore > 0.18 ? bestVibHue : avgH,
+                Math.min(0.76, Math.max(0.36, Math.max(avgS, maxSat * 0.6) * 1.2)),
+                Math.max(0.15, Math.min(0.25, avgL * 0.42 + 0.06))
+              );
+
+          const blob1 = tuneBlob(
+            bestVibScore > 0.12 ? vibR : q0r,
+            bestVibScore > 0.12 ? vibG : q0g,
+            bestVibScore > 0.12 ? vibB : q0b,
+            0,
+            0.26,
+            0.42,
+            1.42
+          );
+          const blob2 = tuneBlob(
+            secondVibScore > 0.10 ? vib2R : q3r,
+            secondVibScore > 0.10 ? vib2G : q3g,
+            secondVibScore > 0.10 ? vib2B : q3b,
+            -18,
+            0.22,
+            0.38,
+            1.35
+          );
+          const blob3 = tuneBlob(q0r, q0g, q0b, 20, 0.24, 0.40, 1.28);
+          const blob4 = tuneBlob(q3r, q3g, q3b, -32, 0.16, 0.30, 1.22);
+
+          const palette: MeshPalette = { base, blob1, blob2, blob3, blob4 };
+          if (meshPaletteCache.size >= 500) {
+            const oldest = meshPaletteCache.keys().next().value;
+            if (oldest !== undefined) meshPaletteCache.delete(oldest);
+          }
+          meshPaletteCache.set(imageUrl, palette);
+          resolve(palette);
+        } catch {
+          resolve(DEFAULT_MESH_PALETTE);
+        }
+      };
+
+      img.onerror = () => resolve(DEFAULT_MESH_PALETTE);
+      img.src = imageUrl;
+    } catch {
+      resolve(DEFAULT_MESH_PALETTE);
+    }
+  }).finally(() => {
+    meshPaletteInFlight.delete(imageUrl);
+  });
+
+  meshPaletteInFlight.set(imageUrl, promise);
+  return promise;
+}
+
+

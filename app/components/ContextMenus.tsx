@@ -20,8 +20,7 @@ import {
   Share,
   Info
 } from 'lucide-react';
-import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
-import { Track } from '@/app/components/AudioPlayerContext';
+import { useAudioPlayer, useAudioPlayerActions, Track } from '@/app/components/AudioPlayerContext';
 
 interface TrackContextMenuProps {
   children: React.ReactNode;
@@ -46,7 +45,6 @@ export function TrackContextMenu({
     insertAtBeginningOfQueue,
     toggleCurrentTrackStar,
     currentTrack,
-    queue
   } = useAudioPlayer();
 
   const handlePlayTrack = () => {
@@ -148,7 +146,7 @@ export function AlbumContextMenu({
   albumId, 
   albumName 
 }: AlbumContextMenuProps) {
-  const { playAlbum, addAlbumToQueue } = useAudioPlayer();
+  const { playAlbum, addAlbumToQueue } = useAudioPlayerActions();
 
   const handlePlayAlbum = () => {
     playAlbum(albumId);
@@ -211,7 +209,7 @@ export function ArtistContextMenu({
   artistId, 
   artistName 
 }: ArtistContextMenuProps) {
-  const { playArtist, addArtistToQueue } = useAudioPlayer();
+  const { playArtist, addArtistToQueue } = useAudioPlayerActions();
 
   const handlePlayArtist = () => {
     playArtist(artistId);

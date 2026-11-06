@@ -1046,7 +1046,105 @@ button:focus-visible {
   -webkit-app-region: no-drag;
   app-region: no-drag;
 }
+
+/* Apple Music Fullscreen Fluid Mesh Gradient (GPU transform-only) */
+@keyframes apple-mesh-drift-1 {
+  0% {
+    transform: translate3d(-12%, -10%, 0) scale(1.05) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(14%, 8%, 0) scale(1.22) rotate(24deg);
+  }
+  100% {
+    transform: translate3d(-4%, 18%, 0) scale(1.1) rotate(-14deg);
+  }
+}
+
+@keyframes apple-mesh-drift-2 {
+  0% {
+    transform: translate3d(16%, -14%, 0) scale(1.15) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(-14%, 12%, 0) scale(0.96) rotate(-28deg);
+  }
+  100% {
+    transform: translate3d(8%, 16%, 0) scale(1.2) rotate(18deg);
+  }
+}
+
+@keyframes apple-mesh-drift-3 {
+  0% {
+    transform: translate3d(-10%, 16%, 0) scale(1.12) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(18%, -12%, 0) scale(1.25) rotate(20deg);
+  }
+  100% {
+    transform: translate3d(-16%, -6%, 0) scale(1.02) rotate(-22deg);
+  }
+}
+
+@keyframes apple-mesh-drift-4 {
+  0% {
+    transform: translate3d(12%, 14%, 0) scale(1.08) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(-16%, -14%, 0) scale(1.24) rotate(-18deg);
+  }
+  100% {
+    transform: translate3d(6%, -8%, 0) scale(1.12) rotate(26deg);
+  }
+}
+
+.apple-mesh-blob-1 {
+  animation: apple-mesh-drift-1 24s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.apple-mesh-blob-2 {
+  animation: apple-mesh-drift-2 29s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.apple-mesh-blob-3 {
+  animation: apple-mesh-drift-3 33s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.apple-mesh-blob-4 {
+  animation: apple-mesh-drift-4 27s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.apple-lyrics-mask {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.85) 10%,
+    #000 18%,
+    #000 82%,
+    rgba(0, 0, 0, 0.85) 90%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.85) 10%,
+    #000 18%,
+    #000 82%,
+    rgba(0, 0, 0, 0.85) 90%,
+    transparent 100%
+  );
+}
+
+.apple-lyrics-scroll,
+.apple-lyrics-scroll [data-radix-scroll-area-viewport] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.apple-lyrics-scroll::-webkit-scrollbar,
+.apple-lyrics-scroll [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  display: none !important;
+}
 /* 
+
 
 .dark {
   --background: oklch(0.145 0 0);
