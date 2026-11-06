@@ -113,6 +113,7 @@ interface AudioPlayerContextProps {
   audioEffects: AudioEffects | null;
   // Playback state
   isPlaying: boolean;
+  setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   togglePlayPause: () => Promise<void>;
   // Minimized / compact player state
   isMinimized: boolean;
@@ -964,6 +965,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setEqualizerPreset,
     audioEffects,
     isPlaying,
+    setIsPlaying,
     togglePlayPause,
     toggleCurrentTrackStar,
     updateTrackStarred,

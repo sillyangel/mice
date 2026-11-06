@@ -11,7 +11,7 @@ import { Play, Heart, Music, Shuffle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { UserProfile } from './UserProfile';
-import { extractCardColors, getCachedCardColors, DEFAULT_CARD_COLORS, CardColors } from '@/lib/image-utils';
+import { extractDominantColor } from '@/lib/image-utils';
 
 interface SongRecommendationsProps {
   userName?: string;
@@ -31,20 +31,22 @@ const RecommendationSongItem = React.memo(function RecommendationSongItem({
   formatDuration: (duration: number) => string;
 }) {
   const coverUrl = song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 120) : null;
-  const [colors, setColors] = useState<CardColors>(() => getCachedCardColors(coverUrl) || DEFAULT_CARD_COLORS);
+  const [dominantColor, setDominantColor] = useState<string | null>(null);
   const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
-    if (!coverUrl) return;
-    const cached = getCachedCardColors(coverUrl);
-    if (cached) {
-      setColors(cached);
+    if (!coverUrl) {
+      setDominantColor(null);
       return;
     }
     let cancelled = false;
-    extractCardColors(coverUrl).then((res) => {
-      if (!cancelled) setColors(res);
-    });
+    extractDominantColor(coverUrl)
+      .then((color) => {
+        if (!cancelled) setDominantColor(color);
+      })
+      .catch(() => {
+        if (!cancelled) setDominantColor(null);
+      });
     return () => {
       cancelled = true;
     };
@@ -56,20 +58,30 @@ const RecommendationSongItem = React.memo(function RecommendationSongItem({
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onPlay(song)}
       style={{
-        background: isHovered ? colors.hoverBg : colors.bg,
-        borderColor: isHovered ? colors.hoverBorder : colors.border,
-        boxShadow: isHovered ? colors.glow : '0 2px 8px rgba(0, 0, 0, 0.25)',
-        transition: 'background 300ms ease, border-color 300ms ease, box-shadow 300ms ease, transform 200ms ease',
+        backgroundColor: dominantColor
+          ? `${dominantColor.replace('rgb', 'rgba').replace(')', isHovered ? ', 0.45)' : ', 0.22)')}`
+          : isHovered ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.04)',
+        borderColor: dominantColor
+          ? `${dominantColor.replace('rgb', 'rgba').replace(')', isHovered ? ', 0.50)' : ', 0.25)')}`
+          : isHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+        boxShadow: dominantColor
+          ? isHovered
+            ? `0 10px 24px -4px ${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.40)')}`
+            : `0 4px 14px -4px ${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.22)')}`
+          : isHovered ? '0 8px 24px -4px rgba(0, 0, 0, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.25)',
+        transition: 'background-color 300ms ease, border-color 300ms ease, box-shadow 300ms ease, transform 200ms ease',
       }}
       className="group relative cursor-pointer flex items-center p-2.5 rounded-xl border backdrop-blur-md hover:scale-[1.015] active:scale-[0.99] overflow-hidden select-none"
     >
-      {/* Subtle ambient glow */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-40 group-hover:opacity-75 transition-opacity duration-300"
-        style={{
-          background: `radial-gradient(circle at 10% 50%, ${colors.accent}22 0%, transparent 70%)`,
-        }}
-      />
+      {/* Subtle ambient glow matching the cover */}
+      {dominantColor && (
+        <div
+          className="absolute inset-0 pointer-events-none opacity-40 group-hover:opacity-75 transition-opacity duration-300"
+          style={{
+            background: `radial-gradient(circle at 10% 50%, ${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.25)')} 0%, transparent 70%)`,
+          }}
+        />
+      )}
 
       {/* Album Artwork */}
       <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted/60 flex-shrink-0 shadow-md">

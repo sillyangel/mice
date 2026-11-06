@@ -3,42 +3,176 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAudioPlayer } from './AudioPlayerContext';
 import { 
   FaPlay, 
   FaPause, 
   FaExpand, 
-  FaForward, 
-  FaBackward, 
+  FaBackwardStep, 
+  FaForwardStep, 
   FaVolumeHigh, 
   FaVolumeXmark, 
-  FaShuffle 
+  FaVolumeLow,
+  FaShuffle,
+  FaRepeat,
+  FaListUl,
+  FaEllipsis
 } from 'react-icons/fa6';
-import { Heart } from 'lucide-react';
 import { extractDominantColor } from '@/lib/image-utils';
 
 interface DraggableMiniPlayerProps {
   onExpand?: () => void;
+  isPlaying?: boolean;
+  onTogglePlayPause?: () => void;
 }
 
-export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpand }) => {
+export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ 
+  onExpand,
+  isPlaying: isPlayingProp,
+  onTogglePlayPause
+}) => {
+  const router = useRouter();
   const { 
     currentTrack, 
     playPreviousTrack, 
     playNextTrack,
-    toggleCurrentTrackStar,
-    isPlaying,
-    togglePlayPause,
     shuffle,
     toggleShuffle,
-    setIsMinimized
+    setIsMinimized,
+    toggleCurrentTrackStar
   } = useAudioPlayer();
 
   const [dominantColor, setDominantColor] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [volume, setVolume] = useState(1);
+  const [isHoveringScrubber, setIsHoveringScrubber] = useState(false);
   const volumeContainerRef = useRef<HTMLDivElement>(null);
+  const scrubberRef = useRef<HTMLDivElement>(null);
+
+  // Sync isPlaying directly with prop and native audio element events
+  const [isPlayingState, setIsPlayingState] = useState(() => {
+    if (isPlayingProp !== undefined) return isPlayingProp;
+    const audio = typeof document !== 'undefined' ? document.querySelector('audio') : null;
+    return audio ? (!audio.paused && !audio.ended && audio.currentTime > 0) : false;
+  });
+
+  useEffect(() => {
+    if (isPlayingProp !== undefined) {
+      setIsPlayingState(isPlayingProp);
+    }
+  }, [isPlayingProp]);
+
+  // Audio element listeners for play/pause and progress synchronization
+  useEffect(() => {
+    const audio = document.querySelector('audio');
+    if (!audio) return;
+
+    const onPlay = () => setIsPlayingState(true);
+    const onPause = () => setIsPlayingState(false);
+
+    // Initial check from actual DOM audio element
+    if (!audio.paused && !audio.ended && audio.currentTime > 0) {
+      setIsPlayingState(true);
+    }
+
+    const updateTime = () => {
+      const cur = audio.currentTime || 0;
+      const dur = audio.duration || currentTrack?.duration || 0;
+      setCurrentTime(cur);
+      setDuration(dur);
+      if (dur > 0) {
+        setProgress((cur / dur) * 100);
+      }
+    };
+
+    const updateVolume = () => {
+      setVolume(audio.volume);
+    };
+
+    updateTime();
+    updateVolume();
+
+    audio.addEventListener('play', onPlay);
+    audio.addEventListener('playing', onPlay);
+    audio.addEventListener('pause', onPause);
+    audio.addEventListener('ended', onPause);
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', updateTime);
+    audio.addEventListener('durationchange', updateTime);
+    audio.addEventListener('volumechange', updateVolume);
+
+    return () => {
+      audio.removeEventListener('play', onPlay);
+      audio.removeEventListener('playing', onPlay);
+      audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('ended', onPause);
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('loadedmetadata', updateTime);
+      audio.removeEventListener('durationchange', updateTime);
+      audio.removeEventListener('volumechange', updateVolume);
+    };
+  }, [currentTrack]);
+
+  // Loop / Repeat state with localStorage persistence
+  const [isLooping, setIsLooping] = useState(() => {
+    try {
+      return localStorage.getItem('player-loop') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleLoop = useCallback(() => {
+    setIsLooping((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('player-loop', String(next));
+      } catch {}
+      const audio = document.querySelector('audio');
+      if (audio) {
+        audio.loop = next;
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const audio = document.querySelector('audio');
+    if (audio) {
+      audio.loop = isLooping;
+    }
+  }, [isLooping, currentTrack]);
+
+  const handleTogglePlayPause = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (onTogglePlayPause) {
+      await onTogglePlayPause();
+      const audio = document.querySelector('audio');
+      if (audio) {
+        setIsPlayingState(!audio.paused);
+      }
+      return;
+    }
+
+    const audio = document.querySelector('audio');
+    if (audio) {
+      if (audio.paused) {
+        try {
+          await audio.play();
+          setIsPlayingState(true);
+        } catch (err) {
+          console.error('Play failed:', err);
+        }
+      } else {
+        audio.pause();
+        setIsPlayingState(false);
+      }
+    }
+  };
 
   const handleExpand = useCallback(() => {
     if (onExpand) {
@@ -57,40 +191,8 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
     
     extractDominantColor(currentTrack.coverArt)
       .then(color => setDominantColor(color))
-      .catch(error => {
-        console.error('Failed to extract color:', error);
-        setDominantColor(null);
-      });
+      .catch(() => setDominantColor(null));
   }, [currentTrack?.coverArt]);
-
-  // Track progress and volume from main audio player via native media events
-  useEffect(() => {
-    const audioElement = document.querySelector('audio') as HTMLAudioElement | null;
-    if (!audioElement) return;
-
-    const updateProgress = () => {
-      if (audioElement.duration && !isNaN(audioElement.duration)) {
-        setProgress((audioElement.currentTime / audioElement.duration) * 100);
-      }
-    };
-
-    const updateVolume = () => {
-      setVolume(audioElement.volume);
-    };
-
-    updateProgress();
-    updateVolume();
-
-    audioElement.addEventListener('timeupdate', updateProgress);
-    audioElement.addEventListener('loadedmetadata', updateProgress);
-    audioElement.addEventListener('volumechange', updateVolume);
-
-    return () => {
-      audioElement.removeEventListener('timeupdate', updateProgress);
-      audioElement.removeEventListener('loadedmetadata', updateProgress);
-      audioElement.removeEventListener('volumechange', updateVolume);
-    };
-  }, [currentTrack]);
 
   // Close volume popover when clicking outside
   useEffect(() => {
@@ -107,33 +209,41 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
     };
   }, [showVolumeSlider]);
 
-  // Seeking in track via the top hairline scrubber
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Seeking in track via the scrubber line
+  const handleScrubberClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    const audioElement = document.querySelector('audio') as HTMLAudioElement | null;
-    if (!audioElement || !audioElement.duration) return;
-    
-    const rect = e.currentTarget.getBoundingClientRect();
+    const audio = document.querySelector('audio');
+    const totalDuration = audio?.duration || duration || currentTrack?.duration || 0;
+    if (!audio || !totalDuration || !scrubberRef.current) return;
+
+    const rect = scrubberRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const ratio = Math.max(0, Math.min(1, clickX / rect.width));
-    audioElement.currentTime = ratio * audioElement.duration;
+    const newTime = ratio * totalDuration;
+    audio.currentTime = newTime;
+    setCurrentTime(newTime);
     setProgress(ratio * 100);
   };
-  
+
   // Handle volume change
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const audioElement = document.querySelector('audio') as HTMLAudioElement | null;
-    if (!audioElement) return;
+    const audio = document.querySelector('audio');
+    if (!audio) return;
     
     const newVolume = parseFloat(e.target.value);
-    audioElement.volume = newVolume;
+    audio.volume = newVolume;
     setVolume(newVolume);
     
     try {
       localStorage.setItem('navidrome-volume', newVolume.toString());
-    } catch (error) {
-      console.error('Failed to save volume:', error);
-    }
+    } catch {}
+  };
+
+  const formatTime = (seconds: number): string => {
+    if (isNaN(seconds) || seconds < 0) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -146,46 +256,117 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
 
   if (!currentTrack) return null;
 
+  const remainingTime = Math.max(0, duration - currentTime);
+
   return (
     <div 
-      className="fixed bottom-3 left-4 right-4 z-50 select-none"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 select-none w-[calc(100%-2rem)] max-w-[680px]"
       onDoubleClick={handleDoubleClick}
     >
       <div 
-        className="relative overflow-hidden backdrop-blur-xl border rounded-xl shadow-2xl transition-all duration-300 hover:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.6)]"
+        className="relative overflow-hidden backdrop-blur-2xl border rounded-full shadow-2xl transition-all duration-300 px-4 h-[52px] flex items-center justify-between gap-2.5"
         style={{
           backgroundColor: dominantColor 
-            ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.70)')}` 
-            : 'rgba(20, 21, 23, 0.92)',
+            ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.65)')}` 
+            : 'rgba(24, 23, 22, 0.90)',
           borderColor: dominantColor 
             ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.35)')}` 
             : 'rgba(255, 255, 255, 0.12)',
           boxShadow: dominantColor
-            ? `0 12px 32px -8px ${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.45)')}`
-            : undefined,
+            ? `0 16px 40px -8px ${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.45)')}, 0 8px 24px rgba(0,0,0,0.6)`
+            : '0 16px 40px -8px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.5)',
         }}
       >
-        {/* Apple Music Hairline Progress Scrubber at Top Edge */}
-        <div 
-          className="relative w-full h-[3px] bg-white/10 hover:h-[5px] cursor-pointer group/progress transition-all duration-150"
-          onClick={handleProgressClick}
-          title="Seek track"
-        >
-          <div 
-            className="h-full bg-white/90 group-hover/progress:bg-primary transition-[width] duration-75 relative"
-            style={{ width: `${progress}%` }}
+        {/* Left Side: Playback Controls */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {/* Shuffle Button: Cyan when on, muted when off */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleShuffle();
+            }}
+            className={`p-1.5 rounded-full transition-colors active:scale-95 ${
+              shuffle 
+                ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(34,211,238,0.55)]' 
+                : 'text-white/60 hover:text-white'
+            }`}
+            title={shuffle ? 'Shuffle On' : 'Shuffle Off'}
           >
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white opacity-0 group-hover/progress:opacity-100 transition-opacity shadow-sm" />
-          </div>
+            <FaShuffle className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Previous Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              playPreviousTrack();
+            }}
+            className="p-1.5 text-white/80 hover:text-white active:scale-95 transition-colors"
+            title="Previous Track"
+          >
+            <FaBackwardStep className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Play / Pause Button */}
+          <button
+            onClick={handleTogglePlayPause}
+            className="p-1.5 text-white hover:scale-105 active:scale-95 transition-transform"
+            title={isPlayingState ? 'Pause' : 'Play'}
+          >
+            {isPlayingState ? (
+              <FaPause className="w-4 h-4" />
+            ) : (
+              <FaPlay className="w-4 h-4 ml-0.5" />
+            )}
+          </button>
+
+          {/* Next Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              playNextTrack();
+            }}
+            className="p-1.5 text-white/80 hover:text-white active:scale-95 transition-colors"
+            title="Next Track"
+          >
+            <FaForwardStep className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Loop / Repeat Button: Cyan when on, muted when off */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleLoop();
+            }}
+            className={`p-1.5 rounded-full transition-colors active:scale-95 ${
+              isLooping 
+                ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(34,211,238,0.55)]' 
+                : 'text-white/60 hover:text-white'
+            }`}
+            title={isLooping ? 'Repeat On' : 'Repeat Off'}
+          >
+            <FaRepeat className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        {/* Apple Music Compact Bar Row */}
-        <div className="flex items-center justify-between px-3.5 py-1.5 h-11 gap-3">
-          {/* Left: Album Artwork + Track Info */}
-          <div className="flex items-center min-w-0 flex-1 max-w-[35%] gap-2.5">
+        {/* Center: Track Display & Interactive Apple Music Scrubber */}
+        <div 
+          className="flex-1 min-w-0 max-w-[340px] mx-1 relative h-10 flex flex-col justify-center px-1 group/scrubber cursor-pointer"
+          onMouseEnter={() => setIsHoveringScrubber(true)}
+          onMouseLeave={() => setIsHoveringScrubber(false)}
+          onClick={handleScrubberClick}
+          ref={scrubberRef}
+        >
+          {/* Normal State: Album Artwork, Title, and Artist/Album */}
+          <div className={`flex items-center gap-2 transition-all duration-200 ${
+            isHoveringScrubber ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+          }`}>
             <div 
-              className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={handleExpand}
+              className="relative w-7 h-7 rounded-md overflow-hidden shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleExpand();
+              }}
               title="Expand player"
             >
               <Image
@@ -198,131 +379,99 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
                 alt={currentTrack.name}
                 fill
                 className="object-cover"
-                sizes="32px"
+                sizes="28px"
                 priority
               />
             </div>
 
-            <div className="flex flex-col min-w-0">
-              <Link
-                href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
-                onClick={(e) => e.stopPropagation()}
-                className="font-semibold text-xs text-white truncate block hover:underline leading-tight transition-colors"
-                title={`Go to album: ${currentTrack.album || currentTrack.name}`}
+            <div className="flex flex-col min-w-0 flex-1">
+              <span 
+                className="font-semibold text-xs text-white truncate leading-tight block hover:underline"
+                title={currentTrack.name}
               >
                 {currentTrack.name}
-              </Link>
-              <Link
-                href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-[11px] text-white/70 hover:text-white truncate block hover:underline leading-tight transition-colors"
-                title={`Go to artist: ${currentTrack.artist}`}
+              </span>
+              <span 
+                className="text-[11px] text-white/60 truncate leading-tight block"
+                title={`${currentTrack.artist} — ${currentTrack.album || currentTrack.name}`}
               >
-                {currentTrack.artist}
-              </Link>
+                {currentTrack.artist} — {currentTrack.album || currentTrack.name}
+              </span>
             </div>
           </div>
 
-          {/* Center: Apple Music-style Controls */}
-          <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-shrink-0">
-            {/* Shuffle */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleShuffle();
-              }}
-              className={`p-1.5 rounded-full transition-colors ${
-                shuffle 
-                  ? 'text-primary bg-primary/20' 
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
-              }`}
-              title={shuffle ? 'Shuffle On' : 'Shuffle Off'}
-            >
-              <FaShuffle className="w-3 h-3" />
-            </button>
-
-            {/* Previous */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                playPreviousTrack();
-              }}
-              className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors active:scale-95"
-              title="Previous Track"
-            >
-              <FaBackward className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Play / Pause */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePlayPause();
-              }}
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white transition-all shadow-sm"
-              title={isPlaying ? 'Pause' : 'Play'}
-            >
-              {isPlaying ? (
-                <FaPause className="w-3 h-3" />
-              ) : (
-                <FaPlay className="w-3 h-3 ml-0.5" />
-              )}
-            </button>
-
-            {/* Next */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                playNextTrack();
-              }}
-              className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors active:scale-95"
-              title="Next Track"
-            >
-              <FaForward className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Star / Favorite */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleCurrentTrackStar();
-              }}
-              className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-              title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              <Heart
-                className={`w-3.5 h-3.5 ${
-                  currentTrack.starred ? 'text-primary fill-primary' : ''
-                }`}
+          {/* Normal State: Sleek Hairline Scrubber below track metadata */}
+          <div className={`w-full transition-opacity duration-200 mt-1 ${
+            isHoveringScrubber ? 'opacity-0' : 'opacity-100'
+          }`}>
+            <div className="w-full h-[2.5px] bg-white/20 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-white rounded-full transition-[width] duration-75"
+                style={{ width: `${progress}%` }}
               />
-            </button>
+            </div>
           </div>
 
-          {/* Right: Volume & Expand */}
-          <div className="flex items-center justify-end gap-1.5 flex-1 max-w-[35%]">
-            {/* Volume */}
-            <div className="relative" ref={volumeContainerRef}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowVolumeSlider((prev) => !prev);
-                }}
-                className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                title="Volume"
-              >
-                {volume === 0 ? (
-                  <FaVolumeXmark className="w-3.5 h-3.5" />
-                ) : (
-                  <FaVolumeHigh className="w-3.5 h-3.5" />
-                )}
-              </button>
+          {/* Hover State: Scrubber Bar with Current Time on Left and Remaining Time on Right */}
+          <div className={`absolute inset-0 flex items-center justify-between gap-2.5 transition-all duration-200 ${
+            isHoveringScrubber ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
+          }`}>
+            <span className="text-[11px] font-medium text-white/90 tabular-nums select-none shrink-0 w-8 text-left">
+              {formatTime(currentTime)}
+            </span>
 
-              {/* Volume Popover */}
-              {showVolumeSlider && (
-                <div 
-                  className="absolute bottom-full right-0 mb-2 p-2.5 bg-background/95 backdrop-blur-md border border-white/15 rounded-lg shadow-xl z-50 flex items-center"
-                  onClick={(e) => e.stopPropagation()}
-                >
+            <div className="flex-1 h-[4px] bg-white/25 rounded-full overflow-hidden relative">
+              <div 
+                className="h-full bg-white rounded-full shadow-sm transition-[width] duration-75"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+
+            <span className="text-[11px] font-medium text-white/90 tabular-nums select-none shrink-0 w-9 text-right">
+              -{formatTime(remainingTime)}
+            </span>
+          </div>
+        </div>
+
+        {/* Right Side: Options, Queue, Volume, Expand */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* More options (...) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleCurrentTrackStar();
+            }}
+            className="p-1.5 text-white/60 hover:text-white transition-colors"
+            title={currentTrack.starred ? 'Starred' : 'More'}
+          >
+            <FaEllipsis className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Queue Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push('/queue');
+            }}
+            className="p-1.5 text-white/60 hover:text-white transition-colors"
+            title="Queue"
+          >
+            <FaListUl className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Volume Control with Popover / Inline Slider */}
+          <div className="relative flex items-center" ref={volumeContainerRef}>
+            {/* Inline Volume Capsule */}
+            {showVolumeSlider && (
+              <div 
+                className="mr-1.5 px-2 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="relative w-16 sm:w-20 h-1.5 bg-white/25 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-white rounded-full" 
+                    style={{ width: `${volume * 100}%` }}
+                  />
                   <input
                     type="range"
                     min="0"
@@ -330,24 +479,42 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
                     step="0.01"
                     value={volume}
                     onChange={handleVolumeChange}
-                    className="w-24 accent-primary cursor-pointer"
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    title={`Volume: ${Math.round(volume * 100)}%`}
                   />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Expand button */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleExpand();
+                setShowVolumeSlider((prev) => !prev);
               }}
-              className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-              title="Expand player"
+              className="p-1.5 text-white/70 hover:text-white transition-colors"
+              title="Volume"
             >
-              <FaExpand className="w-3.5 h-3.5" />
+              {volume === 0 ? (
+                <FaVolumeXmark className="w-3.5 h-3.5" />
+              ) : volume < 0.5 ? (
+                <FaVolumeLow className="w-3.5 h-3.5" />
+              ) : (
+                <FaVolumeHigh className="w-3.5 h-3.5" />
+              )}
             </button>
           </div>
+
+          {/* Expand to Normal Player Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleExpand();
+            }}
+            className="p-1.5 text-white/60 hover:text-white transition-colors"
+            title="Expand player"
+          >
+            <FaExpand className="w-3 h-3" />
+          </button>
         </div>
       </div>
     </div>

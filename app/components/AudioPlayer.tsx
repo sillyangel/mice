@@ -49,7 +49,8 @@ export const AudioPlayer: React.FC = () => {
     setEqualizerPreset,
     audioEffects,
     isMinimized,
-    setIsMinimized
+    setIsMinimized,
+    setIsPlaying: setContextIsPlaying
   } = useAudioPlayer();
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -71,6 +72,11 @@ export const AudioPlayer: React.FC = () => {
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isClient, setIsClient] = useState(false);
+
+  // Keep AudioPlayerContext isPlaying in sync with audio element state
+  useEffect(() => {
+    setContextIsPlaying(isPlaying);
+  }, [isPlaying, setContextIsPlaying]);
   // Notifications and title management
   const [lastNotifiedTrackId, setLastNotifiedTrackId] = useState<string | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -963,7 +969,11 @@ export const AudioPlayer: React.FC = () => {
   if (isMinimized) {
     return (
       <>
-        <DraggableMiniPlayer onExpand={() => setIsMinimized(false)} />
+        <DraggableMiniPlayer 
+          onExpand={() => setIsMinimized(false)}
+          isPlaying={isPlaying}
+          onTogglePlayPause={togglePlayPause}
+        />
         
         {/* Single audio element - shared across all UI states */}
         <audio 
