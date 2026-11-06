@@ -351,102 +351,104 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
 
         {/* Center: Track Display & Interactive Apple Music Scrubber */}
         <div 
-          className="flex-1 min-w-0 max-w-[340px] mx-1 relative h-10 flex flex-col justify-center px-1 group/scrubber cursor-pointer"
+          className="flex-1 min-w-0 max-w-[420px] mx-1 relative h-11 flex flex-col justify-center px-1.5 group/scrubber cursor-pointer"
           onMouseEnter={() => setIsHoveringScrubber(true)}
           onMouseLeave={() => setIsHoveringScrubber(false)}
           onClick={handleScrubberClick}
           ref={scrubberRef}
         >
-          {/* Normal State: Album Artwork, Title, and Artist/Album */}
-          <div className={`flex items-center gap-2 transition-all duration-200 ${
-            isHoveringScrubber ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
-          }`}>
-            <div 
-              className="relative w-7 h-7 rounded-md overflow-hidden shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+          {/* Main Info Layer: Artwork, Title/Artist, and Ellipsis (...) button
+              On hover: softly blurs and fades slightly (blur-[1.5px] opacity-35), remaining exactly in place */}
+          <div className="flex items-center justify-between gap-2 transition-all duration-200">
+            {/* Artwork + Title/Artist block */}
+            <div className={`flex items-center gap-2 min-w-0 flex-1 transition-all duration-200 ${
+              isHoveringScrubber ? 'filter blur-[2px] opacity-30 select-none' : 'opacity-100'
+            }`}>
+              <div 
+                className="relative w-7 h-7 rounded-md overflow-hidden shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleExpand();
+                }}
+                title="Expand player"
+              >
+                <Image
+                  src={
+                    currentTrack.coverArt && 
+                    (currentTrack.coverArt.startsWith('http') || currentTrack.coverArt.startsWith('/'))
+                      ? currentTrack.coverArt 
+                      : '/default-user.jpg'
+                  }
+                  alt={currentTrack.name}
+                  fill
+                  className="object-cover"
+                  sizes="28px"
+                  priority
+                />
+              </div>
+
+              <div className="flex flex-col min-w-0 flex-1">
+                <span 
+                  className="font-semibold text-xs text-white truncate leading-tight block hover:underline"
+                  title={currentTrack.name}
+                >
+                  {currentTrack.name}
+                </span>
+                <span 
+                  className="text-[11px] text-white/60 truncate leading-tight block"
+                  title={`${currentTrack.artist} — ${currentTrack.album || currentTrack.name}`}
+                >
+                  {currentTrack.artist} — {currentTrack.album || currentTrack.name}
+                </span>
+              </div>
+            </div>
+
+            {/* More options (...) button: sits within info area so it blurs along with it on hover */}
+            <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleExpand();
+                toggleCurrentTrackStar();
               }}
-              title="Expand player"
+              className={`p-1 text-white/60 hover:text-white transition-all duration-200 shrink-0 ${
+                isHoveringScrubber ? 'filter blur-[2px] opacity-30 select-none pointer-events-none' : 'opacity-100'
+              }`}
+              title={currentTrack.starred ? 'Starred' : 'More'}
             >
-              <Image
-                src={
-                  currentTrack.coverArt && 
-                  (currentTrack.coverArt.startsWith('http') || currentTrack.coverArt.startsWith('/'))
-                    ? currentTrack.coverArt 
-                    : '/default-user.jpg'
-                }
-                alt={currentTrack.name}
-                fill
-                className="object-cover"
-                sizes="28px"
-                priority
-              />
-            </div>
-
-            <div className="flex flex-col min-w-0 flex-1">
-              <span 
-                className="font-semibold text-xs text-white truncate leading-tight block hover:underline"
-                title={currentTrack.name}
-              >
-                {currentTrack.name}
-              </span>
-              <span 
-                className="text-[11px] text-white/60 truncate leading-tight block"
-                title={`${currentTrack.artist} — ${currentTrack.album || currentTrack.name}`}
-              >
-                {currentTrack.artist} — {currentTrack.album || currentTrack.name}
-              </span>
-            </div>
+              <FaEllipsis className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          {/* Normal State: Sleek Hairline Scrubber below track metadata */}
-          <div className={`w-full transition-opacity duration-200 mt-1 ${
-            isHoveringScrubber ? 'opacity-0' : 'opacity-100'
+          {/* Hover Time Labels Overlay: Positioned above the scrubber bar on left and right */}
+          <div className={`absolute top-1 left-2 right-2 flex items-center justify-between pointer-events-none transition-opacity duration-200 ${
+            isHoveringScrubber ? 'opacity-100' : 'opacity-0'
           }`}>
-            <div className="w-full h-[2.5px] bg-white/20 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-white rounded-full transition-[width] duration-75"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Hover State: Scrubber Bar with Current Time on Left and Remaining Time on Right */}
-          <div className={`absolute inset-0 flex items-center justify-between gap-2.5 transition-all duration-200 ${
-            isHoveringScrubber ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
-          }`}>
-            <span className="text-[11px] font-medium text-white/90 tabular-nums select-none shrink-0 w-8 text-left">
+            <span className="text-[11px] font-medium text-white/95 tabular-nums drop-shadow-sm select-none">
               {formatTime(currentTime)}
             </span>
-
-            <div className="flex-1 h-[4px] bg-white/25 rounded-full overflow-hidden relative">
-              <div 
-                className="h-full bg-white rounded-full shadow-sm transition-[width] duration-75"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-
-            <span className="text-[11px] font-medium text-white/90 tabular-nums select-none shrink-0 w-9 text-right">
+            <span className="text-[11px] font-medium text-white/95 tabular-nums drop-shadow-sm select-none">
               -{formatTime(remainingTime)}
             </span>
           </div>
+
+          {/* Scrubber Bar: Spans below artwork, metadata, and ellipsis.
+              Normal state: subtle 2.5px hairline.
+              Hover state: expands height to 4.5px without moving surrounding buttons. */}
+          <div className="w-full mt-1">
+            <div className={`w-full rounded-full overflow-hidden transition-all duration-200 cursor-pointer ${
+              isHoveringScrubber ? 'h-[4.5px] bg-white/30' : 'h-[2.5px] bg-white/20'
+            }`}>
+              <div 
+                className={`h-full rounded-full transition-[width] duration-75 ${
+                  isHoveringScrubber ? 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]' : 'bg-white'
+                }`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Right Side: Options, Queue, Volume, Expand */}
+        {/* Right Side: Queue, Volume, Expand */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          {/* More options (...) */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleCurrentTrackStar();
-            }}
-            className="p-1.5 text-white/60 hover:text-white transition-colors"
-            title={currentTrack.starred ? 'Starred' : 'More'}
-          >
-            <FaEllipsis className="w-3.5 h-3.5" />
-          </button>
-
           {/* Queue Button */}
           <button
             onClick={(e) => {
