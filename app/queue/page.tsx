@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useAudioPlayer, useAudioQueue, Track } from '@/app/components/AudioPlayerContext';
 import { Button } from '@/components/ui/button';
@@ -37,8 +37,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 const ROW_HEIGHT = 68;
-const DEFAULT_OVERSCAN = 12;
-const DRAG_OVERSCAN = 32;
 
 function formatDuration(seconds: number): string {
   const safe = Math.max(0, Math.floor(seconds || 0));
@@ -132,13 +130,9 @@ const SortableQueueItem = React.memo(function SortableQueueItem({
         <GripVertical className="w-4 h-4" />
       </button>
 
-      {/* Track Position Number or Play icon on hover */}
-      <div
-        className="w-6 text-center text-xs font-mono text-muted-foreground/70 shrink-0 mr-2.5 cursor-pointer"
-        onClick={() => onPlay(queueId)}
-      >
-        <span className="group-hover:hidden">{index + 1}</span>
-        <Play className="w-3.5 h-3.5 hidden group-hover:inline-block mx-auto fill-current text-white" />
+      {/* Track Position Number */}
+      <div className="w-6 text-center text-xs font-mono text-muted-foreground/70 shrink-0 mr-2.5">
+        <span>{index + 1}</span>
       </div>
 
       {/* Album Artwork */}
@@ -208,52 +202,61 @@ const SortableQueueItem = React.memo(function SortableQueueItem({
       {/* 1-Click Quick Move & Management Actions */}
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         {/* Move 1 Slot Up */}
-        {!isFirst && (
-          <Button
-            variant="ghost"
-            size="sm"
-            title="Move 1 Slot Up"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMoveUp(index);
-            }}
-            className="h-8 w-8 p-0 text-muted-foreground hover:text-white hover:bg-white/10"
-          >
-            <ChevronUp className="w-4 h-4" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          title={isFirst ? undefined : "Move 1 Slot Up"}
+          disabled={isFirst}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isFirst) onMoveUp(index);
+          }}
+          className={`h-8 w-8 p-0 ${
+            isFirst
+              ? 'opacity-20 cursor-not-allowed hover:bg-transparent text-muted-foreground'
+              : 'text-muted-foreground hover:text-white hover:bg-white/10 cursor-pointer'
+          }`}
+        >
+          <ChevronUp className="w-4 h-4" />
+        </Button>
 
         {/* Move 1 Slot Down */}
-        {!isLast && (
-          <Button
-            variant="ghost"
-            size="sm"
-            title="Move 1 Slot Down"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMoveDown(index);
-            }}
-            className="h-8 w-8 p-0 text-muted-foreground hover:text-white hover:bg-white/10"
-          >
-            <ChevronDown className="w-4 h-4" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          title={isLast ? undefined : "Move 1 Slot Down"}
+          disabled={isLast}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isLast) onMoveDown(index);
+          }}
+          className={`h-8 w-8 p-0 ${
+            isLast
+              ? 'opacity-20 cursor-not-allowed hover:bg-transparent text-muted-foreground'
+              : 'text-muted-foreground hover:text-white hover:bg-white/10 cursor-pointer'
+          }`}
+        >
+          <ChevronDown className="w-4 h-4" />
+        </Button>
 
         {/* Move to Top / Play Next */}
-        {!isFirst && (
-          <Button
-            variant="ghost"
-            size="sm"
-            title="Play Next (Move to Top)"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPlayNext(queueId);
-            }}
-            className="h-8 w-8 p-0 text-muted-foreground hover:text-white hover:bg-white/10"
-          >
-            <ListStart className="w-4 h-4" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          title={isFirst ? undefined : "Play Next (Move to Top)"}
+          disabled={isFirst}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isFirst) onPlayNext(queueId);
+          }}
+          className={`h-8 w-8 p-0 ${
+            isFirst
+              ? 'opacity-20 cursor-not-allowed hover:bg-transparent text-muted-foreground'
+              : 'text-muted-foreground hover:text-white hover:bg-white/10 cursor-pointer'
+          }`}
+        >
+          <ListStart className="w-4 h-4" />
+        </Button>
 
         {/* Remove */}
         <Button
@@ -264,7 +267,7 @@ const SortableQueueItem = React.memo(function SortableQueueItem({
             e.stopPropagation();
             onRemove(queueId);
           }}
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
         >
           <X className="w-4 h-4" />
         </Button>
@@ -288,37 +291,7 @@ const QueuePage: React.FC = () => {
     toggleShuffle,
   } = useAudioPlayer();
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState(560);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const rafRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-
-    const updateHeight = () => {
-      setViewportHeight(el.clientHeight || 560);
-    };
-    updateHeight();
-
-    const ro = new ResizeObserver(updateHeight);
-    ro.observe(el);
-    return () => {
-      ro.disconnect();
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
-
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const nextScrollTop = e.currentTarget.scrollTop;
-    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
-      setScrollTop(nextScrollTop);
-      rafRef.current = null;
-    });
-  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -373,26 +346,10 @@ const QueuePage: React.FC = () => {
     [queue]
   );
 
-  // Viewport virtualization math (uniform 68px rows)
-  const overscan = activeDragId ? DRAG_OVERSCAN : DEFAULT_OVERSCAN;
-  const totalCount = queue.length;
-  const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - overscan);
-  const visibleCount = Math.ceil(viewportHeight / ROW_HEIGHT) + overscan * 2;
-  const endIndex = Math.min(totalCount, startIndex + visibleCount);
-
-  const windowedSlice = useMemo(
-    () => queue.slice(startIndex, endIndex),
-    [queue, startIndex, endIndex]
-  );
-
   const sortableIds = useMemo(
-    () => windowedSlice.map((t, idx) => t.queueId || `${t.id}-${startIndex + idx}`),
-    [windowedSlice, startIndex]
+    () => queue.map((t, idx) => t.queueId || `${t.id}-${idx}`),
+    [queue]
   );
-
-  const topSpacerHeight = startIndex * ROW_HEIGHT;
-  const bottomSpacerHeight = Math.max(0, (totalCount - endIndex) * ROW_HEIGHT);
-  const firstQueueId = queue[0]?.queueId;
 
   // Active track being dragged for DragOverlay
   const activeTrack = useMemo(
@@ -401,7 +358,7 @@ const QueuePage: React.FC = () => {
   );
 
   return (
-    <div className="p-6 pb-28 w-full max-w-5xl mx-auto">
+    <div className="p-6 pb-36 w-full max-w-4xl mx-auto">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -468,13 +425,6 @@ const QueuePage: React.FC = () => {
 
                 {/* Track Details */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-primary/20 text-primary border border-primary/30">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                      Now Playing
-                    </span>
-                  </div>
-
                   <p className="font-bold text-lg sm:text-xl text-white truncate drop-shadow-sm">
                     {currentTrack.name}
                   </p>
@@ -539,11 +489,7 @@ const QueuePage: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div
-              ref={scrollContainerRef}
-              onScroll={handleScroll}
-              className="h-[calc(100vh-390px)] min-h-[300px] overflow-y-auto pr-1"
-            >
+            <div>
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -555,21 +501,17 @@ const QueuePage: React.FC = () => {
                   items={sortableIds}
                   strategy={verticalListSortingStrategy}
                 >
-                  {topSpacerHeight > 0 && (
-                    <div style={{ height: `${topSpacerHeight}px` }} aria-hidden="true" />
-                  )}
-                  <div>
-                    {windowedSlice.map((track, sliceIdx) => {
-                      const absoluteIndex = startIndex + sliceIdx;
-                      const qid = track.queueId || `${track.id}-${absoluteIndex}`;
+                  <div className="space-y-1">
+                    {queue.map((track, index) => {
+                      const qid = track.queueId || `${track.id}-${index}`;
                       return (
                         <SortableQueueItem
                           key={qid}
                           queueId={qid}
-                          index={absoluteIndex}
+                          index={index}
                           track={track}
-                          isFirst={absoluteIndex === 0}
-                          isLast={absoluteIndex === queue.length - 1}
+                          isFirst={index === 0}
+                          isLast={index === queue.length - 1}
                           onPlay={skipToTrackByQueueId}
                           onPlayNext={moveTrackToTopByQueueId}
                           onMoveUp={handleMoveUp}
@@ -579,9 +521,6 @@ const QueuePage: React.FC = () => {
                       );
                     })}
                   </div>
-                  {bottomSpacerHeight > 0 && (
-                    <div style={{ height: `${bottomSpacerHeight}px` }} aria-hidden="true" />
-                  )}
                 </SortableContext>
 
                 {/* Tactile Elevated Drag Overlay following cursor */}
