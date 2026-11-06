@@ -17,18 +17,21 @@ import {
   FaShuffle,
   FaRepeat,
   FaListUl,
-  FaEllipsis
+  FaStar,
+  FaRegStar
 } from 'react-icons/fa6';
 import { extractDominantColor } from '@/lib/image-utils';
 
 interface DraggableMiniPlayerProps {
   onExpand?: () => void;
+  onOpenFullScreen?: () => void;
   isPlaying?: boolean;
   onTogglePlayPause?: () => void;
 }
 
 export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ 
   onExpand,
+  onOpenFullScreen,
   isPlaying: isPlayingProp,
   onTogglePlayPause
 }) => {
@@ -347,7 +350,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               e.stopPropagation();
               toggleShuffle();
             }}
-            className={`p-1.5 rounded-full transition-colors active:scale-95 ${
+            className={`p-1.5 rounded-full cursor-pointer transition-colors active:scale-95 ${
               shuffle 
                 ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(34,211,238,0.55)]' 
                 : 'text-white/60 hover:text-white'
@@ -363,7 +366,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               e.stopPropagation();
               playPreviousTrack();
             }}
-            className="p-1.5 text-white/80 hover:text-white active:scale-95 transition-colors"
+            className="p-1.5 text-white/80 hover:text-white active:scale-95 transition-colors cursor-pointer"
             title="Previous Track"
           >
             <FaBackwardStep className="w-3.5 h-3.5" />
@@ -372,7 +375,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
           {/* Play / Pause Button */}
           <button
             onClick={handleTogglePlayPause}
-            className="p-1.5 text-white hover:scale-105 active:scale-95 transition-transform"
+            className="p-1.5 text-white hover:scale-105 active:scale-95 transition-transform cursor-pointer"
             title={isPlayingState ? 'Pause' : 'Play'}
           >
             {isPlayingState ? (
@@ -388,7 +391,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               e.stopPropagation();
               playNextTrack();
             }}
-            className="p-1.5 text-white/80 hover:text-white active:scale-95 transition-colors"
+            className="p-1.5 text-white/80 hover:text-white active:scale-95 transition-colors cursor-pointer"
             title="Next Track"
           >
             <FaForwardStep className="w-3.5 h-3.5" />
@@ -400,7 +403,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               e.stopPropagation();
               toggleLoop();
             }}
-            className={`p-1.5 rounded-full transition-colors active:scale-95 ${
+            className={`p-1.5 rounded-full cursor-pointer transition-colors active:scale-95 ${
               isLooping 
                 ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(34,211,238,0.55)]' 
                 : 'text-white/60 hover:text-white'
@@ -427,12 +430,16 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               isScrubberActive ? 'filter blur-[2px] opacity-30 select-none pointer-events-none' : 'opacity-100'
             }`}>
               <div 
-                className="relative w-8 h-8 rounded-md overflow-hidden shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                className="group/cover relative w-8 h-8 rounded-md overflow-hidden shrink-0 shadow-sm cursor-pointer transition-transform duration-200 hover:scale-110 active:scale-95"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleExpand();
+                  if (onOpenFullScreen) {
+                    onOpenFullScreen();
+                  } else {
+                    handleExpand();
+                  }
                 }}
-                title="Expand player"
+                title="Open fullscreen player"
               >
                 <Image
                   src={
@@ -447,13 +454,22 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
                   sizes="32px"
                   priority
                 />
+                {/* Diagonal expand icon overlay on hover */}
+                <div className="absolute inset-0 bg-black/45 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                  <svg className="w-3.5 h-3.5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 3 3 3 3 9" />
+                    <polyline points="15 21 21 21 21 15" />
+                    <line x1="3" y1="3" x2="10" y2="10" />
+                    <line x1="21" y1="21" x2="14" y2="14" />
+                  </svg>
+                </div>
               </div>
 
               <div className="flex flex-col min-w-0 flex-1 justify-center">
                 <Link
                   href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
                   onClick={(e) => e.stopPropagation()}
-                  className="font-semibold text-[13px] text-white truncate leading-tight block hover:underline"
+                  className="font-semibold text-[13px] text-white truncate leading-tight block hover:underline cursor-pointer"
                   title={`Go to album: ${currentTrack.album || currentTrack.name}`}
                 >
                   {currentTrack.name}
@@ -461,7 +477,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
                 <Link
                   href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="text-xs text-white/70 hover:text-white truncate leading-tight block hover:underline transition-colors mt-0.5"
+                  className="text-xs text-white/70 hover:text-white truncate leading-tight block hover:underline transition-colors mt-0.5 cursor-pointer"
                   title={`Go to artist: ${currentTrack.artist}`}
                 >
                   {currentTrack.artist}
@@ -469,18 +485,26 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               </div>
             </div>
 
-            {/* More options (...) button */}
+            {/* Star Button */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 toggleCurrentTrackStar();
               }}
-              className={`p-1 text-white/60 hover:text-white transition-all duration-200 shrink-0 ${
+              className={`p-1.5 transition-all duration-200 shrink-0 cursor-pointer ${
                 isScrubberActive ? 'filter blur-[2px] opacity-30 select-none pointer-events-none' : 'opacity-100'
+              } ${
+                currentTrack.starred 
+                  ? 'text-yellow-400 hover:text-yellow-300 drop-shadow-[0_0_6px_rgba(250,204,21,0.55)]' 
+                  : 'text-white/60 hover:text-white'
               }`}
-              title={currentTrack.starred ? 'Starred' : 'More'}
+              title={currentTrack.starred ? 'Starred' : 'Star track'}
             >
-              <FaEllipsis className="w-3.5 h-3.5" />
+              {currentTrack.starred ? (
+                <FaStar className="w-3.5 h-3.5" />
+              ) : (
+                <FaRegStar className="w-3.5 h-3.5" />
+              )}
             </button>
           </div>
 
@@ -533,7 +557,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               e.stopPropagation();
               router.push('/queue');
             }}
-            className="p-1.5 text-white/60 hover:text-white transition-colors"
+            className="p-1.5 text-white/60 hover:text-white transition-colors cursor-pointer"
             title="Queue"
           >
             <FaListUl className="w-3.5 h-3.5" />
@@ -579,7 +603,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
                 e.stopPropagation();
                 setShowVolumeSlider((prev) => !prev);
               }}
-              className="p-1.5 text-white/70 hover:text-white transition-colors"
+              className="p-1.5 text-white/70 hover:text-white transition-colors cursor-pointer"
               title="Volume"
             >
               {volume === 0 ? (
@@ -598,7 +622,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               e.stopPropagation();
               handleExpand();
             }}
-            className="p-1.5 text-white/60 hover:text-white transition-colors"
+            className="p-1.5 text-white/60 hover:text-white transition-colors cursor-pointer"
             title="Expand player"
           >
             <FaExpand className="w-3 h-3" />

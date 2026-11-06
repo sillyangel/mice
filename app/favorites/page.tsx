@@ -7,7 +7,7 @@ import { useNavidrome } from "@/app/components/NavidromeContext";
 import { AlbumArtwork } from "@/app/components/album-artwork";
 import { ArtistIcon } from "@/app/components/artist-icon";
 import { Album, Artist, Song } from "@/lib/navidrome";
-import { Heart, Music, Disc, Mic, Play } from "lucide-react";
+import { Star, Music, Disc, Mic, Play } from "lucide-react";
 import { useAudioPlayer, Track } from "@/app/components/AudioPlayerContext";
 import Image from "next/image";
 
@@ -159,7 +159,7 @@ const FavoritesPage = () => {
               </div>
             ) : favoriteAlbums.length === 0 ? (
               <div className="text-center py-12">
-                <Heart className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <Star className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">No favorite albums yet</p>
                 <p className="text-sm text-muted-foreground mt-2">Star albums to see them here</p>
               </div>
@@ -186,7 +186,7 @@ const FavoritesPage = () => {
               </div>
             ) : favoriteSongs.length === 0 ? (
               <div className="text-center py-12">
-                <Heart className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <Star className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">No favorite songs yet</p>
                 <p className="text-sm text-muted-foreground mt-2">Star songs to see them here</p>
               </div>
@@ -228,7 +228,7 @@ const FavoritesPage = () => {
                         variant="ghost"
                         onClick={() => toggleFavorite(song.id, 'song', !!song.starred)}
                       >
-                        <Heart className={`w-4 h-4 ${song.starred ? 'fill-red-500 text-red-500' : ''}`} />
+                        <Star className={`w-4 h-4 ${song.starred ? 'fill-yellow-400 text-yellow-400' : ''}`} />
                       </Button>
                     </div>
                   </div>
@@ -244,7 +244,7 @@ const FavoritesPage = () => {
               </div>
             ) : favoriteArtists.length === 0 ? (
               <div className="text-center py-12">
-                <Heart className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <Star className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">No favorite artists yet</p>
                 <p className="text-sm text-muted-foreground mt-2">Star artists to see them here</p>
               </div>

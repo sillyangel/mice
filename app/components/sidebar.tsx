@@ -14,7 +14,7 @@ import {
   Users,
   Disc3,
   Library,
-  Heart,
+  Star,
   Music2,
   Settings,
 } from "lucide-react";
@@ -45,7 +45,7 @@ const iconMap: Record<string, React.ReactNode> = {
   artists: <Users className="w-5 h-5" />,
   albums: <Disc3 className="w-5 h-5" />,
   playlists: <Library className="w-5 h-5" />,
-  favorites: <Heart className="w-5 h-5" />,
+  favorites: <Star className="w-5 h-5" />,
   songs: <Music2 className="w-5 h-5" />,
   settings: <Settings className="w-5 h-5" />,
 };

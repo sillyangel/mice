@@ -33,7 +33,7 @@ import {
   FaListUl,
   FaSliders
 } from "react-icons/fa6";
-import { Heart } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface LyricLine {
@@ -916,7 +916,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                       </AnimatePresence>
                     </div>
 
-                    {/* Track Info - Left Aligned and Heart on Same Line */}
+                    {/* Track Info - Left Aligned and Star on Same Line */}
                     <div className="w-full mb-6 shrink-0">
                       <div className="flex items-center justify-between mb-0">
                         <Link
@@ -932,8 +932,8 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                           className="p-2 hover:bg-gray-700/50 rounded-full transition-colors ml-3 pb-0"
                           title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
                         >
-                          <Heart 
-                            className={`w-6 h-6 ${currentTrack?.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
+                          <Star 
+                            className={`w-6 h-6 ${currentTrack?.starred ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'}`} 
                           />
                         </button>
                       </div>
@@ -1187,8 +1187,8 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                     className="p-2 hover:bg-gray-700/50 rounded-full transition-colors"
                     title={currentTrack?.starred ? 'Remove from favorites' : 'Add to favorites'}
                   >
-                    <Heart 
-                      className={`w-5 h-5 ${currentTrack?.starred ? 'text-primary fill-primary' : 'text-gray-400'}`} 
+                    <Star 
+                      className={`w-5 h-5 ${currentTrack?.starred ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'}`} 
                     />
                   </button>
                 </div>

@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { PlusCircledIcon } from "@radix-ui/react-icons";
-import { Heart, Disc, Play, MoreHorizontal } from "lucide-react";
+import { Star, Disc, Play, MoreHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -159,8 +159,8 @@ export const AlbumArtwork = memo(function AlbumArtwork({
                         <PlusCircledIcon className="w-4 h-4 mr-2" /> Add to Queue
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleStar} className="cursor-pointer">
-                        <Heart className={`w-4 h-4 mr-2 ${album.starred ? 'fill-primary text-primary' : ''}`} />
-                        {album.starred ? 'Remove from Favorites' : 'Add to Favorites'}
+                        <Star className={`w-4 h-4 mr-2 ${album.starred ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                        {album.starred ? 'Unstar Album' : 'Star Album'}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   )}

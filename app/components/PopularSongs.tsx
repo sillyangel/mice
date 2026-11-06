@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { Song } from '@/lib/navidrome';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { Button } from '@/components/ui/button';
-import { Play, Heart } from 'lucide-react';
+import { Play, Star } from 'lucide-react';
 import { useState } from 'react';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { getNavidromeAPI } from '@/lib/navidrome';
@@ -139,8 +139,8 @@ export function PopularSongs({ songs, artistName }: PopularSongsProps) {
               className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={() => handleToggleStar(song)}
             >
-              <Heart 
-                className={`h-4 w-4 ${songStates[song.id] ? 'text-red-500 fill-red-500' : 'text-muted-foreground'}`}
+              <Star 
+                className={`h-4 w-4 ${songStates[song.id] ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`}
               />
             </Button>
           </div>

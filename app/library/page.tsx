@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Music, Users, Disc, ListMusic, Heart, Play } from 'lucide-react';
+import { Music, Users, Disc, ListMusic, Star, Play } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { getNavidromeAPI } from '@/lib/navidrome';
 import NavidromeAPI from '@/lib/navidrome';
@@ -112,7 +112,7 @@ export default function LibraryPage() {
     {
       href: '/favorites',
       label: 'Favorites',
-      icon: Heart,
+      icon: Star,
       description: 'Starred music',
       count: 0
     }

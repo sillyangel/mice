@@ -7,7 +7,7 @@ import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Play, Heart, Music, Shuffle } from 'lucide-react';
+import { Play, Star, Music, Shuffle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { UserProfile } from './UserProfile';
@@ -128,9 +128,9 @@ const RecommendationSongItem = React.memo(function RecommendationSongItem({
         </div>
       </div>
 
-      {/* Heart / Star */}
+      {/* Star */}
       {isStarred && (
-        <Heart className="w-4 h-4 text-primary flex-shrink-0 fill-current mr-1" />
+        <Star className="w-4 h-4 text-yellow-400 flex-shrink-0 fill-yellow-400 mr-1" />
       )}
     </div>
   );

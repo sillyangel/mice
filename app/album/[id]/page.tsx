@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Album, Song, AlbumInfo } from '@/lib/navidrome';
 import { useNavidrome } from '@/app/components/NavidromeContext';
-import { Play, Pause, Heart, Shuffle, MoreHorizontal, Plus } from 'lucide-react';
+import { Play, Pause, Star, Shuffle, MoreHorizontal, Plus } from 'lucide-react';
 import { EqualizerBars } from '@/app/components/EqualizerBars';
 import { Button } from '@/components/ui/button';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
@@ -255,7 +255,7 @@ export default function AlbumPage() {
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/10" />
               <DropdownMenuItem onClick={handleStar} className="cursor-pointer">
-                <Heart className="w-4 h-4 mr-2" /> {isStarred ? 'Remove from Favorites' : 'Add to Favorites'}
+                <Star className="w-4 h-4 mr-2" /> {isStarred ? 'Unstar Album' : 'Star Album'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -311,7 +311,7 @@ export default function AlbumPage() {
               </div>
             ) : null}
 
-            {/* Action Buttons: (ShuffleIcon) (PlayIcon Play) (HeartIcon) */}
+            {/* Action Buttons: (ShuffleIcon) (PlayIcon Play) (StarIcon) */}
             <div className="flex items-center justify-center md:justify-start gap-3 mt-auto">
               {/* Shuffle button (icon only, first) */}
               <button
@@ -332,18 +332,18 @@ export default function AlbumPage() {
                 Play
               </button>
 
-              {/* Heart button (third) to fav the album */}
+              {/* Star button (third) to fav the album */}
               <button
                 onClick={handleStar}
-                className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-md ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-all backdrop-blur-md cursor-pointer ${
                   isStarred 
-                    ? 'bg-primary/20 text-primary hover:bg-primary/30' 
+                    ? 'bg-yellow-400/20 text-yellow-400 hover:bg-yellow-400/30' 
                     : 'bg-white/10 hover:bg-white/15 text-white'
                 }`}
-                title={isStarred ? "Remove from Favorites" : "Add to Favorites"}
-                aria-label={isStarred ? "Remove from Favorites" : "Add to Favorites"}
+                title={isStarred ? "Unstar Album" : "Star Album"}
+                aria-label={isStarred ? "Unstar Album" : "Star Album"}
               >
-                <Heart className={`w-4 h-4 ${isStarred ? 'fill-primary text-primary' : ''}`} />
+                <Star className={`w-4 h-4 ${isStarred ? 'fill-yellow-400 text-yellow-400' : ''}`} />
               </button>
             </div>
           </div>
@@ -399,7 +399,7 @@ export default function AlbumPage() {
                     </span>
                   </div>
 
-                  {/* Right side: Star/Heart + Duration + Options Menu */}
+                  {/* Right side: Star + Duration + Options Menu */}
                   <div className="shrink-0 flex items-center gap-2.5">
                     <button
                       onClick={(e) => {
@@ -409,10 +409,10 @@ export default function AlbumPage() {
                       className={`w-7 h-7 rounded-full flex items-center justify-center transition-opacity ${
                         isSongStarred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 text-white/50 hover:text-white'
                       }`}
-                      title={isSongStarred ? 'Remove from favorites' : 'Add to favorites'}
+                      title={isSongStarred ? 'Unstar' : 'Star'}
                     >
-                      <Heart
-                        className={`w-3.5 h-3.5 ${isSongStarred ? 'fill-primary text-primary' : 'text-white/50'}`}
+                      <Star
+                        className={`w-3.5 h-3.5 ${isSongStarred ? 'fill-yellow-400 text-yellow-400' : 'text-white/50'}`}
                       />
                     </button>
 
@@ -447,7 +447,7 @@ export default function AlbumPage() {
                           }}
                           className="cursor-pointer"
                         >
-                          <Heart className="w-4 h-4 mr-2" /> {starredSongs.has(song.id) ? 'Favorited' : 'Favorite'}
+                          <Star className="w-4 h-4 mr-2" /> {starredSongs.has(song.id) ? 'Starred' : 'Star'}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

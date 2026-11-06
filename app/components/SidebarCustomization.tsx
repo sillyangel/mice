@@ -36,7 +36,7 @@ import {
   Users,
   Disc,
   Music,
-  Heart,
+  Star,
   Grid3X3,
   Clock,
   Settings
@@ -52,7 +52,7 @@ const iconMap: Record<string, React.ReactNode> = {
   artists: <Users className="h-4 w-4" />,
   albums: <Disc className="h-4 w-4" />,
   playlists: <Music className="h-4 w-4" />,
-  favorites: <Heart className="h-4 w-4" />,
+  favorites: <Star className="h-4 w-4" />,
   browse: <Grid3X3 className="h-4 w-4" />,
   songs: <Music className="h-4 w-4" />,
   history: <Clock className="h-4 w-4" />,

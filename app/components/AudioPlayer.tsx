@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAudioPlayer, Track } from '@/app/components/AudioPlayerContext';
 import dynamic from 'next/dynamic';
 import { FaPlay, FaPause, FaVolumeHigh, FaForward, FaBackward, FaCompress, FaVolumeXmark, FaExpand, FaShuffle } from "react-icons/fa6";
-import { Heart } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useLastFmScrobbler } from '@/hooks/use-lastfm-scrobbler';
@@ -913,7 +913,7 @@ export const AudioPlayer: React.FC = () => {
                 </div>
               </div>
 
-              {/* Mobile controls - Only heart and play/pause */}
+              {/* Mobile controls - Only star and play/pause */}
               <div className="flex items-center space-x-2">
                 <button 
                   className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 touch-manipulation" 
@@ -925,8 +925,8 @@ export const AudioPlayer: React.FC = () => {
                   aria-label={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
                   title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
                 >
-                  <Heart 
-                    className={`w-4 h-4 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`} 
+                  <Star 
+                    className={`w-4 h-4 ${currentTrack.starred ? 'text-yellow-400 fill-yellow-400' : ''}`} 
                   />
                 </button>
                 <button 
@@ -971,9 +971,22 @@ export const AudioPlayer: React.FC = () => {
       <>
         <DraggableMiniPlayer 
           onExpand={() => setIsMinimized(false)}
+          onOpenFullScreen={() => {
+            setHasOpenedFullScreen(true);
+            setIsFullScreen(true);
+          }}
           isPlaying={isPlaying}
           onTogglePlayPause={togglePlayPause}
         />
+        
+        {/* Full Screen Player - lazy mounted once opened */}
+        {hasOpenedFullScreen && (
+          <FullScreenPlayer 
+            isOpen={isFullScreen} 
+            onClose={() => setIsFullScreen(false)} 
+            onOpenQueue={handleOpenQueue}
+          />
+        )}
         
         {/* Single audio element - shared across all UI states */}
         <audio 
@@ -1044,30 +1057,30 @@ export const AudioPlayer: React.FC = () => {
               <div className="flex items-center justify-center space-x-3">
                 <button
                   onClick={toggleShuffle} 
-                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${shuffle ? 'text-primary bg-primary/20' : ''}`} 
+                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer ${shuffle ? 'text-primary bg-primary/20' : ''}`} 
                   title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
                 >
                   <FaShuffle className="w-4 h-4" />
                 </button>
-                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
+                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" onClick={playPreviousTrack}>
                   <FaBackward className="w-4 h-4" />
                 </button>
-                <button className="p-3 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
+                <button className="p-3 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" onClick={togglePlayPause}>
                   {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
                 </button>
-                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
+                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" onClick={playNextTrack}>
                   <FaForward className="w-4 h-4" />
                 </button>
                 <button 
-                  className="p-2 hover:bg-gray-700/50 rounded-full transition-colors flex items-center justify-center" 
+                  className="p-2 hover:bg-gray-700/50 rounded-full transition-colors flex items-center justify-center cursor-pointer" 
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleCurrentTrackStar();
                   }}
                   title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
                 >
-                  <Heart 
-                    className={`w-5 h-5 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`} 
+                  <Star 
+                    className={`w-5 h-5 ${currentTrack.starred ? 'text-yellow-400 fill-yellow-400' : ''}`} 
                   />
                 </button>
               </div>
@@ -1076,7 +1089,7 @@ export const AudioPlayer: React.FC = () => {
             {/* Right side buttons */}
             <div className="flex items-center justify-end space-x-2 flex-1">
               <button 
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
+                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" 
                 onClick={() => {
                   setHasOpenedFullScreen(true);
                   setIsFullScreen(true);
@@ -1086,7 +1099,7 @@ export const AudioPlayer: React.FC = () => {
                 <FaExpand className="w-4 h-4" />
               </button>
               <button 
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
+                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" 
                 onClick={() => setIsMinimized(true)}
                 title="Minimize"
               >
