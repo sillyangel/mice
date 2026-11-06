@@ -47,7 +47,9 @@ export const AudioPlayer: React.FC = () => {
     updateAudioSettings,
     equalizerPreset,
     setEqualizerPreset,
-    audioEffects
+    audioEffects,
+    isMinimized,
+    setIsMinimized
   } = useAudioPlayer();
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -69,7 +71,6 @@ export const AudioPlayer: React.FC = () => {
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isClient, setIsClient] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
   // Notifications and title management
   const [lastNotifiedTrackId, setLastNotifiedTrackId] = useState<string | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);

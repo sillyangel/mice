@@ -5,7 +5,18 @@ import Link from 'next/link';
 import { useAudioPlayer, useAudioQueue, Track } from '@/app/components/AudioPlayerContext';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Play, X, Trash2, SkipForward, GripVertical, Shuffle, ListStart } from 'lucide-react';
+import { EqualizerBars } from '@/app/components/EqualizerBars';
+import {
+  Play,
+  X,
+  Trash2,
+  SkipForward,
+  GripVertical,
+  Shuffle,
+  ListStart,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -15,6 +26,7 @@ import {
   useSensors,
   DragEndEvent,
   DragStartEvent,
+  DragOverlay,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -24,7 +36,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-const ROW_HEIGHT = 64;
+const ROW_HEIGHT = 68;
 const DEFAULT_OVERSCAN = 12;
 const DRAG_OVERSCAN = 32;
 
@@ -47,19 +59,27 @@ function formatTotalDuration(totalSeconds: number): string {
 
 interface SortableQueueItemProps {
   queueId: string;
+  index: number;
   track: Track;
   isFirst: boolean;
+  isLast: boolean;
   onPlay: (queueId: string) => void;
   onPlayNext: (queueId: string) => void;
+  onMoveUp: (index: number) => void;
+  onMoveDown: (index: number) => void;
   onRemove: (queueId: string) => void;
 }
 
 const SortableQueueItem = React.memo(function SortableQueueItem({
   queueId,
+  index,
   track,
   isFirst,
+  isLast,
   onPlay,
   onPlayNext,
+  onMoveUp,
+  onMoveDown,
   onRemove,
 }: SortableQueueItemProps) {
   const {
@@ -74,7 +94,6 @@ const SortableQueueItem = React.memo(function SortableQueueItem({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.55 : 1,
     height: `${ROW_HEIGHT}px`,
   };
 
@@ -82,89 +101,145 @@ const SortableQueueItem = React.memo(function SortableQueueItem({
     ? `/artist/${track.artistId}`
     : `/artist/${encodeURIComponent(track.artist)}`;
 
+  if (isDragging) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="my-1 rounded-xl border-2 border-dashed border-primary/50 bg-primary/10 flex items-center justify-center text-xs text-primary font-semibold tracking-wide uppercase"
+      >
+        <span>Drop here</span>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex items-center px-3 rounded-lg hover:bg-accent/50 transition-colors select-none ${
-        isDragging ? 'bg-accent z-10 relative shadow-lg' : ''
-      }`}
+      className="group relative flex items-center px-3 rounded-xl border border-transparent hover:border-white/10 hover:bg-white/[0.05] transition-all duration-200 select-none"
     >
-      {/* Drag Handle */}
-      <div
-        className="mr-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 -m-1 hover:bg-accent rounded touch-none"
+      {/* Prominent Tactile Drag Handle */}
+      <button
+        type="button"
+        className="w-7 h-10 flex items-center justify-center text-muted-foreground/50 group-hover:text-white hover:bg-white/10 rounded-lg cursor-grab active:cursor-grabbing transition-colors touch-none -ml-1 mr-1.5 shrink-0"
+        title="Drag to reorder"
         {...attributes}
         {...listeners}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <GripVertical className="w-4 h-4 text-muted-foreground" />
-      </div>
+        <GripVertical className="w-4 h-4" />
+      </button>
 
-      {/* Clickable content area for play */}
+      {/* Track Position Number or Play icon on hover */}
       <div
-        className="flex items-center flex-1 min-w-0 cursor-pointer"
+        className="w-6 text-center text-xs font-mono text-muted-foreground/70 shrink-0 mr-2.5 cursor-pointer"
         onClick={() => onPlay(queueId)}
       >
-        {/* Album Art with Play Indicator */}
-        <div className="w-11 h-11 mr-3.5 shrink-0 relative rounded-md overflow-hidden bg-muted/40">
-          <img
-            src={track.coverArt || '/default-user.jpg'}
-            alt={track.album || track.name}
-            width={44}
-            height={44}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <Play className="w-4 h-4 text-white fill-white" />
-          </div>
-        </div>
+        <span className="group-hover:hidden">{index + 1}</span>
+        <Play className="w-3.5 h-3.5 hidden group-hover:inline-block mx-auto fill-current text-white" />
+      </div>
 
-        {/* Song Info */}
-        <div className="flex-1 min-w-0 mr-4">
-          <div className="flex items-center gap-2">
-            {track.albumId ? (
-              <Link
-                href={`/album/${track.albumId}`}
-                prefetch={false}
-                onClick={(e) => e.stopPropagation()}
-                className="font-semibold text-sm truncate hover:underline hover:text-white transition-colors"
-                title={`Go to album: ${track.album || track.name}`}
-              >
-                {track.name}
-              </Link>
-            ) : (
-              <p className="font-semibold text-sm truncate">{track.name}</p>
-            )}
-          </div>
-          <div className="flex items-center text-xs text-muted-foreground mt-0.5 min-w-0">
-            <Link
-              href={artistHref}
-              prefetch={false}
-              className="truncate hover:text-primary hover:underline transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {track.artist}
-            </Link>
-            {track.album && (
-              <>
-                <span className="mx-1.5 opacity-50">•</span>
-                <span className="truncate opacity-75">{track.album}</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Duration */}
-        <div className="flex items-center text-xs text-muted-foreground tabular-nums mr-3 shrink-0">
-          {formatDuration(track.duration)}
+      {/* Album Artwork */}
+      <div
+        className="w-11 h-11 mr-3.5 shrink-0 relative rounded-lg overflow-hidden bg-muted/40 shadow-sm cursor-pointer"
+        onClick={() => onPlay(queueId)}
+      >
+        <img
+          src={track.coverArt || '/default-user.jpg'}
+          alt={track.album || track.name}
+          width={44}
+          height={44}
+          loading="lazy"
+          decoding="async"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <Play className="w-4 h-4 text-white fill-white" />
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+      {/* Song & Artist Info */}
+      <div
+        className="flex-1 min-w-0 mr-3 cursor-pointer"
+        onClick={() => onPlay(queueId)}
+      >
+        <div className="flex items-center gap-2">
+          {track.albumId ? (
+            <Link
+              href={`/album/${track.albumId}`}
+              prefetch={false}
+              onClick={(e) => e.stopPropagation()}
+              className="font-semibold text-sm truncate text-foreground group-hover:text-white hover:underline transition-colors"
+              title={`Album: ${track.album || track.name}`}
+            >
+              {track.name}
+            </Link>
+          ) : (
+            <p className="font-semibold text-sm truncate text-foreground group-hover:text-white transition-colors">
+              {track.name}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center text-xs text-muted-foreground mt-0.5 min-w-0">
+          <Link
+            href={artistHref}
+            prefetch={false}
+            className="truncate hover:text-primary hover:underline transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {track.artist}
+          </Link>
+          {track.album && (
+            <>
+              <span className="mx-1.5 opacity-40">•</span>
+              <span className="truncate opacity-70">{track.album}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Duration */}
+      <div className="flex items-center text-xs text-muted-foreground tabular-nums mr-2 shrink-0">
+        {formatDuration(track.duration)}
+      </div>
+
+      {/* 1-Click Quick Move & Management Actions */}
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        {/* Move 1 Slot Up */}
+        {!isFirst && (
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Move 1 Slot Up"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveUp(index);
+            }}
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-white hover:bg-white/10"
+          >
+            <ChevronUp className="w-4 h-4" />
+          </Button>
+        )}
+
+        {/* Move 1 Slot Down */}
+        {!isLast && (
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Move 1 Slot Down"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveDown(index);
+            }}
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-white hover:bg-white/10"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </Button>
+        )}
+
+        {/* Move to Top / Play Next */}
         {!isFirst && (
           <Button
             variant="ghost"
@@ -174,11 +249,13 @@ const SortableQueueItem = React.memo(function SortableQueueItem({
               e.stopPropagation();
               onPlayNext(queueId);
             }}
-            className="h-8 w-8 p-0 hover:bg-accent text-muted-foreground hover:text-foreground"
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-white hover:bg-white/10"
           >
             <ListStart className="w-4 h-4" />
           </Button>
         )}
+
+        {/* Remove */}
         <Button
           variant="ghost"
           size="sm"
@@ -187,7 +264,7 @@ const SortableQueueItem = React.memo(function SortableQueueItem({
             e.stopPropagation();
             onRemove(queueId);
           }}
-          className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
         >
           <X className="w-4 h-4" />
         </Button>
@@ -200,10 +277,12 @@ const QueuePage: React.FC = () => {
   const { queue } = useAudioQueue();
   const {
     currentTrack,
+    isPlaying,
     clearQueue,
     removeTrackByQueueId,
     moveTrackToTopByQueueId,
     skipToTrackByQueueId,
+    reorderQueue,
     reorderQueueByIds,
     shuffle,
     toggleShuffle,
@@ -244,7 +323,7 @@ const QueuePage: React.FC = () => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 6,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -271,12 +350,30 @@ const QueuePage: React.FC = () => {
     setActiveDragId(null);
   }, []);
 
+  const handleMoveUp = useCallback(
+    (index: number) => {
+      if (index > 0) {
+        reorderQueue(index, index - 1);
+      }
+    },
+    [reorderQueue]
+  );
+
+  const handleMoveDown = useCallback(
+    (index: number) => {
+      if (index < queue.length - 1) {
+        reorderQueue(index, index + 1);
+      }
+    },
+    [queue.length, reorderQueue]
+  );
+
   const totalQueueDuration = useMemo(
     () => queue.reduce((acc, t) => acc + (t.duration || 0), 0),
     [queue]
   );
 
-  // Viewport virtualization math (uniform 64px rows)
+  // Viewport virtualization math (uniform 68px rows)
   const overscan = activeDragId ? DRAG_OVERSCAN : DEFAULT_OVERSCAN;
   const totalCount = queue.length;
   const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - overscan);
@@ -297,13 +394,19 @@ const QueuePage: React.FC = () => {
   const bottomSpacerHeight = Math.max(0, (totalCount - endIndex) * ROW_HEIGHT);
   const firstQueueId = queue[0]?.queueId;
 
+  // Active track being dragged for DragOverlay
+  const activeTrack = useMemo(
+    () => (activeDragId ? queue.find((t, i) => (t.queueId || `${t.id}-${i}`) === activeDragId) : null),
+    [queue, activeDragId]
+  );
+
   return (
-    <div className="p-6 pb-28 w-full">
+    <div className="p-6 pb-28 w-full max-w-5xl mx-auto">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="space-y-1.5">
-            <h1 className="text-3xl font-semibold tracking-tight">Queue</h1>
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Queue</h1>
             <p className="text-sm text-muted-foreground">
               {currentTrack
                 ? `Now playing • ${queue.length} song${queue.length !== 1 ? 's' : ''} up next`
@@ -311,12 +414,13 @@ const QueuePage: React.FC = () => {
               {queue.length > 0 ? ` • ${formatTotalDuration(totalQueueDuration)}` : ''}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-2.5">
             {queue.length > 1 && (
               <Button
                 onClick={toggleShuffle}
                 variant={shuffle ? 'default' : 'outline'}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 rounded-xl transition-all"
                 title={shuffle ? 'Shuffle On — click to restore original order' : 'Shuffle Up Next'}
               >
                 <Shuffle className="w-4 h-4" />
@@ -325,9 +429,9 @@ const QueuePage: React.FC = () => {
             )}
             <Button
               onClick={clearQueue}
-              variant="destructive"
+              variant="outline"
               disabled={queue.length === 0}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 rounded-xl text-destructive hover:bg-destructive/10 hover:border-destructive/30 transition-all"
             >
               <Trash2 className="w-4 h-4" />
               Clear Queue
@@ -335,42 +439,47 @@ const QueuePage: React.FC = () => {
           </div>
         </div>
 
-        <Separator />
+        <Separator className="opacity-40" />
 
-        {/* Currently Playing */}
+        {/* Hero Currently Playing Card */}
         {currentTrack && (
           <div className="space-y-3">
-            <h2 className="text-lg font-semibold">Now Playing</h2>
-            <div className="p-4 bg-accent/30 rounded-lg">
-              <div className="flex items-center">
-                <div className="w-16 h-16 mr-4 shrink-0 rounded-md overflow-hidden bg-muted/40">
+            <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
+              Now Playing
+            </h2>
+            <div className="relative overflow-hidden p-4 sm:p-5 bg-gradient-to-r from-card/90 via-card/60 to-card/40 border border-white/10 rounded-2xl shadow-xl backdrop-blur-md">
+              <div className="flex items-center gap-4 sm:gap-5">
+                {/* Large Cover Art with Sound Equalizer indicator */}
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden shadow-lg bg-muted/40 ring-1 ring-white/10">
                   <img
                     src={currentTrack.coverArt || '/default-user.jpg'}
                     alt={currentTrack.album || currentTrack.name}
-                    width={64}
-                    height={64}
+                    width={80}
+                    height={80}
                     decoding="async"
                     className="w-full h-full object-cover"
                   />
+                  {isPlaying && (
+                    <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-sm flex items-center justify-center text-primary">
+                      <EqualizerBars isAnimating={isPlaying} className="w-3 h-3" />
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex-1 min-w-0 mr-4">
+                {/* Track Details */}
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    {currentTrack.albumId ? (
-                      <Link
-                        href={`/album/${currentTrack.albumId}`}
-                        prefetch={false}
-                        className="font-semibold text-lg text-primary truncate hover:underline"
-                      >
-                        {currentTrack.name}
-                      </Link>
-                    ) : (
-                      <p className="font-semibold text-lg text-primary truncate">
-                        {currentTrack.name}
-                      </p>
-                    )}
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-primary/20 text-primary border border-primary/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                      Now Playing
+                    </span>
                   </div>
-                  <div className="flex items-center text-sm text-muted-foreground min-w-0">
+
+                  <p className="font-bold text-lg sm:text-xl text-white truncate drop-shadow-sm">
+                    {currentTrack.name}
+                  </p>
+
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5 min-w-0">
                     <Link
                       href={
                         currentTrack.artistId
@@ -378,20 +487,27 @@ const QueuePage: React.FC = () => {
                           : `/artist/${encodeURIComponent(currentTrack.artist)}`
                       }
                       prefetch={false}
-                      className="truncate hover:text-primary hover:underline"
+                      className="hover:text-primary hover:underline truncate transition-colors"
                     >
                       {currentTrack.artist}
                     </Link>
                     {currentTrack.album && (
                       <>
-                        <span className="mx-2 opacity-50">•</span>
-                        <span className="truncate opacity-80">{currentTrack.album}</span>
+                        <span className="opacity-40">•</span>
+                        <Link
+                          href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
+                          prefetch={false}
+                          className="hover:underline truncate opacity-80"
+                        >
+                          {currentTrack.album}
+                        </Link>
                       </>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center text-sm text-muted-foreground tabular-nums">
+                {/* Track Duration */}
+                <div className="text-sm font-semibold text-muted-foreground tabular-nums shrink-0 px-2">
                   {formatDuration(currentTrack.duration)}
                 </div>
               </div>
@@ -399,32 +515,34 @@ const QueuePage: React.FC = () => {
           </div>
         )}
 
-        {/* Up Next Virtualized List */}
+        {/* Up Next List */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Up Next</h2>
+            <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
+              Up Next
+            </h2>
             {queue.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                {queue.length} song{queue.length !== 1 ? 's' : ''}
-              </p>
+              <span className="text-xs text-muted-foreground font-medium">
+                Drag rows or use arrows to reorder
+              </span>
             )}
           </div>
 
           {queue.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                <SkipForward className="w-8 h-8 text-muted-foreground" />
+            <div className="text-center py-14 rounded-2xl border border-dashed border-white/10 bg-white/[0.02]">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center">
+                <SkipForward className="w-7 h-7 text-muted-foreground" />
               </div>
-              <p className="text-muted-foreground text-lg font-medium mb-2">No songs in queue</p>
+              <p className="text-white text-lg font-semibold mb-1">Queue is empty</p>
               <p className="text-muted-foreground text-sm">
-                Add songs to your queue to see them here
+                Add songs from albums, artists, or playlists to play next
               </p>
             </div>
           ) : (
             <div
               ref={scrollContainerRef}
               onScroll={handleScroll}
-              className="h-[calc(100vh-390px)] min-h-[280px] overflow-y-auto pr-1"
+              className="h-[calc(100vh-390px)] min-h-[300px] overflow-y-auto pr-1"
             >
               <DndContext
                 sensors={sensors}
@@ -441,16 +559,21 @@ const QueuePage: React.FC = () => {
                     <div style={{ height: `${topSpacerHeight}px` }} aria-hidden="true" />
                   )}
                   <div>
-                    {windowedSlice.map((track, idx) => {
-                      const qid = track.queueId || `${track.id}-${startIndex + idx}`;
+                    {windowedSlice.map((track, sliceIdx) => {
+                      const absoluteIndex = startIndex + sliceIdx;
+                      const qid = track.queueId || `${track.id}-${absoluteIndex}`;
                       return (
                         <SortableQueueItem
                           key={qid}
                           queueId={qid}
+                          index={absoluteIndex}
                           track={track}
-                          isFirst={qid === firstQueueId}
+                          isFirst={absoluteIndex === 0}
+                          isLast={absoluteIndex === queue.length - 1}
                           onPlay={skipToTrackByQueueId}
                           onPlayNext={moveTrackToTopByQueueId}
+                          onMoveUp={handleMoveUp}
+                          onMoveDown={handleMoveDown}
                           onRemove={removeTrackByQueueId}
                         />
                       );
@@ -460,6 +583,36 @@ const QueuePage: React.FC = () => {
                     <div style={{ height: `${bottomSpacerHeight}px` }} aria-hidden="true" />
                   )}
                 </SortableContext>
+
+                {/* Tactile Elevated Drag Overlay following cursor */}
+                <DragOverlay>
+                  {activeTrack ? (
+                    <div
+                      style={{ height: `${ROW_HEIGHT}px` }}
+                      className="flex items-center px-4 rounded-xl bg-card/95 border border-primary/50 shadow-2xl backdrop-blur-xl ring-2 ring-primary/30 select-none scale-[1.02] cursor-grabbing"
+                    >
+                      <div className="w-7 h-10 flex items-center justify-center mr-2 text-primary">
+                        <GripVertical className="w-4 h-4" />
+                      </div>
+                      <div className="w-11 h-11 mr-3.5 shrink-0 rounded-lg overflow-hidden bg-muted/40 shadow">
+                        <img
+                          src={activeTrack.coverArt || '/default-user.jpg'}
+                          alt={activeTrack.name}
+                          width={44}
+                          height={44}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0 mr-4">
+                        <p className="font-semibold text-sm truncate text-white">{activeTrack.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{activeTrack.artist}</p>
+                      </div>
+                      <div className="text-xs text-muted-foreground tabular-nums">
+                        {formatDuration(activeTrack.duration)}
+                      </div>
+                    </div>
+                  ) : null}
+                </DragOverlay>
               </DndContext>
             </div>
           )}

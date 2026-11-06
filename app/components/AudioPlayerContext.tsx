@@ -114,6 +114,10 @@ interface AudioPlayerContextProps {
   // Playback state
   isPlaying: boolean;
   togglePlayPause: () => Promise<void>;
+  // Minimized / compact player state
+  isMinimized: boolean;
+  setIsMinimized: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleMinimized: () => void;
 }
 
 export interface AudioPlayerActionsContextProps {
@@ -152,6 +156,30 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [equalizerPreset, setEqualizerPreset] = useState('normal');
   const [audioEffects, setAudioEffects] = useState<AudioEffects | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMinimized, setIsMinimized] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('player-minimized');
+      if (saved !== null) {
+        setIsMinimized(saved === 'true');
+      }
+    } catch {}
+  }, []);
+
+  const handleSetIsMinimized: React.Dispatch<React.SetStateAction<boolean>> = useCallback((val) => {
+    setIsMinimized((prev) => {
+      const next = typeof val === 'function' ? (val as (prev: boolean) => boolean)(prev) : val;
+      try {
+        localStorage.setItem('player-minimized', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const toggleMinimized = useCallback(() => {
+    handleSetIsMinimized((prev) => !prev);
+  }, [handleSetIsMinimized]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentTrackRef = useRef<Track | null>(null);
@@ -939,6 +967,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     togglePlayPause,
     toggleCurrentTrackStar,
     updateTrackStarred,
+    isMinimized,
+    setIsMinimized: handleSetIsMinimized,
+    toggleMinimized,
   }), [
     currentTrack,
     playTrack,
@@ -977,6 +1008,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     togglePlayPause,
     toggleCurrentTrackStar,
     updateTrackStarred,
+    isMinimized,
+    handleSetIsMinimized,
+    toggleMinimized,
   ]);
 
   return (

@@ -3,16 +3,22 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion, PanInfo, AnimatePresence } from 'framer-motion';
-import { useAudioPlayer, Track } from './AudioPlayerContext';
-import { FaPlay, FaPause, FaExpand, FaForward, FaBackward, FaVolumeHigh, FaVolumeXmark } from 'react-icons/fa6';
+import { useAudioPlayer } from './AudioPlayerContext';
+import { 
+  FaPlay, 
+  FaPause, 
+  FaExpand, 
+  FaForward, 
+  FaBackward, 
+  FaVolumeHigh, 
+  FaVolumeXmark, 
+  FaShuffle 
+} from 'react-icons/fa6';
 import { Heart } from 'lucide-react';
-import { constrain } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress';
 import { extractDominantColor } from '@/lib/image-utils';
 
 interface DraggableMiniPlayerProps {
-  onExpand: () => void;
+  onExpand?: () => void;
 }
 
 export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpand }) => {
@@ -22,28 +28,27 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
     playNextTrack,
     toggleCurrentTrackStar,
     isPlaying,
-    togglePlayPause 
+    togglePlayPause,
+    shuffle,
+    toggleShuffle,
+    setIsMinimized
   } = useAudioPlayer();
 
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
   const [dominantColor, setDominantColor] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [clickCount, setClickCount] = useState(0);
-  const [clickTimer, setClickTimer] = useState<NodeJS.Timeout | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dragStartRef = useRef({ x: 0, y: 0 });
+  const volumeContainerRef = useRef<HTMLDivElement>(null);
 
-  // Save position to localStorage when it changes
-  useEffect(() => {
-    if (!isDragging) {
-      localStorage.setItem('mini-player-position', JSON.stringify(position));
+  const handleExpand = useCallback(() => {
+    if (onExpand) {
+      onExpand();
+    } else {
+      setIsMinimized(false);
     }
-  }, [position, isDragging]);
+  }, [onExpand, setIsMinimized]);
 
-  // Extract dominant color from album art
+  // Extract dominant color from album art to tint the player
   useEffect(() => {
     if (!currentTrack?.coverArt) {
       setDominantColor(null);
@@ -58,13 +63,13 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
       });
   }, [currentTrack?.coverArt]);
 
-  // Track progress from main audio player via native media events (zero idle CPU)
+  // Track progress and volume from main audio player via native media events
   useEffect(() => {
     const audioElement = document.querySelector('audio') as HTMLAudioElement | null;
     if (!audioElement) return;
 
     const updateProgress = () => {
-      if (audioElement.duration) {
+      if (audioElement.duration && !isNaN(audioElement.duration)) {
         setProgress((audioElement.currentTime / audioElement.duration) * 100);
       }
     };
@@ -87,39 +92,32 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
     };
   }, [currentTrack]);
 
-  // Detect double clicks for expanding
-  const handleContainerClick = useCallback(() => {
-    setClickCount(prev => prev + 1);
-    
-    if (clickTimer) {
-      clearTimeout(clickTimer);
-    }
-    
-    const timer = setTimeout(() => {
-      // If single click, do nothing
-      if (clickCount === 0) {
-        // Nothing
-      } 
-      // If double click, expand
-      else if (clickCount === 1) {
-        onExpand();
+  // Close volume popover when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (volumeContainerRef.current && !volumeContainerRef.current.contains(e.target as Node)) {
+        setShowVolumeSlider(false);
       }
-      setClickCount(0);
-    }, 300);
-    
-    setClickTimer(timer as unknown as NodeJS.Timeout);
-  }, [clickCount, clickTimer, onExpand]);
-  
-  // Handle seeking in track
+    };
+    if (showVolumeSlider) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showVolumeSlider]);
+
+  // Seeking in track via the top hairline scrubber
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     const audioElement = document.querySelector('audio') as HTMLAudioElement | null;
-    if (!audioElement) return;
+    if (!audioElement || !audioElement.duration) return;
     
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
-    const percent = clickX / rect.width;
-    audioElement.currentTime = percent * audioElement.duration;
+    const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+    audioElement.currentTime = ratio * audioElement.duration;
+    setProgress(ratio * 100);
   };
   
   // Handle volume change
@@ -138,232 +136,78 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
     }
   };
 
-  // Keyboard controls for the mini player
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle keyboard shortcuts if the mini player is focused
-      if (document.activeElement?.tagName === 'INPUT') return;
-
-      const step = e.shiftKey ? 100 : 10; // Larger steps with shift key
-      
-      switch (e.key) {
-        case 'ArrowLeft':
-          setPosition(prev => ({
-            ...prev,
-            x: constrain(
-              prev.x - step,
-              -(window.innerWidth - (containerRef.current?.offsetWidth || 0)) / 2 + 16,
-              (window.innerWidth - (containerRef.current?.offsetWidth || 0)) / 2 - 16
-            )
-          }));
-          break;
-        case 'ArrowRight':
-          setPosition(prev => ({
-            ...prev,
-            x: constrain(
-              prev.x + step,
-              -(window.innerWidth - (containerRef.current?.offsetWidth || 0)) / 2 + 16,
-              (window.innerWidth - (containerRef.current?.offsetWidth || 0)) / 2 - 16
-            )
-          }));
-          break;
-        case 'ArrowUp':
-          setPosition(prev => ({
-            ...prev,
-            y: constrain(
-              prev.y - step,
-              -(window.innerHeight - (containerRef.current?.offsetHeight || 0)) / 2 + 16,
-              (window.innerHeight - (containerRef.current?.offsetHeight || 0)) / 2 - 16
-            )
-          }));
-          break;
-        case 'ArrowDown':
-          setPosition(prev => ({
-            ...prev,
-            y: constrain(
-              prev.y + step,
-              -(window.innerHeight - (containerRef.current?.offsetHeight || 0)) / 2 + 16,
-              (window.innerHeight - (containerRef.current?.offsetHeight || 0)) / 2 - 16
-            )
-          }));
-          break;
-        case 'Escape':
-          onExpand();
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onExpand]);
-
-  // Load saved position on mount
-  useEffect(() => {
-    const savedPosition = localStorage.getItem('mini-player-position');
-    if (savedPosition) {
-      try {
-        const pos = JSON.parse(savedPosition);
-        setPosition(pos);
-      } catch (error) {
-        console.error('Failed to parse saved mini player position:', error);
-      }
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input')) {
+      return;
     }
-  }, []);
-
-  // Ensure player stays within viewport bounds and implement edge snapping
-  useEffect(() => {
-    const constrainToViewport = () => {
-      if (!containerRef.current || isDragging) return;
-
-      const rect = containerRef.current.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
-      // Add some padding from edges
-      const padding = 16;
-      
-      // Calculate constrained position
-      let newX = constrain(
-        position.x,
-        -(viewportWidth - rect.width) / 2 + padding,
-        (viewportWidth - rect.width) / 2 - padding
-      );
-      
-      let newY = constrain(
-        position.y,
-        -(viewportHeight - rect.height) / 2 + padding,
-        (viewportHeight - rect.height) / 2 - padding
-      );
-      
-      // Edge snapping logic
-      const snapThreshold = 24; // Pixels from edge to trigger snap
-      const snapPositions = {
-        left: -(viewportWidth - rect.width) / 2 + padding,
-        right: (viewportWidth - rect.width) / 2 - padding,
-        top: -(viewportHeight - rect.height) / 2 + padding,
-        bottom: (viewportHeight - rect.height) / 2 - padding,
-      };
-      
-      // Snap to left or right edge
-      if (Math.abs(newX - snapPositions.left) < snapThreshold) {
-        newX = snapPositions.left;
-      } else if (Math.abs(newX - snapPositions.right) < snapThreshold) {
-        newX = snapPositions.right;
-      }
-      
-      // Snap to top or bottom edge
-      if (Math.abs(newY - snapPositions.top) < snapThreshold) {
-        newY = snapPositions.top;
-      } else if (Math.abs(newY - snapPositions.bottom) < snapThreshold) {
-        newY = snapPositions.bottom;
-      }
-
-      if (newX !== position.x || newY !== position.y) {
-        setPosition({ x: newX, y: newY });
-      }
-    };
-
-    constrainToViewport();
-    window.addEventListener('resize', constrainToViewport);
-    return () => window.removeEventListener('resize', constrainToViewport);
-  }, [position, isDragging]);
-
-  const handleDragStart = () => {
-    setIsDragging(true);
-    dragStartRef.current = position;
-  };
-
-  const handleDrag = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    setPosition({
-      x: dragStartRef.current.x + info.offset.x,
-      y: dragStartRef.current.y + info.offset.y
-    });
-  };
-
-  const handleDragEnd = () => {
-    setIsDragging(false);
+    handleExpand();
   };
 
   if (!currentTrack) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
-        ref={containerRef}
-        drag
-        dragMomentum={false}
-        dragElastic={0}
-        onDragStart={handleDragStart}
-        onDrag={handleDrag}
-        onDragEnd={handleDragEnd}
-        animate={{
-          x: position.x + window.innerWidth / 2,
-          y: position.y + window.innerHeight / 2,
-          scale: isDragging ? 1.02 : 1,
-          opacity: isDragging ? 0.8 : 1
+    <div 
+      className="fixed bottom-3 left-4 right-4 z-50 select-none"
+      onDoubleClick={handleDoubleClick}
+    >
+      <div 
+        className="relative overflow-hidden backdrop-blur-xl border rounded-xl shadow-2xl transition-all duration-300 hover:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.6)]"
+        style={{
+          backgroundColor: dominantColor 
+            ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.70)')}` 
+            : 'rgba(20, 21, 23, 0.92)',
+          borderColor: dominantColor 
+            ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.35)')}` 
+            : 'rgba(255, 255, 255, 0.12)',
+          boxShadow: dominantColor
+            ? `0 12px 32px -8px ${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.45)')}`
+            : undefined,
         }}
-        transition={{ type: 'spring', damping: 20 }}
-        style={{ 
-          position: 'fixed',
-          zIndex: 100,
-          transform: `translate(-50%, -50%)`
-        }}
-        className="cursor-grab active:cursor-grabbing"
-        onClick={handleContainerClick}
       >
+        {/* Apple Music Hairline Progress Scrubber at Top Edge */}
         <div 
-          className="backdrop-blur-md border rounded-lg shadow-xl hover:shadow-2xl transition-shadow p-3 w-[280px]"
-          style={{
-            backgroundColor: dominantColor 
-              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.25)')}` 
-              : 'rgba(0, 0, 0, 0.7)',
-            borderColor: dominantColor 
-              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.35)')}` 
-              : 'rgba(255, 255, 255, 0.15)'
-          }}
+          className="relative w-full h-[3px] bg-white/10 hover:h-[5px] cursor-pointer group/progress transition-all duration-150"
+          onClick={handleProgressClick}
+          title="Seek track"
         >
-          {/* Progress bar at the top */}
-          <div className="mb-3" onClick={handleProgressClick}>
-            <Progress 
-              value={progress} 
-              className="h-1 cursor-pointer" 
-              style={{
-                backgroundColor: dominantColor 
-                  ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.2)')}` 
-                  : undefined,
-                '--progress-color': dominantColor || undefined
-              } as React.CSSProperties}
-            />
+          <div 
+            className="h-full bg-white/90 group-hover/progress:bg-primary transition-[width] duration-75 relative"
+            style={{ width: `${progress}%` }}
+          >
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white opacity-0 group-hover/progress:opacity-100 transition-opacity shadow-sm" />
           </div>
-          
-          <div className="flex items-center gap-3">
-            {/* Album Art - Animated transition */}
-            <AnimatePresence mode="wait">
-              <motion.div 
-                key={currentTrack.id}
-                className="relative w-12 h-12 shrink-0"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Image
-                  src={currentTrack.coverArt || '/default-user.jpg'}
-                  alt={currentTrack.name}
-                  fill
-                  className="rounded-md object-cover shadow-md"
-                  sizes="48px"
-                  priority
-                />
-              </motion.div>
-            </AnimatePresence>
+        </div>
 
-            {/* Track Info */}
-            <div className="flex-1 min-w-0">
+        {/* Apple Music Compact Bar Row */}
+        <div className="flex items-center justify-between px-3.5 py-1.5 h-11 gap-3">
+          {/* Left: Album Artwork + Track Info */}
+          <div className="flex items-center min-w-0 flex-1 max-w-[35%] gap-2.5">
+            <div 
+              className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={handleExpand}
+              title="Expand player"
+            >
+              <Image
+                src={
+                  currentTrack.coverArt && 
+                  (currentTrack.coverArt.startsWith('http') || currentTrack.coverArt.startsWith('/'))
+                    ? currentTrack.coverArt 
+                    : '/default-user.jpg'
+                }
+                alt={currentTrack.name}
+                fill
+                className="object-cover"
+                sizes="32px"
+                priority
+              />
+            </div>
+
+            <div className="flex flex-col min-w-0">
               <Link
                 href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
                 onClick={(e) => e.stopPropagation()}
-                className="font-semibold text-sm truncate block hover:underline hover:text-white transition-colors"
+                className="font-semibold text-xs text-white truncate block hover:underline leading-tight transition-colors"
                 title={`Go to album: ${currentTrack.album || currentTrack.name}`}
               >
                 {currentTrack.name}
@@ -371,7 +215,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
               <Link
                 href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
                 onClick={(e) => e.stopPropagation()}
-                className="text-xs text-muted-foreground truncate block hover:underline hover:text-foreground transition-colors"
+                className="text-[11px] text-white/70 hover:text-white truncate block hover:underline leading-tight transition-colors"
                 title={`Go to artist: ${currentTrack.artist}`}
               >
                 {currentTrack.artist}
@@ -379,83 +223,105 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
             </div>
           </div>
 
-          {/* Keyboard shortcut hint */}
-          <div className="text-xs text-muted-foreground text-center mt-2 px-2">
-            Double-click to expand • Arrow keys to move
-          </div>
+          {/* Center: Apple Music-style Controls */}
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-shrink-0">
+            {/* Shuffle */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleShuffle();
+              }}
+              className={`p-1.5 rounded-full transition-colors ${
+                shuffle 
+                  ? 'text-primary bg-primary/20' 
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
+              }`}
+              title={shuffle ? 'Shuffle On' : 'Shuffle Off'}
+            >
+              <FaShuffle className="w-3 h-3" />
+            </button>
 
-          {/* Controls */}
-          <div className="flex items-center justify-between mt-2 px-2">
+            {/* Previous */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                playPreviousTrack();
+              }}
+              className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors active:scale-95"
+              title="Previous Track"
+            >
+              <FaBackward className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Play / Pause */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePlayPause();
+              }}
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white transition-all shadow-sm"
+              title={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? (
+                <FaPause className="w-3 h-3" />
+              ) : (
+                <FaPlay className="w-3 h-3 ml-0.5" />
+              )}
+            </button>
+
+            {/* Next */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                playNextTrack();
+              }}
+              className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors active:scale-95"
+              title="Next Track"
+            >
+              <FaForward className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Star / Favorite */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 toggleCurrentTrackStar();
               }}
-              className="p-2 hover:bg-muted/50 rounded-full transition-colors"
+              className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
               title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
             >
               <Heart
-                className={`w-4 h-4 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`}
+                className={`w-3.5 h-3.5 ${
+                  currentTrack.starred ? 'text-primary fill-primary' : ''
+                }`}
               />
             </button>
+          </div>
 
-            <div className="flex items-center gap-2">
+          {/* Right: Volume & Expand */}
+          <div className="flex items-center justify-end gap-1.5 flex-1 max-w-[35%]">
+            {/* Volume */}
+            <div className="relative" ref={volumeContainerRef}>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  playPreviousTrack();
+                  setShowVolumeSlider((prev) => !prev);
                 }}
-                className="p-2 hover:bg-muted/50 rounded-full transition-colors"
-              >
-                <FaBackward className="w-3 h-3" />
-              </button>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  togglePlayPause();
-                }}
-                className="p-3 hover:bg-muted/50 rounded-full transition-colors"
-              >
-                {isPlaying ? (
-                  <FaPause className="w-4 h-4" />
-                ) : (
-                  <FaPlay className="w-4 h-4" />
-                )}
-              </button>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  playNextTrack();
-                }}
-                className="p-2 hover:bg-muted/50 rounded-full transition-colors"
-              >
-                <FaForward className="w-3 h-3" />
-              </button>
-            </div>
-
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowVolumeSlider(prev => !prev);
-                }}
-                className="p-2 hover:bg-muted/50 rounded-full transition-colors"
+                className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
                 title="Volume"
               >
                 {volume === 0 ? (
-                  <FaVolumeXmark className="w-4 h-4" />
+                  <FaVolumeXmark className="w-3.5 h-3.5" />
                 ) : (
-                  <FaVolumeHigh className="w-4 h-4" />
+                  <FaVolumeHigh className="w-3.5 h-3.5" />
                 )}
               </button>
-              
-              {/* Volume Slider */}
+
+              {/* Volume Popover */}
               {showVolumeSlider && (
                 <div 
-                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg"
-                  onClick={e => e.stopPropagation()}
+                  className="absolute bottom-full right-0 mb-2 p-2.5 bg-background/95 backdrop-blur-md border border-white/15 rounded-lg shadow-xl z-50 flex items-center"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <input
                     type="range"
@@ -464,26 +330,29 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({ onExpa
                     step="0.01"
                     value={volume}
                     onChange={handleVolumeChange}
-                    className="w-24 accent-foreground"
+                    className="w-24 accent-primary cursor-pointer"
                   />
                 </div>
               )}
             </div>
+
+            {/* Expand button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleExpand();
+              }}
+              className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+              title="Expand player"
+            >
+              <FaExpand className="w-3.5 h-3.5" />
+            </button>
           </div>
-          
-          {/* Expand button in top-right corner */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onExpand();
-            }}
-            className="absolute top-2 right-2 p-1.5 hover:bg-muted/50 rounded-full transition-colors"
-            title="Expand"
-          >
-            <FaExpand className="w-3 h-3" />
-          </button>
         </div>
-      </motion.div>
-    </AnimatePresence>
+      </div>
+    </div>
   );
 };
+
+export const AppleMusicMiniPlayer = DraggableMiniPlayer;
+export default DraggableMiniPlayer;
