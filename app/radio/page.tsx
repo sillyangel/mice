@@ -120,10 +120,6 @@ const RadioStationsPage = () => {
     };
 
     playTrack(radioTrack);
-    toast({
-      title: "Playing Radio",
-      description: `Now playing: ${station.name}`,
-    });
   };
 
   if (isLoading) {

@@ -398,7 +398,7 @@ export default function PlaylistPage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <button
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-opacity ${
+                          className={`w-7 h-7 rounded-full hidden sm:flex items-center justify-center text-white/50 hover:text-white transition-opacity ${
                             isHovered || playing ? 'opacity-100' : 'opacity-0'
                           }`}
                         >

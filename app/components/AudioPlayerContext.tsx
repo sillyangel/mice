@@ -675,11 +675,6 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       } else {
         playTracks(tracks, startingIndex);
       }
-
-      toastRef.current({
-        title: "Playing Album",
-        description: `Playing "${album.name}" from "${tracks[startingIndex].name}"${shuffleRef.current ? ' (shuffled)' : ''}`,
-      });
     } catch (error) {
       console.error('Failed to play album from track:', error);
       toastRef.current({
@@ -758,11 +753,6 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
           playTracks(allTracks, 0);
         }
       }
-
-      toastRef.current({
-        title: "Playing Artist",
-        description: `Now playing all albums by "${artist.name}"${shuffleRef.current ? ' (shuffled)' : ''}`,
-      });
     } catch (error) {
       console.error('Failed to play artist:', error);
       toastRef.current({
