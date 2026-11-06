@@ -264,7 +264,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
       onDoubleClick={handleDoubleClick}
     >
       <div 
-        className="relative overflow-hidden backdrop-blur-2xl border rounded-full shadow-2xl transition-all duration-300 px-4 h-[52px] flex items-center justify-between gap-2.5"
+        className="relative overflow-visible backdrop-blur-2xl border rounded-full shadow-2xl transition-all duration-300 px-4 h-[52px] flex items-center justify-between gap-2.5"
         style={{
           backgroundColor: dominantColor 
             ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.65)')}` 
@@ -418,24 +418,24 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
             </button>
           </div>
 
-          {/* Hover Time Labels Overlay: Positioned above the scrubber bar on left and right */}
-          <div className={`absolute top-1 left-2 right-2 flex items-center justify-between pointer-events-none transition-opacity duration-200 ${
+          {/* Hover Time Labels Overlay: Positioned directly above the scrubber bar */}
+          <div className={`absolute inset-x-1.5 bottom-[11px] flex items-end justify-between pointer-events-none transition-opacity duration-200 z-10 ${
             isHoveringScrubber ? 'opacity-100' : 'opacity-0'
           }`}>
-            <span className="text-[11px] font-medium text-white/95 tabular-nums drop-shadow-sm select-none">
+            <span className="text-[11px] font-medium text-white tabular-nums leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] select-none">
               {formatTime(currentTime)}
             </span>
-            <span className="text-[11px] font-medium text-white/95 tabular-nums drop-shadow-sm select-none">
+            <span className="text-[11px] font-medium text-white tabular-nums leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] select-none">
               -{formatTime(remainingTime)}
             </span>
           </div>
 
           {/* Scrubber Bar: Spans below artwork, metadata, and ellipsis.
-              Normal state: subtle 2.5px hairline.
-              Hover state: expands height to 4.5px without moving surrounding buttons. */}
-          <div className="w-full mt-1">
-            <div className={`w-full rounded-full overflow-hidden transition-all duration-200 cursor-pointer ${
-              isHoveringScrubber ? 'h-[4.5px] bg-white/30' : 'h-[2.5px] bg-white/20'
+              Normal state: subtle 2px hairline.
+              Hover state: expands height to 6px exclusively towards the top (anchored at bottom) without moving surrounding elements. */}
+          <div className="w-full h-[8px] flex items-end mt-1 relative z-10">
+            <div className={`w-full rounded-full overflow-hidden transition-all duration-150 cursor-pointer ${
+              isHoveringScrubber ? 'h-[6px] bg-white/35' : 'h-[2px] bg-white/20'
             }`}>
               <div 
                 className={`h-full rounded-full transition-[width] duration-75 ${
