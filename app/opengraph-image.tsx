@@ -1,11 +1,23 @@
 import { ImageResponse } from 'next/og';
+import fs from 'node:fs';
+import path from 'node:path';
 
 export const runtime = 'nodejs';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
-export const alt = 'mice — a music streaming client for Navidrome';
+export const alt = 'mice';
 
-export default function OpengraphImage() {
+export default async function OpengraphImage() {
+  const cwd = process.cwd();
+
+  // Load the continuous wave background that extends the app icon's wave field
+  const bgBuffer = fs.readFileSync(path.join(cwd, 'public', 'og-wave-bg.png'));
+  const bgBase64 = `data:image/png;base64,${bgBuffer.toString('base64')}`;
+
+  // Load the official app icon
+  const iconBuffer = fs.readFileSync(path.join(cwd, 'public', 'icon-512.png'));
+  const iconBase64 = `data:image/png;base64,${iconBuffer.toString('base64')}`;
+
   return new ImageResponse(
     (
       <div
@@ -13,70 +25,71 @@ export default function OpengraphImage() {
           width: '100%',
           height: '100%',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #0a0a0f 0%, #14121f 55%, #1d1145 100%)',
-          color: '#fafafa',
-          padding: '64px 80px',
+          position: 'relative',
+          backgroundColor: '#222222',
+          overflow: 'hidden',
+          fontFamily:
+            '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif',
         }}
       >
+        {/* Continuous Wave Background from Logo */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={bgBase64}
+          alt=""
+          width={1200}
+          height={630}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '1200px',
+            height: '630px',
+            objectFit: 'cover',
+          }}
+        />
+
+        {/* Centered Lockup: [App Logo] + [mice] */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '20px',
-            marginBottom: '24px',
+            gap: '36px',
+            position: 'relative',
           }}
         >
-          <div
+          {/* Logo with Soft Depth Shadow */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={iconBase64}
+            alt="mice"
+            width={210}
+            height={210}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '88px',
-              height: '88px',
-              borderRadius: '22px',
-              background: 'linear-gradient(135deg, #60a5fa 0%, #8b5cf6 100%)',
-              fontSize: '48px',
-              fontWeight: 700,
+              width: '210px',
+              height: '210px',
+              borderRadius: '9999px',
+              boxShadow:
+                '0 24px 60px rgba(0, 0, 0, 0.75), 0 8px 20px rgba(0, 0, 0, 0.55)',
+            }}
+          />
+
+          {/* App Name 'mice' in bold, clean typography */}
+          <span
+            style={{
+              fontSize: '170px',
+              fontWeight: 800,
+              letterSpacing: '-0.045em',
+              lineHeight: 1,
+              color: '#ffffff',
+              textShadow:
+                '0 4px 30px rgba(0, 0, 0, 0.8), 0 2px 10px rgba(0, 0, 0, 0.6)',
+              paddingBottom: '8px',
             }}
           >
-            ♪
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '88px', fontWeight: 700, lineHeight: 1 }}>
-              mice
-            </span>
-            <span style={{ fontSize: '28px', color: '#a1a1aa', marginTop: '10px' }}>
-              navidrome client
-            </span>
-          </div>
-        </div>
-
-        <span style={{ fontSize: '34px', color: '#d4d4d8', textAlign: 'center' }}>
-          Your music library, streamed to every screen you own.
-        </span>
-
-        <div
-          style={{
-            display: 'flex',
-            gap: '12px',
-            marginTop: '44px',
-          }}
-        >
-          {[32, 56, 40, 72, 48, 84, 60, 40, 66, 52, 76, 46].map((height) => (
-            <div
-              key={height}
-              style={{
-                width: '10px',
-                height: `${height}px`,
-                borderRadius: '5px',
-                background: 'linear-gradient(180deg, #60a5fa 0%, #8b5cf6 100%)',
-                opacity: 0.9,
-              }}
-            />
-          ))}
+            mice
+          </span>
         </div>
       </div>
     ),
