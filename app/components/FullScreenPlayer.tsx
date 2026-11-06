@@ -702,16 +702,16 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             lineBlur = index === 0 ? 0.6 : index === 1 ? 1.4 : index === 2 ? 2.2 : 3.2;
           } else if (dist === 1) {
             lineOpacity = isPast ? 0.36 : 0.48;
-            lineBlur = 1.0;
+            lineBlur = 1.3;
           } else if (dist === 2) {
             lineOpacity = isPast ? 0.28 : 0.38;
-            lineBlur = 1.9;
+            lineBlur = 2.3;
           } else if (dist === 3) {
             lineOpacity = isPast ? 0.22 : 0.30;
-            lineBlur = 2.8;
+            lineBlur = 2.9;
           } else {
             lineOpacity = isPast ? 0.16 : 0.22;
-            lineBlur = 3.6;
+            lineBlur = 3.7;
           }
         }
 
@@ -780,7 +780,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 backgroundImage: `url(${currentTrack.coverArt})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                filter: 'blur(110px) saturate(1.85) brightness(0.72)',
+                filter: 'blur(110px) saturate(1.90) brightness(0.72)',
                 transform: 'scale(1.2) translateZ(0)',
               }}
               initial={{ opacity: 0 }}
@@ -795,7 +795,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
         <div
           className="absolute -inset-[22%]"
           style={{
-            filter: 'blur(115px) saturate(1.45)',
+            filter: 'blur(115px) saturate(1.55)',
             transform: 'translateZ(0)',
           }}
         >
