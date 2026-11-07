@@ -363,7 +363,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
       onDoubleClick={handleDoubleClick}
     >
       <div 
-        className="relative overflow-visible backdrop-blur-2xl border rounded-full shadow-2xl transition-all duration-300 px-4 sm:px-5 h-[68px] flex items-center justify-between gap-3"
+        className="relative overflow-visible backdrop-blur-2xl border rounded-full shadow-2xl transition-all duration-300 px-4 sm:px-5 h-14 flex items-center justify-between gap-3"
         style={{
           backgroundColor: dominantColor 
             ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.65)')}` 
@@ -377,7 +377,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
         }}
       >
         {/* Left Side: Playback Controls */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Shuffle Button: Dominant cover accent color when on */}
           <button
             onClick={(e) => {
@@ -397,7 +397,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
             }`}
             title={shuffle ? 'Shuffle On' : 'Shuffle Off'}
           >
-            <FaShuffle className="w-4 h-4" />
+            <FaShuffle className="w-3.5 h-3.5" />
           </button>
 
           {/* Previous Button */}
@@ -409,19 +409,19 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
             className="p-2 text-white/80 hover:text-white active:scale-95 transition-colors cursor-pointer"
             title="Previous Track"
           >
-            <FaBackwardStep className="w-4 h-4" />
+            <FaBackwardStep className="w-3.5 h-3.5" />
           </button>
 
           {/* Play / Pause Button */}
           <button
             onClick={handleTogglePlayPause}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-transform cursor-pointer hover:bg-white/10"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-transform cursor-pointer hover:bg-white/10"
             title={isPlayingState ? 'Pause' : 'Play'}
           >
             {isPlayingState ? (
-              <FaPause className="w-[18px] h-[18px]" />
+              <FaPause className="w-4 h-4" />
             ) : (
-              <FaPlay className="w-[18px] h-[18px] ml-0.5" />
+              <FaPlay className="w-4 h-4 ml-0.5" />
             )}
           </button>
 
@@ -434,7 +434,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
             className="p-2 text-white/80 hover:text-white active:scale-95 transition-colors cursor-pointer"
             title="Next Track"
           >
-            <FaForwardStep className="w-4 h-4" />
+            <FaForwardStep className="w-3.5 h-3.5" />
           </button>
 
           {/* Loop / Repeat Button: Dominant cover accent color when on */}
@@ -456,17 +456,17 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
             }`}
             title={isLooping ? 'Repeat On' : 'Repeat Off'}
           >
-            <FaRepeat className="w-4 h-4" />
+            <FaRepeat className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Center: Track Display & Interactive Apple Music Scrubber */}
-        <div className="flex-1 min-w-0 max-w-[440px] mx-1 relative h-full flex flex-col justify-center px-1.5 pb-2.5">
+        <div className="flex-1 min-w-0 max-w-[430px] mx-1 relative h-12 flex items-center px-1.5">
           {/* Main Info Layer: Artwork, Title/Artist Links, and Ellipsis (...) button
-              Positioned with comfortable clearance above the bottom scrubber line.
+              Unhovered: crystal-clear, comfortable full-height sizing.
               When scrubber is hovered/dragged: softly blurs so timestamps can be read easily. */}
           <div 
-            className="flex items-center justify-between gap-2.5 w-full transition-all duration-200"
+            className="flex items-center justify-between gap-2.5 w-full h-full transition-all duration-200"
             onMouseEnter={() => {
               if (!isDragging) setIsHoveringScrubber(false);
             }}
@@ -547,15 +547,15 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               title={currentTrack.starred ? 'Starred' : 'Star track'}
             >
               {currentTrack.starred ? (
-                <FaStar className="w-[18px] h-[18px]" />
+                <FaStar className="w-3.5 h-3.5" />
               ) : (
-                <FaRegStar className="w-[18px] h-[18px]" />
+                <FaRegStar className="w-3.5 h-3.5" />
               )}
             </button>
           </div>
 
-          {/* Hover Time Labels Overlay: Positioned cleanly above the scrubber line */}
-          <div className={`absolute inset-x-2 bottom-[16px] flex items-end justify-between pointer-events-none transition-opacity duration-200 z-10 ${
+          {/* Hover Time Labels Overlay: Positioned directly above the scrubber line */}
+          <div className={`absolute inset-x-2 bottom-[11px] flex items-end justify-between pointer-events-none transition-opacity duration-200 z-10 ${
             isScrubberActive ? 'opacity-100' : 'opacity-0'
           }`}>
             <span className="text-[11px] font-medium text-white tabular-nums leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] select-none">
@@ -566,12 +566,13 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
             </span>
           </div>
 
-          {/* Scrubber Bar: Anchored at bottom with clear separation from album art.
-              Hover state: expands height to 8px upwards without shifting layout.
+          {/* Scrubber Bar: Anchored at bottom with a dedicated hit area.
+              Does NOT consume pre-space from the info above.
+              Hover state: expands height to 5.5px upwards without shifting layout.
               Drag enabled across the full track width. */}
           <div 
             ref={scrubberRef}
-            className="absolute bottom-1 inset-x-2 h-5 cursor-pointer flex items-center z-20 group/scrubber"
+            className="absolute bottom-0 inset-x-2 h-4 cursor-pointer flex items-end z-20 group/scrubber"
             onMouseEnter={() => setIsHoveringScrubber(true)}
             onMouseLeave={() => {
               if (!isDragging) setIsHoveringScrubber(false);
@@ -579,8 +580,8 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
             onMouseDown={handleScrubberMouseDown}
             onTouchStart={handleScrubberTouchStart}
           >
-            <div className={`w-full rounded-full overflow-hidden transition-all duration-200 ${
-              isScrubberActive ? 'h-[8px] bg-white/35 shadow-[0_0_10px_rgba(255,255,255,0.65)]' : 'h-[2.5px] bg-white/20'
+            <div className={`w-full rounded-full overflow-hidden transition-all duration-150 ${
+              isScrubberActive ? 'h-[5.5px] bg-white/35' : 'h-[2px] bg-white/20'
             }`}>
               <div 
                 className={`h-full rounded-full ${
@@ -595,7 +596,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
         </div>
 
         {/* Right Side: Queue & Volume */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Queue Button */}
           <button
             onClick={(e) => {
@@ -605,7 +606,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
             className="p-2 text-white/60 hover:text-white transition-colors cursor-pointer"
             title="Queue"
           >
-            <FaListUl className="w-4 h-4" />
+            <FaListUl className="w-3.5 h-3.5" />
           </button>
 
           {/* Volume Control with Floating Overlay (doesn't push/shift pill layout) */}
@@ -652,11 +653,11 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               title="Volume"
             >
               {volume === 0 ? (
-                <FaVolumeXmark className="w-4 h-4" />
+                <FaVolumeXmark className="w-3.5 h-3.5" />
               ) : volume < 0.5 ? (
-                <FaVolumeLow className="w-4 h-4" />
+                <FaVolumeLow className="w-3.5 h-3.5" />
               ) : (
-                <FaVolumeHigh className="w-4 h-4" />
+                <FaVolumeHigh className="w-3.5 h-3.5" />
               )}
             </button>
           </div>
