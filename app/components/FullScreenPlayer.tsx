@@ -897,6 +897,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 transform: isActive ? 'scale(1.02) translateZ(0)' : 'scale(1) translateZ(0)',
                 transformOrigin: isOpposite ? 'right center' : 'left center',
                 textAlign: isOpposite ? 'right' : 'left',
+                marginLeft: isOpposite ? 'auto' : undefined,
                 textShadow: isActive
                   ? '0 4px 28px rgba(255, 255, 255, 0.28), 0 2px 14px rgba(0, 0, 0, 0.35)'
                   : 'none',
@@ -906,33 +907,47 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               mobileLayout
                 ? 'text-[26px] sm:text-[32px] mb-5'
                 : 'text-[28px] lg:text-[34px] xl:text-[38px] mb-6'
-            } font-bold tracking-[-0.025em] leading-[1.24] text-white break-words cursor-pointer select-none rounded-2xl px-4 py-2.5 -mx-4 [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]`}
+            } font-bold tracking-[-0.025em] leading-[1.24] text-white break-words cursor-pointer select-none rounded-2xl px-4 py-2.5 -mx-4 [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              isOpposite ? 'w-fit max-w-[85%] ml-auto text-right' : 'w-full text-left'
+            }`}
             title={`Jump to ${formatTime(item.time)}`}
           >
             {/* Lead Vocal Line */}
             {item.syllables && item.syllables.length > 0 ? (
               <span>
                 {item.syllables.map((syl, sylIdx) => {
-                  const isSylSung = isActive && currentTime >= syl.startTime;
+                  const effectiveEnd = syl.endTime > syl.startTime ? syl.endTime : syl.startTime + 0.2;
+                  const isSylActive = isActive && currentTime >= syl.startTime && currentTime < effectiveEnd;
+                  const isSylPast = isActive && currentTime >= effectiveEnd;
+
+                  const hasTrailingSpace = syl.text.endsWith(' ');
+                  const displayText = hasTrailingSpace ? syl.text.slice(0, -1) : syl.text;
 
                   return (
-                    <span
-                      key={sylIdx}
-                      style={{
-                        textShadow: isActive && isSylSung
-                          ? '0 0 16px rgba(255, 255, 255, 0.75), 0 2px 8px rgba(0, 0, 0, 0.4)'
-                          : 'none',
-                      }}
-                      className={
-                        !isActive
-                          ? 'text-white'
-                          : isSylSung
-                          ? 'text-white opacity-100 transition-opacity duration-150'
-                          : 'text-white/35 transition-opacity duration-150'
-                      }
-                    >
-                      {syl.text}
-                    </span>
+                    <React.Fragment key={sylIdx}>
+                      <span
+                        style={{
+                          transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
+                          textShadow: isSylActive
+                            ? '0 0 16px rgba(255, 255, 255, 0.75), 0 2px 8px rgba(0, 0, 0, 0.4)'
+                            : isSylPast
+                            ? '0 0 8px rgba(255, 255, 255, 0.3)'
+                            : 'none',
+                        }}
+                        className={`inline-block transition-all duration-150 ease-out ${
+                          !isActive
+                            ? 'text-white scale-100'
+                            : isSylActive
+                            ? 'text-white opacity-100 drop-shadow-[0_0_12px_rgba(255,255,255,0.7)] scale-[1.03] -translate-y-[0.5px]'
+                            : isSylPast
+                            ? 'text-white opacity-100 scale-100'
+                            : 'text-white/35 scale-100'
+                        }`}
+                      >
+                        {displayText}
+                      </span>
+                      {hasTrailingSpace ? ' ' : null}
+                    </React.Fragment>
                   );
                 })}
               </span>
@@ -942,39 +957,56 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
 
             {/* Background Vocals (e.g. "What did I do?") */}
             {item.background && item.background.length > 0 && (
-              <div className="mt-1 flex flex-col gap-1">
+              <div className={`mt-1.5 flex flex-col ${isOpposite ? 'items-end' : 'items-start'}`}>
                 {item.background.map((bg) => {
                   const isBgActive = currentTime >= bg.time && (bg.endTime ? currentTime <= bg.endTime : true);
 
                   return (
                     <span
                       key={bg.id}
-                      className={`text-[0.72em] font-medium tracking-tight italic transition-all duration-200 ${
+                      className={`text-[0.58em] font-medium tracking-normal transition-all duration-200 block ${
                         isBgActive
                           ? 'text-white opacity-95 drop-shadow-[0_0_12px_rgba(255,255,255,0.7)]'
                           : 'text-white/40 opacity-70'
                       }`}
                     >
-                      ({bg.syllables && bg.syllables.length > 0 ? (
+                      {bg.syllables && bg.syllables.length > 0 ? (
                         bg.syllables.map((syl, sIdx) => {
-                          const isSung = currentTime >= syl.startTime;
+                          const effectiveEnd = syl.endTime > syl.startTime ? syl.endTime : syl.startTime + 0.2;
+                          const isSylActive = currentTime >= syl.startTime && currentTime < effectiveEnd;
+                          const isSylPast = currentTime >= effectiveEnd;
+
+                          const hasTrailingSpace = syl.text.endsWith(' ');
+                          const displayText = hasTrailingSpace ? syl.text.slice(0, -1) : syl.text;
+
                           return (
-                            <span
-                              key={sIdx}
-                              style={{
-                                textShadow: isSung
-                                  ? '0 0 12px rgba(255, 255, 255, 0.65)'
-                                  : 'none',
-                              }}
-                              className={isSung ? 'text-white opacity-100' : 'text-white/40'}
-                            >
-                              {syl.text}
-                            </span>
+                            <React.Fragment key={sIdx}>
+                              <span
+                                style={{
+                                  transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
+                                  textShadow: isSylActive
+                                    ? '0 0 12px rgba(255, 255, 255, 0.7)'
+                                    : isSylPast
+                                    ? '0 0 6px rgba(255, 255, 255, 0.3)'
+                                    : 'none',
+                                }}
+                                className={`inline-block transition-all duration-150 ease-out ${
+                                  isSylActive
+                                    ? 'text-white opacity-100 drop-shadow-[0_0_10px_rgba(255,255,255,0.7)] scale-[1.03] -translate-y-[0.3px]'
+                                    : isSylPast
+                                    ? 'text-white opacity-95 scale-100'
+                                    : 'text-white/40 scale-100'
+                                }`}
+                              >
+                                {displayText}
+                              </span>
+                              {hasTrailingSpace ? ' ' : null}
+                            </React.Fragment>
                           );
                         })
                       ) : (
                         bg.text
-                      )})
+                      )}
                     </span>
                   );
                 })}
