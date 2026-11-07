@@ -876,11 +876,11 @@ export const AudioPlayer: React.FC = () => {
           onTouchEnd={handleTouchEnd}
         >
           <div
-            className="backdrop-blur-2xl border rounded-full shadow-2xl transition-all duration-300 px-3.5 h-[52px] flex items-center justify-between gap-3"
+            className="backdrop-blur-2xl border rounded-2xl shadow-2xl transition-all duration-300 px-3.5 h-[56px] flex items-center justify-between gap-3"
             style={{
               backgroundColor: dominantColor 
-                ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.75)')}`
-                : 'rgba(24, 23, 22, 0.92)',
+                ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.8)')}`
+                : 'rgba(28, 28, 30, 0.92)',
               borderColor: dominantColor 
                 ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.35)')}`
                 : 'rgba(255, 255, 255, 0.12)',
@@ -890,14 +890,14 @@ export const AudioPlayer: React.FC = () => {
             }}
           >
             {/* Left: Album cover + Song & Artist name */}
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="relative w-8 h-8 rounded-md overflow-hidden shrink-0 shadow-sm">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0 shadow-sm">
                 <Image 
                   src={currentTrack.coverArt || '/default-user.jpg'} 
                   alt={currentTrack.name} 
                   fill
                   className="object-cover"
-                  sizes="32px"
+                  sizes="36px"
                   priority
                 />
               </div>
@@ -905,16 +905,16 @@ export const AudioPlayer: React.FC = () => {
                 <span className="font-semibold text-[13px] text-white truncate leading-tight block">
                   {currentTrack.name}
                 </span>
-                <span className="text-xs text-white/70 truncate leading-tight block mt-0.5">
+                <span className="text-xs text-zinc-400 truncate leading-tight block mt-0.5">
                   {currentTrack.artist}
                 </span>
               </div>
             </div>
 
             {/* Right: Play / Pause and Next Track buttons */}
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:bg-white/15 active:scale-95 transition-all cursor-pointer" 
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white hover:bg-white/15 active:scale-95 transition-all cursor-pointer" 
                 onClick={(e) => {
                   e.stopPropagation();
                   togglePlayPause();
@@ -924,10 +924,10 @@ export const AudioPlayer: React.FC = () => {
                 aria-label={isPlaying ? 'Pause' : 'Play'}
                 title={isPlaying ? 'Pause' : 'Play'}
               >
-                {isPlaying ? <FaPause className="w-3.5 h-3.5" /> : <FaPlay className="w-3.5 h-3.5 ml-0.5" />}
+                {isPlaying ? <FaPause className="w-4 h-4" /> : <FaPlay className="w-4 h-4 ml-0.5" />}
               </button>
               <button 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 active:scale-95 transition-all cursor-pointer" 
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 active:scale-95 transition-all cursor-pointer" 
                 onClick={(e) => {
                   e.stopPropagation();
                   playNextTrack();
@@ -936,7 +936,7 @@ export const AudioPlayer: React.FC = () => {
                 aria-label="Next track"
                 title="Next track"
               >
-                <FaForward className="w-3.5 h-3.5" />
+                <FaForward className="w-4 h-4" />
               </button>
             </div>
           </div>

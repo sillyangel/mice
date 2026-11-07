@@ -25,15 +25,15 @@ export function BottomNavigation() {
           className={cn(
             "flex-1 h-full rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer",
             isHomeActive
-              ? "bg-primary/20 text-primary"
-              : "text-white/80 hover:text-white"
+              ? "bg-white/[0.12] text-[#fa243c]"
+              : "text-zinc-400 hover:text-white"
           )}
           aria-label="Home"
         >
-          <Home className={cn("w-5 h-5", isHomeActive ? "text-primary" : "text-white/80")} />
+          <Home className={cn("w-5 h-5", isHomeActive ? "text-[#fa243c]" : "text-zinc-400")} />
           <span className={cn(
             "text-[10px] font-semibold leading-none mt-1",
-            isHomeActive ? "text-primary" : "text-white/80"
+            isHomeActive ? "text-[#fa243c]" : "text-zinc-400"
           )}>
             Home
           </span>
@@ -46,15 +46,15 @@ export function BottomNavigation() {
           className={cn(
             "flex-1 h-full rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer",
             isLibraryActive
-              ? "bg-primary/20 text-primary"
-              : "text-white/80 hover:text-white"
+              ? "bg-white/[0.12] text-[#fa243c]"
+              : "text-zinc-400 hover:text-white"
           )}
           aria-label="Library"
         >
-          <SquarePlay className={cn("w-5 h-5", isLibraryActive ? "text-primary" : "text-white/80")} />
+          <SquarePlay className={cn("w-5 h-5", isLibraryActive ? "text-[#fa243c]" : "text-zinc-400")} />
           <span className={cn(
             "text-[10px] font-semibold leading-none mt-1",
-            isLibraryActive ? "text-primary" : "text-white/80"
+            isLibraryActive ? "text-[#fa243c]" : "text-zinc-400"
           )}>
             Library
           </span>

@@ -233,8 +233,11 @@ export default function LibraryPage() {
         {/* Top Header Row with title and more button */}
         <div className="flex items-center justify-between pt-1">
           <h1 className="text-3xl font-bold tracking-tight text-white">Library</h1>
-          <div className="bg-black/30 backdrop-blur-xl border border-white/15 rounded-full w-9 h-9 flex items-center justify-center shadow-sm">
-            <MoreHorizontal className="w-5 h-5 text-primary shrink-0" />
+          <div className="bg-[#2c2c2e]/90 backdrop-blur-xl border border-white/10 rounded-full pl-1.5 pr-2.5 py-1.5 flex items-center gap-2 shadow-sm">
+            <div className="w-6 h-6 rounded-full bg-[#fa243c] flex items-center justify-center">
+              <ArrowDown className="w-3.5 h-3.5 text-black stroke-[3]" />
+            </div>
+            <MoreHorizontal className="w-4 h-4 text-[#fa243c] shrink-0" />
           </div>
         </div>
 
@@ -246,7 +249,7 @@ export default function LibraryPage() {
             placeholder="Search Library"
             value={mobileSearchQuery}
             onChange={(e) => setMobileSearchQuery(e.target.value)}
-            className="w-full bg-black/30 backdrop-blur-xl text-white placeholder-zinc-400 rounded-xl pl-10 pr-4 py-2 text-[15px] focus:outline-none focus:ring-1 focus:ring-primary border border-white/10"
+            className="w-full bg-[#1c1c1e] text-white placeholder-zinc-400 rounded-xl pl-10 pr-4 py-2 text-[15px] focus:outline-none focus:ring-1 focus:ring-[#fa243c] border border-white/10"
           />
         </div>
 
@@ -262,12 +265,12 @@ export default function LibraryPage() {
                   className="flex items-center justify-between py-3 px-1 active:opacity-60 transition-opacity"
                 >
                   <div className="flex items-center gap-3.5">
-                    <Icon className="w-5 h-5 text-primary" />
+                    <Icon className="w-5 h-5 text-[#fa243c]" />
                     <span className="text-[17px] font-normal text-white">{cat.label}</span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-zinc-600" />
                 </Link>
-                <div className={isLast ? "border-b border-white/[0.08]" : "border-b border-white/[0.08] ml-9"} />
+                <div className={isLast ? "border-b border-white/[0.08]" : "border-b border-white/[0.08] ml-10"} />
               </div>
             );
           })}

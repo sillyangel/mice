@@ -218,6 +218,44 @@ interface AppleLyricLineItemProps {
   onLyricClick: (time: number) => void;
 }
 
+interface SyllableGroup {
+  syllables: LyricSyllable[];
+  trailingSpace: boolean;
+}
+
+function groupSyllablesIntoWords(syllables: LyricSyllable[]): SyllableGroup[] {
+  const words: SyllableGroup[] = [];
+  let currentGroup: LyricSyllable[] = [];
+
+  for (let i = 0; i < syllables.length; i++) {
+    const syl = syllables[i];
+    currentGroup.push(syl);
+
+    const isWordEnd =
+      !syl.isPartOfWord ||
+      syl.text.endsWith(' ') ||
+      (i + 1 < syllables.length && syllables[i + 1].text.startsWith(' ')) ||
+      i === syllables.length - 1;
+
+    if (isWordEnd) {
+      words.push({
+        syllables: currentGroup,
+        trailingSpace: syl.text.endsWith(' ') || (i + 1 < syllables.length && syllables[i + 1].text.startsWith(' ')),
+      });
+      currentGroup = [];
+    }
+  }
+
+  if (currentGroup.length > 0) {
+    words.push({
+      syllables: currentGroup,
+      trailingSpace: false,
+    });
+  }
+
+  return words;
+}
+
 const AppleLyricLineItem = React.memo(function AppleLyricLineItem({
   item,
   index,
@@ -231,6 +269,10 @@ const AppleLyricLineItem = React.memo(function AppleLyricLineItem({
   mobileLayout,
   onLyricClick,
 }: AppleLyricLineItemProps) {
+  const leadWords = React.useMemo(
+    () => (item.syllables ? groupSyllablesIntoWords(item.syllables) : []),
+    [item.syllables]
+  );
   if (item.isInterlude) {
     return (
       <div
@@ -306,49 +348,54 @@ const AppleLyricLineItem = React.memo(function AppleLyricLineItem({
         mobileLayout
           ? 'text-[26px] sm:text-[32px] mb-5 px-2 py-2'
           : 'text-[28px] lg:text-[34px] xl:text-[38px] mb-6 px-4 py-2.5 -mx-4'
-      } font-bold tracking-[-0.025em] leading-[1.24] text-white break-words cursor-pointer select-none rounded-2xl [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+      } font-bold tracking-[-0.025em] leading-[1.24] text-white break-normal cursor-pointer select-none rounded-2xl [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
         isOpposite ? 'w-fit max-w-[85%] ml-auto text-right' : 'w-full text-left'
       }`}
       title={`Jump to ${formatLyricTime(item.time)}`}
     >
       {/* Lead Vocal Line */}
-      {item.syllables && item.syllables.length > 0 ? (
+      {leadWords.length > 0 ? (
         <span>
-          {item.syllables.map((syl, sylIdx) => {
-            const effectiveEnd = syl.endTime > syl.startTime ? syl.endTime : syl.startTime + 0.2;
-            const isSylActive = isActive && animTime >= syl.startTime && animTime < effectiveEnd;
-            const isSylPast = isPast || (isActive && animTime >= effectiveEnd);
+          {leadWords.map((word, wIdx) => (
+            <React.Fragment key={wIdx}>
+              <span className="inline-block whitespace-nowrap">
+                {word.syllables.map((syl, sylIdx) => {
+                  const effectiveEnd = syl.endTime > syl.startTime ? syl.endTime : syl.startTime + 0.2;
+                  const isSylActive = isActive && animTime >= syl.startTime && animTime < effectiveEnd;
+                  const isSylPast = isPast || (isActive && animTime >= effectiveEnd);
 
-            const hasTrailingSpace = syl.text.endsWith(' ');
-            const displayText = hasTrailingSpace ? syl.text.slice(0, -1) : syl.text;
+                  const hasTrailingSpace = syl.text.endsWith(' ');
+                  const displayText = hasTrailingSpace ? syl.text.slice(0, -1) : syl.text;
 
-            return (
-              <React.Fragment key={sylIdx}>
-                <span
-                  style={{
-                    transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
-                    textShadow: isSylActive
-                      ? '0 0 10px rgba(255, 255, 255, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35)'
-                      : isSylPast
-                      ? '0 0 5px rgba(255, 255, 255, 0.2)'
-                      : 'none',
-                  }}
-                  className={`inline-block transition-all duration-150 ease-out ${
-                    !isActive
-                      ? 'text-white scale-100 translate-y-0'
-                      : isSylActive
-                      ? 'text-white opacity-100 scale-[1.025] -translate-y-[1.5px]'
-                      : isSylPast
-                      ? 'text-white opacity-100 scale-[1.01] -translate-y-[0.75px]'
-                      : 'text-white/35 scale-100 translate-y-0'
-                  }`}
-                >
-                  {displayText}
-                </span>
-                {hasTrailingSpace ? ' ' : null}
-              </React.Fragment>
-            );
-          })}
+                  return (
+                    <span
+                      key={sylIdx}
+                      style={{
+                        transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
+                        textShadow: isSylActive
+                          ? '0 0 10px rgba(255, 255, 255, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35)'
+                          : isSylPast
+                          ? '0 0 5px rgba(255, 255, 255, 0.2)'
+                          : 'none',
+                      }}
+                      className={`inline-block transition-all duration-150 ease-out ${
+                        !isActive
+                          ? 'text-white scale-100 translate-y-0'
+                          : isSylActive
+                          ? 'text-white opacity-100 scale-[1.025] -translate-y-[1.5px]'
+                          : isSylPast
+                          ? 'text-white opacity-100 scale-[1.01] -translate-y-[0.75px]'
+                          : 'text-white/35 scale-100 translate-y-0'
+                      }`}
+                    >
+                      {displayText}
+                    </span>
+                  );
+                })}
+              </span>
+              {word.trailingSpace ? ' ' : null}
+            </React.Fragment>
+          ))}
         </span>
       ) : item.text ? (
         <span>{item.text}</span>
@@ -370,37 +417,42 @@ const AppleLyricLineItem = React.memo(function AppleLyricLineItem({
                 }`}
               >
                 {bg.syllables && bg.syllables.length > 0 ? (
-                  bg.syllables.map((syl, sIdx) => {
-                    const effectiveEnd = syl.endTime > syl.startTime ? syl.endTime : syl.startTime + 0.2;
-                    const isSylActive = animTime >= syl.startTime && animTime < effectiveEnd;
-                    const isSylPast = animTime >= effectiveEnd;
+                  groupSyllablesIntoWords(bg.syllables).map((word, wIdx) => (
+                    <React.Fragment key={wIdx}>
+                      <span className="inline-block whitespace-nowrap">
+                        {word.syllables.map((syl, sIdx) => {
+                          const effectiveEnd = syl.endTime > syl.startTime ? syl.endTime : syl.startTime + 0.2;
+                          const isSylActive = animTime >= syl.startTime && animTime < effectiveEnd;
+                          const isSylPast = animTime >= effectiveEnd;
 
-                    const hasTrailingSpace = syl.text.endsWith(' ');
-                    const displayText = hasTrailingSpace ? syl.text.slice(0, -1) : syl.text;
+                          const hasTrailingSpace = syl.text.endsWith(' ');
+                          const displayText = hasTrailingSpace ? syl.text.slice(0, -1) : syl.text;
 
-                    return (
-                      <React.Fragment key={sIdx}>
-                        <span
-                          style={{
-                            transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
-                            textShadow: isSylActive
-                              ? '0 0 8px rgba(255, 255, 255, 0.5)'
-                              : 'none',
-                          }}
-                          className={`inline-block transition-all duration-150 ease-out ${
-                            isSylActive
-                              ? 'text-white opacity-100 scale-[1.025] -translate-y-[1px]'
-                              : isSylPast
-                              ? 'text-white opacity-95 scale-[1.008] -translate-y-[0.5px]'
-                              : 'text-white/40 scale-100 translate-y-0'
-                          }`}
-                        >
-                          {displayText}
-                        </span>
-                        {hasTrailingSpace ? ' ' : null}
-                      </React.Fragment>
-                    );
-                  })
+                          return (
+                            <span
+                              key={sIdx}
+                              style={{
+                                transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
+                                textShadow: isSylActive
+                                  ? '0 0 8px rgba(255, 255, 255, 0.5)'
+                                  : 'none',
+                              }}
+                              className={`inline-block transition-all duration-150 ease-out ${
+                                isSylActive
+                                  ? 'text-white opacity-100 scale-[1.025] -translate-y-[1px]'
+                                  : isSylPast
+                                  ? 'text-white opacity-95 scale-[1.008] -translate-y-[0.5px]'
+                                  : 'text-white/40 scale-100 translate-y-0'
+                              }`}
+                            >
+                              {displayText}
+                            </span>
+                          );
+                        })}
+                      </span>
+                      {word.trailingSpace ? ' ' : null}
+                    </React.Fragment>
+                  ))
                 ) : (
                   bg.text
                 )}
