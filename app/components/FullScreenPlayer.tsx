@@ -41,12 +41,83 @@ interface LyricLine {
   text: string;
 }
 
+export interface LyricSyllable {
+  text: string;
+  isPartOfWord?: boolean;
+  startTime: number;
+  endTime: number;
+}
+
 interface LyricDisplayItem {
   id: string;
   time: number;
   endTime?: number;
   text: string;
   isInterlude: boolean;
+  syllables?: LyricSyllable[];
+}
+
+function buildAppleLyricsFromSpicy(content: any[]): LyricDisplayItem[] {
+  if (!Array.isArray(content) || !content.length) return [];
+  const items: LyricDisplayItem[] = [];
+
+  const firstVocal = content.find(
+    (c) => c?.Type === 'Vocal' && c?.Lead?.Syllables && c.Lead.Syllables.length > 0
+  );
+  const firstStartTime = firstVocal?.StartTime ?? firstVocal?.Lead?.StartTime ?? 0;
+
+  if (firstStartTime >= 2.5) {
+    items.push({
+      id: 'interlude-intro',
+      time: 0,
+      endTime: firstStartTime,
+      text: '',
+      isInterlude: true,
+    });
+  }
+
+  for (let i = 0; i < content.length; i++) {
+    const item = content[i];
+    if (item?.Type !== 'Vocal' || !item?.Lead?.Syllables?.length) continue;
+
+    const syllables: LyricSyllable[] = item.Lead.Syllables.map((s: any) => ({
+      text: s.Text || '',
+      isPartOfWord: !!s.IsPartOfWord,
+      startTime: s.StartTime ?? 0,
+      endTime: s.EndTime ?? s.StartTime ?? 0,
+    }));
+
+    const lineText = syllables.map((s) => s.text).join('').trim();
+    if (!lineText) continue;
+
+    const startTime = item.StartTime ?? item.Lead?.StartTime ?? syllables[0]?.startTime ?? 0;
+    const endTime = item.EndTime ?? item.Lead?.EndTime ?? syllables[syllables.length - 1]?.endTime ?? startTime;
+
+    // Check if there is an interlude before this line
+    const prevItem = items[items.length - 1];
+    if (prevItem && !prevItem.isInterlude && prevItem.endTime !== undefined) {
+      if (startTime - prevItem.endTime >= 4.5) {
+        items.push({
+          id: `interlude-${i}-${prevItem.endTime}`,
+          time: prevItem.endTime,
+          endTime: startTime,
+          text: '',
+          isInterlude: true,
+        });
+      }
+    }
+
+    items.push({
+      id: `spicy-lyric-${i}-${startTime}`,
+      time: startTime,
+      endTime: endTime,
+      text: lineText,
+      isInterlude: false,
+      syllables,
+    });
+  }
+
+  return items;
 }
 
 const INSTRUMENTAL_PATTERNS = new Set([
@@ -322,7 +393,30 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       }
 
       try {
-        // 1. Prefer structured lyrics from the Navidrome/OpenSubsonic server (songLyrics extension).
+        // 1. First priority: SpicyLyrics API for rich Apple Music word-by-word (syllable) synced lyrics
+        try {
+          const params = new URLSearchParams();
+          if (currentTrack.name) params.set('title', currentTrack.name);
+          if (currentTrack.artist) params.set('artist', currentTrack.artist);
+          if (currentTrack.album) params.set('album', currentTrack.album);
+          if (currentTrack.duration) params.set('duration', String(currentTrack.duration));
+
+          const res = await fetch(`/api/lyrics?${params.toString()}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.Body?.Type === 'Syllable' && Array.isArray(data?.Body?.Content)) {
+              const spicyItems = buildAppleLyricsFromSpicy(data.Body.Content);
+              if (spicyItems.length > 0 && !cancelled) {
+                setLyrics(spicyItems);
+                return;
+              }
+            }
+          }
+        } catch (spicyErr) {
+          console.warn('SpicyLyrics fetch failed or bypassed:', spicyErr);
+        }
+
+        // 2. Second priority: Structured lyrics from Navidrome/OpenSubsonic server
         const api = getNavidromeAPI();
         let lines: LyricLine[] = [];
         if (api) {
@@ -342,7 +436,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
           }
         }
 
-        // 2. Fall back to lrclib.net when the server has no synced lyrics.
+        // 3. Fall back to lrclib.net when neither server nor SpicyLyrics provided lyrics
         if (!lines.some((l) => !isInstrumentalLine(l.text))) {
           const lyricsData = await lrcLibClient.searchTrack(
             currentTrack.artist,
@@ -738,7 +832,45 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             } font-bold tracking-[-0.025em] leading-[1.22] text-white break-words cursor-pointer select-none rounded-2xl px-4 py-2.5 -mx-4 [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]`}
             title={`Jump to ${formatTime(item.time)}`}
           >
-            {item.text}
+            {item.syllables && item.syllables.length > 0 ? (
+              <span>
+                {item.syllables.map((syl, sylIdx) => {
+                  const isSylActive = isActive && currentTime >= syl.startTime && currentTime < syl.endTime;
+                  const isSylPast = isActive && currentTime >= syl.endTime;
+                  const isSylFuture = isActive && currentTime < syl.startTime;
+
+                  let sylClass = '';
+                  let sylStyle: React.CSSProperties = {};
+
+                  if (!isActive) {
+                    // Whole line inherits line-level blur/opacity
+                    sylClass = 'text-white';
+                  } else if (isSylPast) {
+                    // Already sung in active line - bright opaque white with subtle glow
+                    sylClass = 'text-white opacity-100 transition-all duration-150';
+                  } else if (isSylActive) {
+                    // Currently being sung - ultra prominent with active word glow
+                    sylClass = 'text-white opacity-100 drop-shadow-[0_0_12px_rgba(255,255,255,0.7)] transition-all duration-100 inline-block scale-[1.03] origin-bottom';
+                  } else {
+                    // Future words in this line - dimmed until voice arrives
+                    sylClass = 'text-white/40 opacity-70 transition-all duration-200';
+                  }
+
+                  return (
+                    <span
+                      key={sylIdx}
+                      className={sylClass}
+                      style={sylStyle}
+                    >
+                      {syl.text}
+                      {!syl.isPartOfWord && ' '}
+                    </span>
+                  );
+                })}
+              </span>
+            ) : (
+              item.text
+            )}
           </div>
         );
       })}
