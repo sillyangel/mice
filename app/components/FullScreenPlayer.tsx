@@ -80,12 +80,22 @@ function buildAppleLyricsFromSpicy(content: any[]): LyricDisplayItem[] {
     const item = content[i];
     if (item?.Type !== 'Vocal' || !item?.Lead?.Syllables?.length) continue;
 
-    const syllables: LyricSyllable[] = item.Lead.Syllables.map((s: any) => ({
-      text: s.Text || '',
-      isPartOfWord: !!s.IsPartOfWord,
-      startTime: s.StartTime ?? 0,
-      endTime: s.EndTime ?? s.StartTime ?? 0,
-    }));
+    const rawSyllables = item.Lead.Syllables;
+    const syllables: LyricSyllable[] = rawSyllables.map((s: any, idx: number) => {
+      let txt = s.Text || '';
+      // If this syllable ends a word and next syllable exists without leading space, ensure spacing
+      const isLastInWord = !s.IsPartOfWord;
+      const nextSyl = rawSyllables[idx + 1];
+      if (isLastInWord && nextSyl && !txt.endsWith(' ') && !(nextSyl.Text || '').startsWith(' ')) {
+        txt += ' ';
+      }
+      return {
+        text: txt,
+        isPartOfWord: !!s.IsPartOfWord,
+        startTime: s.StartTime ?? 0,
+        endTime: s.EndTime ?? s.StartTime ?? 0,
+      };
+    });
 
     const lineText = syllables.map((s) => s.text).join('').trim();
     if (!lineText) continue;
@@ -535,6 +545,8 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     if (!isOpen || !currentTrack) return;
 
     const mainAudio = document.querySelector('audio') as HTMLAudioElement | null;
+    let animFrameId: number | null = null;
+
     const syncWithMainPlayer = () => {
       if (document.hidden) return;
       const audio = mainAudio || (document.querySelector('audio') as HTMLAudioElement | null);
@@ -546,7 +558,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       const newVolume = audio.volume;
 
       setIsPlaying((prev) => (prev !== newIsPlaying ? newIsPlaying : prev));
-      setCurrentTime((prev) => (Math.abs(prev - newCurrentTime) >= 0.05 ? newCurrentTime : prev));
+      setCurrentTime((prev) => (Math.abs(prev - newCurrentTime) >= 0.015 ? newCurrentTime : prev));
       setDuration((prev) => (prev !== newDuration ? newDuration : prev));
       setVolume((prev) => (prev !== newVolume ? newVolume : prev));
 
@@ -556,21 +568,46 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       }
     };
 
+    const startRafLoop = () => {
+      if (animFrameId !== null) return;
+      const loop = () => {
+        syncWithMainPlayer();
+        const audio = mainAudio || (document.querySelector('audio') as HTMLAudioElement | null);
+        if (audio && !audio.paused && !document.hidden) {
+          animFrameId = requestAnimationFrame(loop);
+        } else {
+          animFrameId = null;
+        }
+      };
+      animFrameId = requestAnimationFrame(loop);
+    };
+
+    const stopRafLoop = () => {
+      if (animFrameId !== null) {
+        cancelAnimationFrame(animFrameId);
+        animFrameId = null;
+      }
+    };
+
     syncWithMainPlayer();
     if (mainAudio) {
-      mainAudio.addEventListener('play', syncWithMainPlayer);
-      mainAudio.addEventListener('pause', syncWithMainPlayer);
+      if (!mainAudio.paused) startRafLoop();
+      mainAudio.addEventListener('play', startRafLoop);
+      mainAudio.addEventListener('pause', stopRafLoop);
+      mainAudio.addEventListener('timeupdate', syncWithMainPlayer);
       mainAudio.addEventListener('seeked', syncWithMainPlayer);
       mainAudio.addEventListener('volumechange', syncWithMainPlayer);
       mainAudio.addEventListener('durationchange', syncWithMainPlayer);
     }
-    const interval = setInterval(syncWithMainPlayer, 200);
+    const interval = setInterval(syncWithMainPlayer, 250);
 
     return () => {
       clearInterval(interval);
+      stopRafLoop();
       if (mainAudio) {
-        mainAudio.removeEventListener('play', syncWithMainPlayer);
-        mainAudio.removeEventListener('pause', syncWithMainPlayer);
+        mainAudio.removeEventListener('play', startRafLoop);
+        mainAudio.removeEventListener('pause', stopRafLoop);
+        mainAudio.removeEventListener('timeupdate', syncWithMainPlayer);
         mainAudio.removeEventListener('seeked', syncWithMainPlayer);
         mainAudio.removeEventListener('volumechange', syncWithMainPlayer);
         mainAudio.removeEventListener('durationchange', syncWithMainPlayer);
@@ -835,35 +872,20 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
             {item.syllables && item.syllables.length > 0 ? (
               <span>
                 {item.syllables.map((syl, sylIdx) => {
-                  const isSylActive = isActive && currentTime >= syl.startTime && currentTime < syl.endTime;
-                  const isSylPast = isActive && currentTime >= syl.endTime;
-                  const isSylFuture = isActive && currentTime < syl.startTime;
-
-                  let sylClass = '';
-                  let sylStyle: React.CSSProperties = {};
-
-                  if (!isActive) {
-                    // Whole line inherits line-level blur/opacity
-                    sylClass = 'text-white';
-                  } else if (isSylPast) {
-                    // Already sung in active line - bright opaque white with subtle glow
-                    sylClass = 'text-white opacity-100 transition-all duration-150';
-                  } else if (isSylActive) {
-                    // Currently being sung - ultra prominent with active word glow
-                    sylClass = 'text-white opacity-100 drop-shadow-[0_0_12px_rgba(255,255,255,0.7)] transition-all duration-100 inline-block scale-[1.03] origin-bottom';
-                  } else {
-                    // Future words in this line - dimmed until voice arrives
-                    sylClass = 'text-white/40 opacity-70 transition-all duration-200';
-                  }
+                  const isSylSung = isActive && currentTime >= syl.startTime;
 
                   return (
                     <span
                       key={sylIdx}
-                      className={sylClass}
-                      style={sylStyle}
+                      className={
+                        !isActive
+                          ? 'text-white'
+                          : isSylSung
+                          ? 'text-white opacity-100 transition-opacity duration-150'
+                          : 'text-white/35 transition-opacity duration-150'
+                      }
                     >
                       {syl.text}
-                      {!syl.isPartOfWord && ' '}
                     </span>
                   );
                 })}
