@@ -48,13 +48,41 @@ export interface LyricSyllable {
   endTime: number;
 }
 
+interface LyricBackgroundItem {
+  id: string;
+  time: number;
+  endTime?: number;
+  text: string;
+  syllables?: LyricSyllable[];
+}
+
 interface LyricDisplayItem {
   id: string;
   time: number;
   endTime?: number;
   text: string;
   isInterlude: boolean;
+  oppositeAligned?: boolean;
   syllables?: LyricSyllable[];
+  background?: LyricBackgroundItem[];
+}
+
+function parseSyllablesFromRaw(rawSyllables: any[]): LyricSyllable[] {
+  if (!Array.isArray(rawSyllables)) return [];
+  return rawSyllables.map((s: any, idx: number) => {
+    let txt = s.Text || '';
+    const isLastInWord = !s.IsPartOfWord;
+    const nextSyl = rawSyllables[idx + 1];
+    if (isLastInWord && nextSyl && !txt.endsWith(' ') && !(nextSyl.Text || '').startsWith(' ')) {
+      txt += ' ';
+    }
+    return {
+      text: txt,
+      isPartOfWord: !!s.IsPartOfWord,
+      startTime: s.StartTime ?? 0,
+      endTime: s.EndTime ?? s.StartTime ?? 0,
+    };
+  });
 }
 
 function buildAppleLyricsFromSpicy(content: any[]): LyricDisplayItem[] {
@@ -62,7 +90,7 @@ function buildAppleLyricsFromSpicy(content: any[]): LyricDisplayItem[] {
   const items: LyricDisplayItem[] = [];
 
   const firstVocal = content.find(
-    (c) => c?.Type === 'Vocal' && c?.Lead?.Syllables && c.Lead.Syllables.length > 0
+    (c) => c?.Type === 'Vocal' && ((c?.Lead?.Syllables && c.Lead.Syllables.length > 0) || (c?.Background && c.Background.length > 0))
   );
   const firstStartTime = firstVocal?.StartTime ?? firstVocal?.Lead?.StartTime ?? 0;
 
@@ -78,30 +106,37 @@ function buildAppleLyricsFromSpicy(content: any[]): LyricDisplayItem[] {
 
   for (let i = 0; i < content.length; i++) {
     const item = content[i];
-    if (item?.Type !== 'Vocal' || !item?.Lead?.Syllables?.length) continue;
+    if (item?.Type !== 'Vocal') continue;
 
-    const rawSyllables = item.Lead.Syllables;
-    const syllables: LyricSyllable[] = rawSyllables.map((s: any, idx: number) => {
-      let txt = s.Text || '';
-      // If this syllable ends a word and next syllable exists without leading space, ensure spacing
-      const isLastInWord = !s.IsPartOfWord;
-      const nextSyl = rawSyllables[idx + 1];
-      if (isLastInWord && nextSyl && !txt.endsWith(' ') && !(nextSyl.Text || '').startsWith(' ')) {
-        txt += ' ';
-      }
-      return {
-        text: txt,
-        isPartOfWord: !!s.IsPartOfWord,
-        startTime: s.StartTime ?? 0,
-        endTime: s.EndTime ?? s.StartTime ?? 0,
-      };
-    });
+    const rawLeadSyllables = item.Lead?.Syllables || [];
+    const leadSyllables: LyricSyllable[] = parseSyllablesFromRaw(rawLeadSyllables);
+    const lineText = leadSyllables.map((s) => s.text).join('').trim();
 
-    const lineText = syllables.map((s) => s.text).join('').trim();
-    if (!lineText) continue;
+    // Parse background vocals if present
+    const backgroundItems: LyricBackgroundItem[] = [];
+    if (Array.isArray(item.Background) && item.Background.length > 0) {
+      item.Background.forEach((bg: any, bgIdx: number) => {
+        const bgRawSyllables = bg.Syllables || [];
+        const bgSyllables: LyricSyllable[] = parseSyllablesFromRaw(bgRawSyllables);
+        const bgText = bgSyllables.map((s) => s.text).join('').trim();
+        if (bgText) {
+          const bgStartTime = bg.StartTime ?? bgSyllables[0]?.startTime ?? 0;
+          const bgEndTime = bg.EndTime ?? bgSyllables[bgSyllables.length - 1]?.endTime ?? bgStartTime;
+          backgroundItems.push({
+            id: `spicy-bg-${i}-${bgIdx}-${bgStartTime}`,
+            time: bgStartTime,
+            endTime: bgEndTime,
+            text: bgText,
+            syllables: bgSyllables,
+          });
+        }
+      });
+    }
 
-    const startTime = item.StartTime ?? item.Lead?.StartTime ?? syllables[0]?.startTime ?? 0;
-    const endTime = item.EndTime ?? item.Lead?.EndTime ?? syllables[syllables.length - 1]?.endTime ?? startTime;
+    if (!lineText && backgroundItems.length === 0) continue;
+
+    const startTime = item.StartTime ?? item.Lead?.StartTime ?? leadSyllables[0]?.startTime ?? backgroundItems[0]?.time ?? 0;
+    const endTime = item.EndTime ?? item.Lead?.EndTime ?? leadSyllables[leadSyllables.length - 1]?.endTime ?? backgroundItems[backgroundItems.length - 1]?.endTime ?? startTime;
 
     // Check if there is an interlude before this line
     const prevItem = items[items.length - 1];
@@ -123,7 +158,9 @@ function buildAppleLyricsFromSpicy(content: any[]): LyricDisplayItem[] {
       endTime: endTime,
       text: lineText,
       isInterlude: false,
-      syllables,
+      oppositeAligned: !!item.OppositeAligned,
+      syllables: leadSyllables.length > 0 ? leadSyllables : undefined,
+      background: backgroundItems.length > 0 ? backgroundItems : undefined,
     });
   }
 
@@ -846,6 +883,8 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
           }
         }
 
+        const isOpposite = !!item.oppositeAligned;
+
         return (
           <div
             key={item.id}
@@ -856,9 +895,10 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                 '--lyric-opacity': lineOpacity,
                 '--lyric-blur': `${lineBlur}px`,
                 transform: isActive ? 'scale(1.02) translateZ(0)' : 'scale(1) translateZ(0)',
-                transformOrigin: 'left center',
+                transformOrigin: isOpposite ? 'right center' : 'left center',
+                textAlign: isOpposite ? 'right' : 'left',
                 textShadow: isActive
-                  ? '0 4px 28px rgba(255, 255, 255, 0.22), 0 2px 12px rgba(0, 0, 0, 0.28)'
+                  ? '0 4px 28px rgba(255, 255, 255, 0.28), 0 2px 14px rgba(0, 0, 0, 0.35)'
                   : 'none',
               } as React.CSSProperties
             }
@@ -866,9 +906,10 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
               mobileLayout
                 ? 'text-[26px] sm:text-[32px] mb-5'
                 : 'text-[28px] lg:text-[34px] xl:text-[38px] mb-6'
-            } font-bold tracking-[-0.025em] leading-[1.22] text-white break-words cursor-pointer select-none rounded-2xl px-4 py-2.5 -mx-4 [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]`}
+            } font-bold tracking-[-0.025em] leading-[1.24] text-white break-words cursor-pointer select-none rounded-2xl px-4 py-2.5 -mx-4 [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]`}
             title={`Jump to ${formatTime(item.time)}`}
           >
+            {/* Lead Vocal Line */}
             {item.syllables && item.syllables.length > 0 ? (
               <span>
                 {item.syllables.map((syl, sylIdx) => {
@@ -877,6 +918,11 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                   return (
                     <span
                       key={sylIdx}
+                      style={{
+                        textShadow: isActive && isSylSung
+                          ? '0 0 16px rgba(255, 255, 255, 0.75), 0 2px 8px rgba(0, 0, 0, 0.4)'
+                          : 'none',
+                      }}
                       className={
                         !isActive
                           ? 'text-white'
@@ -890,8 +936,49 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                   );
                 })}
               </span>
-            ) : (
-              item.text
+            ) : item.text ? (
+              <span>{item.text}</span>
+            ) : null}
+
+            {/* Background Vocals (e.g. "What did I do?") */}
+            {item.background && item.background.length > 0 && (
+              <div className="mt-1 flex flex-col gap-1">
+                {item.background.map((bg) => {
+                  const isBgActive = currentTime >= bg.time && (bg.endTime ? currentTime <= bg.endTime : true);
+
+                  return (
+                    <span
+                      key={bg.id}
+                      className={`text-[0.72em] font-medium tracking-tight italic transition-all duration-200 ${
+                        isBgActive
+                          ? 'text-white opacity-95 drop-shadow-[0_0_12px_rgba(255,255,255,0.7)]'
+                          : 'text-white/40 opacity-70'
+                      }`}
+                    >
+                      ({bg.syllables && bg.syllables.length > 0 ? (
+                        bg.syllables.map((syl, sIdx) => {
+                          const isSung = currentTime >= syl.startTime;
+                          return (
+                            <span
+                              key={sIdx}
+                              style={{
+                                textShadow: isSung
+                                  ? '0 0 12px rgba(255, 255, 255, 0.65)'
+                                  : 'none',
+                              }}
+                              className={isSung ? 'text-white opacity-100' : 'text-white/40'}
+                            >
+                              {syl.text}
+                            </span>
+                          );
+                        })
+                      ) : (
+                        bg.text
+                      )})
+                    </span>
+                  );
+                })}
+              </div>
             )}
           </div>
         );
