@@ -17,11 +17,11 @@ export const metadata = {
     template: isDev && shortCommit ? `mice (dev: ${shortCommit}) | %s` : 'mice | %s',
     default: isDev && shortCommit ? `mice (dev: ${shortCommit})` : 'mice',
   },
-  description: 'mice is a modern, Apple Music-grade web client for Navidrome and Subsonic music servers with fluid mesh gradients, synced lyrics, and gapless playback.',
+  description: 'mice is a modern,web client for navidrome it features, synced lyrics, and gapless playback.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://mice.sillyangel.dev'),
   openGraph: {
-    title: 'mice — Apple Music-grade client for Navidrome & Subsonic',
-    description: 'Stream your personal music library with fluid mesh gradients, time-synced lyrics, and instant virtualized queues.',
+    title: 'mice — client for Navidrome & Subsonic',
+    description: 'Stream your personal music library with mice.',
     siteName: 'mice',
     url: 'https://mice.sillyangel.dev',
     type: 'website',
@@ -29,8 +29,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'mice — Apple Music-grade client for Navidrome & Subsonic',
-    description: 'Stream your personal music library with fluid mesh gradients, time-synced lyrics, and instant virtualized queues.',
+    title: 'mice — client for Navidrome & Subsonic',
+    description: 'Stream your personal music library with mice.',
   },
   robots: {
     index: true,

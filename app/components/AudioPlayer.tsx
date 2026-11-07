@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAudioPlayer, Track } from '@/app/components/AudioPlayerContext';
 import dynamic from 'next/dynamic';
 import { FaPlay, FaPause, FaVolumeHigh, FaForward, FaBackward, FaCompress, FaVolumeXmark, FaExpand, FaShuffle } from "react-icons/fa6";
-import { Heart } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useLastFmScrobbler } from '@/hooks/use-lastfm-scrobbler';
@@ -47,7 +47,10 @@ export const AudioPlayer: React.FC = () => {
     updateAudioSettings,
     equalizerPreset,
     setEqualizerPreset,
-    audioEffects
+    audioEffects,
+    isMinimized,
+    setIsMinimized,
+    setIsPlaying: setContextIsPlaying
   } = useAudioPlayer();
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -69,7 +72,11 @@ export const AudioPlayer: React.FC = () => {
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isClient, setIsClient] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+
+  // Keep AudioPlayerContext isPlaying in sync with audio element state
+  useEffect(() => {
+    setContextIsPlaying(isPlaying);
+  }, [isPlaying, setContextIsPlaying]);
   // Notifications and title management
   const [lastNotifiedTrackId, setLastNotifiedTrackId] = useState<string | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -847,93 +854,65 @@ export const AudioPlayer: React.FC = () => {
     return (
       <>
         <div
-          className="fixed bottom-16 left-0 right-0 z-[60] backdrop-blur-md border-t shadow-lg mobile-audio-player mobile-safe-bottom transition-colors duration-500"
-          style={{
-            backgroundColor: dominantColor 
-              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.85)')}`
-              : 'rgba(20, 21, 23, 0.90)',
-            borderTopColor: dominantColor 
-              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.35)')}`
-              : 'rgba(255, 255, 255, 0.1)',
+          className="fixed bottom-[68px] left-3 right-3 z-[60] select-none max-w-[480px] mx-auto cursor-pointer"
+          onClick={() => {
+            setHasOpenedFullScreen(true);
+            setIsFullScreen(true);
           }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
-          <div className="px-4 py-3">
-            {/* Progress bar at top for mobile */}
-            <div className="mb-3">
-              <Progress 
-                value={progress} 
-                className="h-1 cursor-pointer progress-mobile" 
-                onClick={handleProgressClick}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              {/* Track info with swipe gestures */}
-              <div 
-                className="flex items-center flex-1 min-w-0 cursor-pointer"
-                onClick={() => {
-                  setHasOpenedFullScreen(true);
-                  setIsFullScreen(true);
-                }}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-              >
+          <div
+            className="backdrop-blur-2xl border rounded-full shadow-2xl transition-all duration-300 px-3.5 h-[52px] flex items-center justify-between gap-3"
+            style={{
+              backgroundColor: dominantColor 
+                ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.75)')}`
+                : 'rgba(24, 23, 22, 0.92)',
+              borderColor: dominantColor 
+                ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.35)')}`
+                : 'rgba(255, 255, 255, 0.12)',
+              boxShadow: dominantColor
+                ? `0 12px 32px -6px ${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.45)')}, 0 6px 18px rgba(0,0,0,0.5)`
+                : '0 12px 32px -6px rgba(0,0,0,0.7), 0 6px 18px rgba(0,0,0,0.5)',
+            }}
+          >
+            {/* Left: Album cover + Song & Artist name */}
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="relative w-8 h-8 rounded-md overflow-hidden shrink-0 shadow-sm">
                 <Image 
                   src={currentTrack.coverArt || '/default-user.jpg'} 
                   alt={currentTrack.name} 
-                  width={48} 
-                  height={48} 
-                  className="w-12 h-12 rounded-lg mr-3 shrink-0 shadow-sm" 
+                  fill
+                  className="object-cover"
+                  sizes="32px"
+                  priority
                 />
-                <div className="flex-1 min-w-0">
-                  <Link
-                    href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
-                    onClick={(e) => e.stopPropagation()}
-                    className="font-semibold text-sm truncate block hover:underline hover:text-white transition-colors"
-                    title={`Go to album: ${currentTrack.album || currentTrack.name}`}
-                  >
-                    {currentTrack.name}
-                  </Link>
-                  <Link
-                    href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-xs text-muted-foreground truncate block hover:underline hover:text-foreground transition-colors"
-                    title={`Go to artist: ${currentTrack.artist}`}
-                  >
-                    {currentTrack.artist}
-                  </Link>
-                </div>
               </div>
-
-              {/* Mobile controls - Only heart and play/pause */}
-              <div className="flex items-center space-x-2">
-                <button 
-                  className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 touch-manipulation" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleCurrentTrackStar();
-                  }}
-                  type="button"
-                  aria-label={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
-                  title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
-                >
-                  <Heart 
-                    className={`w-4 h-4 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`} 
-                  />
-                </button>
-                <button 
-                  className="p-4 hover:bg-muted/50 rounded-full transition-all duration-200 active:scale-95 bg-primary/10 touch-manipulation" 
-                  onClick={togglePlayPause}
-                  style={{ touchAction: 'manipulation' }}
-                  type="button"
-                  data-testid="play-pause-button"
-                  aria-label={isPlaying ? 'Pause' : 'Play'}
-                >
-                  {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
-                </button>
+              <div className="flex flex-col min-w-0 flex-1 justify-center">
+                <span className="font-semibold text-[13px] text-white truncate leading-tight block">
+                  {currentTrack.name}
+                </span>
+                <span className="text-xs text-white/70 truncate leading-tight block mt-0.5">
+                  {currentTrack.artist}
+                </span>
               </div>
             </div>
+
+            {/* Right: Play / Pause button */}
+            <button 
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:bg-white/15 active:scale-95 transition-all shrink-0 cursor-pointer" 
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePlayPause();
+              }}
+              type="button"
+              data-testid="play-pause-button"
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+              title={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? <FaPause className="w-3.5 h-3.5" /> : <FaPlay className="w-3.5 h-3.5 ml-0.5" />}
+            </button>
           </div>
         </div>
         
@@ -962,7 +941,24 @@ export const AudioPlayer: React.FC = () => {
   if (isMinimized) {
     return (
       <>
-        <DraggableMiniPlayer onExpand={() => setIsMinimized(false)} />
+        <DraggableMiniPlayer 
+          onExpand={() => setIsMinimized(false)}
+          onOpenFullScreen={() => {
+            setHasOpenedFullScreen(true);
+            setIsFullScreen(true);
+          }}
+          isPlaying={isPlaying}
+          onTogglePlayPause={togglePlayPause}
+        />
+        
+        {/* Full Screen Player - lazy mounted once opened */}
+        {hasOpenedFullScreen && (
+          <FullScreenPlayer 
+            isOpen={isFullScreen} 
+            onClose={() => setIsFullScreen(false)} 
+            onOpenQueue={handleOpenQueue}
+          />
+        )}
         
         {/* Single audio element - shared across all UI states */}
         <audio 
@@ -1033,30 +1029,30 @@ export const AudioPlayer: React.FC = () => {
               <div className="flex items-center justify-center space-x-3">
                 <button
                   onClick={toggleShuffle} 
-                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${shuffle ? 'text-primary bg-primary/20' : ''}`} 
+                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer ${shuffle ? 'text-primary bg-primary/20' : ''}`} 
                   title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
                 >
                   <FaShuffle className="w-4 h-4" />
                 </button>
-                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playPreviousTrack}>
+                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" onClick={playPreviousTrack}>
                   <FaBackward className="w-4 h-4" />
                 </button>
-                <button className="p-3 hover:bg-gray-700/50 rounded-full transition-colors" onClick={togglePlayPause}>
+                <button className="p-3 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" onClick={togglePlayPause}>
                   {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
                 </button>
-                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" onClick={playNextTrack}>
+                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" onClick={playNextTrack}>
                   <FaForward className="w-4 h-4" />
                 </button>
                 <button 
-                  className="p-2 hover:bg-gray-700/50 rounded-full transition-colors flex items-center justify-center" 
+                  className="p-2 hover:bg-gray-700/50 rounded-full transition-colors flex items-center justify-center cursor-pointer" 
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleCurrentTrackStar();
                   }}
                   title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
                 >
-                  <Heart 
-                    className={`w-5 h-5 ${currentTrack.starred ? 'text-primary fill-primary' : ''}`} 
+                  <Star 
+                    className={`w-5 h-5 ${currentTrack.starred ? 'text-yellow-400 fill-yellow-400' : ''}`} 
                   />
                 </button>
               </div>
@@ -1065,7 +1061,7 @@ export const AudioPlayer: React.FC = () => {
             {/* Right side buttons */}
             <div className="flex items-center justify-end space-x-2 flex-1">
               <button 
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
+                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" 
                 onClick={() => {
                   setHasOpenedFullScreen(true);
                   setIsFullScreen(true);
@@ -1075,7 +1071,7 @@ export const AudioPlayer: React.FC = () => {
                 <FaExpand className="w-4 h-4" />
               </button>
               <button 
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors" 
+                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" 
                 onClick={() => setIsMinimized(true)}
                 title="Minimize"
               >

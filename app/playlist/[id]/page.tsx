@@ -8,7 +8,7 @@ import { Playlist, Song, getNavidromeAPI } from '@/lib/navidrome';
 import { extractAmbientColor, getCachedAmbientColor } from '@/lib/image-utils';
 import { useNavidrome } from '@/app/components/NavidromeContext';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
-import { Play, Pause, Heart, Shuffle, MoreHorizontal, Share2, Plus } from 'lucide-react';
+import { Play, Pause, Star, Shuffle, MoreHorizontal, Share2, Plus } from 'lucide-react';
 import { EqualizerBars } from '@/app/components/EqualizerBars';
 import { Button } from '@/components/ui/button';
 import Loading from "@/app/components/loading";
@@ -384,10 +384,10 @@ export default function PlaylistPage() {
                       className={`w-7 h-7 rounded-full flex items-center justify-center transition-opacity ${
                         starredSongs.has(song.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 text-white/50 hover:text-white'
                       }`}
-                      title={starredSongs.has(song.id) ? 'Remove from favorites' : 'Add to favorites'}
+                      title={starredSongs.has(song.id) ? 'Unstar' : 'Star'}
                     >
-                      <Heart
-                        className={`w-3.5 h-3.5 ${starredSongs.has(song.id) ? 'fill-primary text-primary' : 'text-white/50'}`}
+                      <Star
+                        className={`w-3.5 h-3.5 ${starredSongs.has(song.id) ? 'fill-yellow-400 text-yellow-400' : 'text-white/50'}`}
                       />
                     </button>
 
@@ -398,7 +398,7 @@ export default function PlaylistPage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <button
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-opacity ${
+                          className={`w-7 h-7 rounded-full hidden sm:flex items-center justify-center text-white/50 hover:text-white transition-opacity ${
                             isHovered || playing ? 'opacity-100' : 'opacity-0'
                           }`}
                         >
@@ -422,7 +422,7 @@ export default function PlaylistPage() {
                           }}
                           className="cursor-pointer"
                         >
-                          <Heart className="w-4 h-4 mr-2" /> {starredSongs.has(song.id) ? 'Favorited' : 'Favorite'}
+                          <Star className="w-4 h-4 mr-2" /> {starredSongs.has(song.id) ? 'Starred' : 'Star'}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

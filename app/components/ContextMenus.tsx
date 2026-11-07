@@ -12,7 +12,6 @@ import {
   Play, 
   Plus, 
   ListMusic,
-  Heart,
   SkipForward,
   UserIcon,
   Disc3,
@@ -100,8 +99,8 @@ export function TrackContextMenu({
         {showFavoriteOption && (
           <>
             <ContextMenuItem onClick={handleToggleFavorite} className="cursor-pointer">
-              <Heart className={`mr-2 h-4 w-4 ${track.starred ? 'fill-current text-red-500' : ''}`} />
-              {track.starred ? 'Remove from Favorites' : 'Add to Favorites'}
+              <Star className={`mr-2 h-4 w-4 ${track.starred ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+              {track.starred ? 'Remove Star' : 'Star Track'}
             </ContextMenuItem>
             <ContextMenuSeparator />
           </>
@@ -177,8 +176,8 @@ export function AlbumContextMenu({
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem className="cursor-pointer">
-          <Heart className="mr-2 h-4 w-4" />
-          Add to Favorites
+          <Star className="mr-2 h-4 w-4" />
+          Star Album
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem className="cursor-pointer">
@@ -240,8 +239,8 @@ export function ArtistContextMenu({
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem className="cursor-pointer">
-          <Heart className="mr-2 h-4 w-4" />
-          Add to Favorites
+          <Star className="mr-2 h-4 w-4" />
+          Star Artist
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem className="cursor-pointer">

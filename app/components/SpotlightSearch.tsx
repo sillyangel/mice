@@ -10,7 +10,6 @@ import {
   Disc, 
   User, 
   Clock, 
-  Heart,
   Play,
   Plus,
   ExternalLink,

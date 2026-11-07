@@ -12,7 +12,7 @@ import { AlbumArtwork } from '@/app/components/album-artwork';
 import { ArtistBio } from '@/app/components/ArtistBio';
 import { SimilarArtists } from '@/app/components/SimilarArtists';
 import Loading from '@/app/components/loading';
-import { Play, Pause, Heart, Shuffle, MoreHorizontal, Share2, Info, ChevronRight, Plus } from 'lucide-react';
+import { Play, Pause, Star, Shuffle, MoreHorizontal, Share2, Info, ChevronRight, Plus } from 'lucide-react';
 import { EqualizerBars } from '@/app/components/EqualizerBars';
 import { Button } from '@/components/ui/button';
 import {
@@ -158,11 +158,50 @@ export default function ArtistPage() {
     ? api.getCoverArtUrl(artist.coverArt, 1400)
     : (artistAlbums[0]?.coverArt && api ? api.getCoverArtUrl(artistAlbums[0].coverArt, 1400) : '/default-user.jpg');
 
-  // Segregate albums and singles/EPs like Apple Music
-  const fullAlbums = artistAlbums.filter(a => (a.songCount || 0) >= 6);
-  const singlesAndEPs = artistAlbums.filter(a => (a.songCount || 0) < 6);
+  // Segregate albums and singles/EPs like Apple Music, sorted newest first (descending by year)
+  const getAlbumYear = (album: Album): number => {
+    if (typeof album.year === 'number' && album.year > 0) return album.year;
+    if (album.releaseDate) {
+      if (typeof album.releaseDate === 'object' && typeof album.releaseDate.year === 'number') {
+        return album.releaseDate.year;
+      }
+      if (typeof album.releaseDate === 'string') {
+        const parsed = parseInt(album.releaseDate.slice(0, 4), 10);
+        if (!isNaN(parsed)) return parsed;
+      }
+    }
+    if (album.originalReleaseDate) {
+      if (typeof album.originalReleaseDate === 'object' && typeof album.originalReleaseDate.year === 'number') {
+        return album.originalReleaseDate.year;
+      }
+      if (typeof album.originalReleaseDate === 'string') {
+        const parsed = parseInt(album.originalReleaseDate.slice(0, 4), 10);
+        if (!isNaN(parsed)) return parsed;
+      }
+    }
+    return 0;
+  };
+
+  const sortByYearDesc = (a: Album, b: Album) => {
+    const yearA = getAlbumYear(a);
+    const yearB = getAlbumYear(b);
+    if (yearB !== yearA) {
+      return yearB - yearA;
+    }
+    // Fallback to created date or name if years match
+    return (b.created || '').localeCompare(a.created || '');
+  };
+
+  const fullAlbums = artistAlbums
+    .filter(a => (a.songCount || 0) >= 6)
+    .sort(sortByYearDesc);
+
+  const singlesAndEPs = artistAlbums
+    .filter(a => (a.songCount || 0) < 6)
+    .sort(sortByYearDesc);
+
   const latestRelease = artistAlbums.length > 0
-    ? [...artistAlbums].sort((a, b) => (b.year || 0) - (a.year || 0))[0]
+    ? [...artistAlbums].sort(sortByYearDesc)[0]
     : null;
 
   return (
@@ -201,7 +240,7 @@ export default function ArtistPage() {
                 <Play className="w-4 h-4 mr-2" /> Play Artist
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleStar} className="cursor-pointer">
-                <Heart className="w-4 h-4 mr-2" /> {isStarred ? 'Unfavorite Artist' : 'Favorite Artist'}
+                <Star className="w-4 h-4 mr-2" /> {isStarred ? 'Unstar Artist' : 'Star Artist'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -217,7 +256,7 @@ export default function ArtistPage() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowBioModal(!showBioModal)}
-              className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center text-white transition-all active:scale-95 shadow-md"
+              className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center text-white transition-all active:scale-95 shadow-md cursor-pointer"
               title="About Artist"
             >
               <Info className="w-5 h-5" />
@@ -226,7 +265,7 @@ export default function ArtistPage() {
             <button
               onClick={handlePlayArtist}
               disabled={isPlayingArtist}
-              className="w-14 h-14 rounded-full bg-white hover:bg-white/90 text-black flex items-center justify-center transition-all active:scale-95 shadow-[0_6px_20px_rgba(0,0,0,0.4)]"
+              className="w-14 h-14 rounded-full bg-white hover:bg-white/90 text-black flex items-center justify-center transition-all active:scale-95 shadow-[0_6px_20px_rgba(0,0,0,0.4)] cursor-pointer"
               title="Play Artist"
             >
               <Play className="w-6 h-6 fill-black translate-x-0.5" />
@@ -234,12 +273,12 @@ export default function ArtistPage() {
 
             <button
               onClick={handleStar}
-              className={`w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center transition-all active:scale-95 shadow-md ${
-                isStarred ? 'text-primary' : 'text-white'
+              className={`w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center transition-all active:scale-95 shadow-md cursor-pointer ${
+                isStarred ? 'text-yellow-400' : 'text-white'
               }`}
-              title={isStarred ? "Favorited" : "Favorite"}
+              title={isStarred ? "Starred" : "Star"}
             >
-              <Heart className={`w-5 h-5 ${isStarred ? 'fill-primary text-primary' : ''}`} />
+              <Star className={`w-5 h-5 ${isStarred ? 'fill-yellow-400 text-yellow-400' : ''}`} />
             </button>
           </div>
         </div>

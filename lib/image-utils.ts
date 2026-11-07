@@ -579,4 +579,142 @@ export async function extractMeshPalette(imageUrl: string): Promise<MeshPalette>
   return promise;
 }
 
+export interface CardColors {
+  bg: string;
+  hoverBg: string;
+  border: string;
+  hoverBorder: string;
+  glow: string;
+  accent: string;
+}
+
+export const DEFAULT_CARD_COLORS: CardColors = {
+  bg: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)',
+  hoverBg: 'linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.04) 100%)',
+  border: 'rgba(255, 255, 255, 0.08)',
+  hoverBorder: 'rgba(255, 255, 255, 0.16)',
+  glow: '0 8px 24px -4px rgba(0, 0, 0, 0.3)',
+  accent: '#a1a1aa',
+};
+
+const cardColorsCache = new Map<string, CardColors>();
+const cardColorsInFlight = new Map<string, Promise<CardColors>>();
+
+export function getCachedCardColors(imageUrl: string | null | undefined): CardColors | undefined {
+  if (!imageUrl) return undefined;
+  return cardColorsCache.get(imageUrl);
+}
+
+export async function extractCardColors(imageUrl: string): Promise<CardColors> {
+  const cached = cardColorsCache.get(imageUrl);
+  if (cached) return cached;
+
+  const pending = cardColorsInFlight.get(imageUrl);
+  if (pending) return pending;
+
+  const promise = new Promise<CardColors>((resolve) => {
+    try {
+      const img = document.createElement('img');
+      img.crossOrigin = 'anonymous';
+      img.decoding = 'async';
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (!ctx) {
+            resolve(DEFAULT_CARD_COLORS);
+            return;
+          }
+
+          const size = 32;
+          canvas.width = size;
+          canvas.height = size;
+          ctx.drawImage(img, 0, 0, size, size);
+
+          const data = ctx.getImageData(0, 0, size, size).data;
+          let bestScore = -1;
+          let bestR = 50, bestG = 50, bestB = 50;
+          let avgR = 0, avgG = 0, avgB = 0, count = 0;
+
+          for (let i = 0; i < data.length; i += 4) {
+            const a = data[i + 3];
+            if (a < 128) continue;
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+
+            const [h, s, l] = rgbToHsl(r, g, b);
+            if (l > 0.05 && l < 0.95) {
+              avgR += r;
+              avgG += g;
+              avgB += b;
+              count++;
+
+              const score = s * (1 - Math.abs(l - 0.5) * 1.2);
+              if (score > bestScore) {
+                bestScore = score;
+                bestR = r;
+                bestG = g;
+                bestB = b;
+              }
+            }
+          }
+
+          let finalR = bestScore > 0.08 ? bestR : count > 0 ? Math.round(avgR / count) : 50;
+          let finalG = bestScore > 0.08 ? bestG : count > 0 ? Math.round(avgG / count) : 50;
+          let finalB = bestScore > 0.08 ? bestB : count > 0 ? Math.round(avgB / count) : 50;
+
+          let [h, s, l] = rgbToHsl(finalR, finalG, finalB);
+          s = Math.min(0.85, Math.max(0.40, s * 1.3));
+          l = Math.min(0.38, Math.max(0.20, l * 0.7 + 0.04));
+
+          const c = (1 - Math.abs(2 * l - 1)) * s;
+          const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+          const m = l - c / 2;
+          let r1 = 0, g1 = 0, b1 = 0;
+          if (h < 60) { r1 = c; g1 = x; b1 = 0; }
+          else if (h < 120) { r1 = x; g1 = c; b1 = 0; }
+          else if (h < 180) { r1 = 0; g1 = c; b1 = x; }
+          else if (h < 240) { r1 = 0; g1 = x; b1 = c; }
+          else if (h < 300) { r1 = x; g1 = 0; b1 = c; }
+          else { r1 = c; g1 = 0; b1 = x; }
+
+          const cr = Math.round((r1 + m) * 255);
+          const cg = Math.round((g1 + m) * 255);
+          const cb = Math.round((b1 + m) * 255);
+
+          const cardColors: CardColors = {
+            bg: `linear-gradient(135deg, rgba(${cr}, ${cg}, ${cb}, 0.38) 0%, rgba(${cr}, ${cg}, ${cb}, 0.16) 100%)`,
+            hoverBg: `linear-gradient(135deg, rgba(${cr}, ${cg}, ${cb}, 0.54) 0%, rgba(${cr}, ${cg}, ${cb}, 0.26) 100%)`,
+            border: `rgba(${cr}, ${cg}, ${cb}, 0.40)`,
+            hoverBorder: `rgba(${Math.min(255, cr + 40)}, ${Math.min(255, cg + 40)}, ${Math.min(255, cb + 40)}, 0.65)`,
+            glow: `0 10px 28px -4px rgba(${cr}, ${cg}, ${cb}, 0.40)`,
+            accent: `rgb(${Math.min(255, cr + 70)}, ${Math.min(255, cg + 70)}, ${Math.min(255, cb + 70)})`,
+          };
+
+          if (cardColorsCache.size >= 500) {
+            const oldest = cardColorsCache.keys().next().value;
+            if (oldest !== undefined) cardColorsCache.delete(oldest);
+          }
+          cardColorsCache.set(imageUrl, cardColors);
+          resolve(cardColors);
+        } catch {
+          resolve(DEFAULT_CARD_COLORS);
+        }
+      };
+
+      img.onerror = () => resolve(DEFAULT_CARD_COLORS);
+      img.src = imageUrl;
+    } catch {
+      resolve(DEFAULT_CARD_COLORS);
+    }
+  }).finally(() => {
+    cardColorsInFlight.delete(imageUrl);
+  });
+
+  cardColorsInFlight.set(imageUrl, promise);
+  return promise;
+}
+
 

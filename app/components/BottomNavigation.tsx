@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Home, Search, Disc, Users, Music, Heart, List, Settings } from 'lucide-react';
+import { Home, Search, Disc, Users, Music, Star, List, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGlobalSearch } from './GlobalSearchProvider';

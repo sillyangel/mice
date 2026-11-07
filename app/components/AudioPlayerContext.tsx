@@ -113,7 +113,12 @@ interface AudioPlayerContextProps {
   audioEffects: AudioEffects | null;
   // Playback state
   isPlaying: boolean;
+  setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   togglePlayPause: () => Promise<void>;
+  // Minimized / compact player state
+  isMinimized: boolean;
+  setIsMinimized: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleMinimized: () => void;
 }
 
 export interface AudioPlayerActionsContextProps {
@@ -152,6 +157,30 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [equalizerPreset, setEqualizerPreset] = useState('normal');
   const [audioEffects, setAudioEffects] = useState<AudioEffects | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMinimized, setIsMinimized] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('player-minimized');
+      if (saved !== null) {
+        setIsMinimized(saved === 'true');
+      }
+    } catch {}
+  }, []);
+
+  const handleSetIsMinimized: React.Dispatch<React.SetStateAction<boolean>> = useCallback((val) => {
+    setIsMinimized((prev) => {
+      const next = typeof val === 'function' ? (val as (prev: boolean) => boolean)(prev) : val;
+      try {
+        localStorage.setItem('player-minimized', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const toggleMinimized = useCallback(() => {
+    handleSetIsMinimized((prev) => !prev);
+  }, [handleSetIsMinimized]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentTrackRef = useRef<Track | null>(null);
@@ -646,11 +675,6 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       } else {
         playTracks(tracks, startingIndex);
       }
-
-      toastRef.current({
-        title: "Playing Album",
-        description: `Playing "${album.name}" from "${tracks[startingIndex].name}"${shuffleRef.current ? ' (shuffled)' : ''}`,
-      });
     } catch (error) {
       console.error('Failed to play album from track:', error);
       toastRef.current({
@@ -729,11 +753,6 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
           playTracks(allTracks, 0);
         }
       }
-
-      toastRef.current({
-        title: "Playing Artist",
-        description: `Now playing all albums by "${artist.name}"${shuffleRef.current ? ' (shuffled)' : ''}`,
-      });
     } catch (error) {
       console.error('Failed to play artist:', error);
       toastRef.current({
@@ -936,9 +955,13 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setEqualizerPreset,
     audioEffects,
     isPlaying,
+    setIsPlaying,
     togglePlayPause,
     toggleCurrentTrackStar,
     updateTrackStarred,
+    isMinimized,
+    setIsMinimized: handleSetIsMinimized,
+    toggleMinimized,
   }), [
     currentTrack,
     playTrack,
@@ -977,6 +1000,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     togglePlayPause,
     toggleCurrentTrackStar,
     updateTrackStarred,
+    isMinimized,
+    handleSetIsMinimized,
+    toggleMinimized,
   ]);
 
   return (
