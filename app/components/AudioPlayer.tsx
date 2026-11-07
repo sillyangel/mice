@@ -862,7 +862,7 @@ export const AudioPlayer: React.FC = () => {
     return (
       <>
         <div
-          className="fixed bottom-[68px] left-3 right-3 z-[60] select-none max-w-[480px] mx-auto cursor-pointer"
+          className="fixed bottom-[max(80px,calc(env(safe-area-inset-bottom)+70px))] left-3 right-3 z-[60] select-none max-w-[480px] mx-auto cursor-pointer"
           onClick={() => {
             setHasOpenedFullScreen(true);
             setIsFullScreen(true);
@@ -907,20 +907,34 @@ export const AudioPlayer: React.FC = () => {
               </div>
             </div>
 
-            {/* Right: Play / Pause button */}
-            <button 
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:bg-white/15 active:scale-95 transition-all shrink-0 cursor-pointer" 
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePlayPause();
-              }}
-              type="button"
-              data-testid="play-pause-button"
-              aria-label={isPlaying ? 'Pause' : 'Play'}
-              title={isPlaying ? 'Pause' : 'Play'}
-            >
-              {isPlaying ? <FaPause className="w-3.5 h-3.5" /> : <FaPlay className="w-3.5 h-3.5 ml-0.5" />}
-            </button>
+            {/* Right: Play / Pause and Next Track buttons */}
+            <div className="flex items-center gap-1 shrink-0">
+              <button 
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:bg-white/15 active:scale-95 transition-all cursor-pointer" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePlayPause();
+                }}
+                type="button"
+                data-testid="play-pause-button"
+                aria-label={isPlaying ? 'Pause' : 'Play'}
+                title={isPlaying ? 'Pause' : 'Play'}
+              >
+                {isPlaying ? <FaPause className="w-3.5 h-3.5" /> : <FaPlay className="w-3.5 h-3.5 ml-0.5" />}
+              </button>
+              <button 
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 active:scale-95 transition-all cursor-pointer" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  playNextTrack();
+                }}
+                type="button"
+                aria-label="Next track"
+                title="Next track"
+              >
+                <FaForward className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
         
