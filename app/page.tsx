@@ -190,7 +190,7 @@ function MusicPageContent() {
 
 
   return (
-    <div className="p-6 pb-24 w-full">
+    <div className="p-4 sm:p-6 pb-36 md:pb-24 w-full">
       {/* Song Recommendations Section */}
       <div className="mb-8">
         <SongRecommendations userName={userName} />
@@ -216,7 +216,7 @@ function MusicPageContent() {
                 {albumsLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="w-[220px] shrink-0 space-y-2">
+                    <div key={i} className="w-[140px] sm:w-[170px] md:w-[220px] shrink-0 space-y-2">
                       <Skeleton className="aspect-square w-full rounded-lg bg-white/[0.06]" />
                       <div className="space-y-1.5 pt-1">
                         <Skeleton className="h-3.5 w-3/4 rounded bg-white/[0.08]" />
@@ -229,7 +229,7 @@ function MusicPageContent() {
                     <AlbumArtwork
                       key={album.id}
                       album={album}
-                      className="w-[220px] shrink-0"
+                      className="w-[140px] sm:w-[170px] md:w-[220px] shrink-0"
                       aspectRatio="square"
                       width={300}
                       height={300}
@@ -260,7 +260,7 @@ function MusicPageContent() {
                     {favoritesLoading ? (
                       // Loading skeletons
                       Array.from({ length: 10 }).map((_, i) => (
-                        <div key={i} className="w-[220px] shrink-0 space-y-2">
+                        <div key={i} className="w-[140px] sm:w-[170px] md:w-[220px] shrink-0 space-y-2">
                           <Skeleton className="aspect-square w-full rounded-lg bg-white/[0.06]" />
                           <div className="space-y-1.5 pt-1">
                             <Skeleton className="h-3.5 w-3/4 rounded bg-white/[0.08]" />
@@ -273,7 +273,7 @@ function MusicPageContent() {
                         <AlbumArtwork
                           key={album.id}
                           album={album}
-                          className="w-[220px] shrink-0"
+                          className="w-[140px] sm:w-[170px] md:w-[220px] shrink-0"
                           aspectRatio="square"
                           width={220}
                           height={220}
@@ -302,7 +302,7 @@ function MusicPageContent() {
             {albumsLoading ? (
                   // Loading skeletons
                   Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="w-[220px] shrink-0 space-y-2">
+                    <div key={i} className="w-[140px] sm:w-[170px] md:w-[220px] shrink-0 space-y-2">
                       <Skeleton className="aspect-square w-full rounded-lg bg-white/[0.06]" />
                       <div className="space-y-1.5 pt-1">
                         <Skeleton className="h-3.5 w-3/4 rounded bg-white/[0.08]" />
@@ -315,7 +315,7 @@ function MusicPageContent() {
                     <AlbumArtwork
                       key={album.id}
                       album={album}
-                      className="w-[220px] shrink-0"
+                      className="w-[140px] sm:w-[170px] md:w-[220px] shrink-0"
                       aspectRatio="square"
                       width={220}
                       height={220}

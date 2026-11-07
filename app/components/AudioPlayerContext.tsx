@@ -120,6 +120,9 @@ interface AudioPlayerContextProps {
   isMinimized: boolean;
   setIsMinimized: React.Dispatch<React.SetStateAction<boolean>>;
   toggleMinimized: () => void;
+  // Loop / Repeat state
+  isLooping: boolean;
+  toggleLoop: () => void;
 }
 
 export interface AudioPlayerActionsContextProps {
@@ -183,6 +186,35 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const toggleMinimized = useCallback(() => {
     handleSetIsMinimized((prev) => !prev);
   }, [handleSetIsMinimized]);
+
+  const [isLooping, setIsLooping] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('player-loop');
+      if (saved !== null) {
+        setIsLooping(saved === 'true');
+        const audio = document.querySelector('audio');
+        if (audio) {
+          audio.loop = saved === 'true';
+        }
+      }
+    } catch {}
+  }, []);
+
+  const toggleLoop = useCallback(() => {
+    setIsLooping((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('player-loop', String(next));
+      } catch {}
+      const audio = document.querySelector('audio');
+      if (audio) {
+        audio.loop = next;
+      }
+      return next;
+    });
+  }, []);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentTrackRef = useRef<Track | null>(null);
@@ -966,6 +998,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     isMinimized,
     setIsMinimized: handleSetIsMinimized,
     toggleMinimized,
+    isLooping,
+    toggleLoop,
   }), [
     currentTrack,
     playTrack,
@@ -1007,6 +1041,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     isMinimized,
     handleSetIsMinimized,
     toggleMinimized,
+    isLooping,
+    toggleLoop,
   ]);
 
   return (

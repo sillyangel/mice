@@ -175,7 +175,7 @@ export default function LibraryPage() {
         <div className="block md:hidden space-y-4 pt-1">
           <div className="flex items-center justify-between">
             <div className="h-9 w-32 bg-white/[0.08] rounded-md animate-pulse" />
-            <div className="h-8 w-16 bg-white/[0.08] rounded-full animate-pulse" />
+            <div className="h-9 w-9 bg-white/[0.08] rounded-full animate-pulse" />
           </div>
           <div className="h-10 w-full bg-white/[0.06] rounded-xl animate-pulse" />
           <div className="space-y-3 pt-2">
@@ -230,14 +230,11 @@ export default function LibraryPage() {
     <div className="p-4 pb-20 space-y-6">
       {/* Mobile View: Apple Music iOS 18 style */}
       <div className="block md:hidden space-y-4">
-        {/* Top Header Row with title and download/more pill */}
+        {/* Top Header Row with title and more button */}
         <div className="flex items-center justify-between pt-1">
           <h1 className="text-3xl font-bold tracking-tight text-white">Library</h1>
-          <div className="bg-[#1c1c1e] border border-white/10 rounded-full px-2.5 py-1 flex items-center gap-2.5 shadow-sm">
-            <div className="w-6 h-6 rounded-full bg-[#fa243c] flex items-center justify-center text-white shrink-0">
-              <ArrowDown className="w-3.5 h-3.5 stroke-[2.5]" />
-            </div>
-            <MoreHorizontal className="w-5 h-5 text-[#fa243c] shrink-0" />
+          <div className="bg-black/30 backdrop-blur-xl border border-white/15 rounded-full w-9 h-9 flex items-center justify-center shadow-sm">
+            <MoreHorizontal className="w-5 h-5 text-primary shrink-0" />
           </div>
         </div>
 
@@ -249,7 +246,7 @@ export default function LibraryPage() {
             placeholder="Search Library"
             value={mobileSearchQuery}
             onChange={(e) => setMobileSearchQuery(e.target.value)}
-            className="w-full bg-[#1c1c1e] text-white placeholder-zinc-400 rounded-xl pl-10 pr-4 py-2 text-[15px] focus:outline-none focus:ring-1 focus:ring-zinc-600 border border-white/[0.06]"
+            className="w-full bg-black/30 backdrop-blur-xl text-white placeholder-zinc-400 rounded-xl pl-10 pr-4 py-2 text-[15px] focus:outline-none focus:ring-1 focus:ring-primary border border-white/10"
           />
         </div>
 
@@ -265,7 +262,7 @@ export default function LibraryPage() {
                   className="flex items-center justify-between py-3 px-1 active:opacity-60 transition-opacity"
                 >
                   <div className="flex items-center gap-3.5">
-                    <Icon className="w-5 h-5 text-[#fa243c]" />
+                    <Icon className="w-5 h-5 text-primary" />
                     <span className="text-[17px] font-normal text-white">{cat.label}</span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-zinc-600" />

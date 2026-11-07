@@ -23,6 +23,7 @@ import {
   FaPlay, 
   FaPause, 
   FaVolumeHigh, 
+  FaVolumeLow,
   FaForward, 
   FaBackward, 
   FaVolumeXmark,
@@ -303,9 +304,9 @@ const AppleLyricLineItem = React.memo(function AppleLyricLineItem({
       }
       className={`${
         mobileLayout
-          ? 'text-[26px] sm:text-[32px] mb-5'
-          : 'text-[28px] lg:text-[34px] xl:text-[38px] mb-6'
-      } font-bold tracking-[-0.025em] leading-[1.24] text-white break-words cursor-pointer select-none rounded-2xl px-4 py-2.5 -mx-4 [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          ? 'text-[26px] sm:text-[32px] mb-5 px-2 py-2'
+          : 'text-[28px] lg:text-[34px] xl:text-[38px] mb-6 px-4 py-2.5 -mx-4'
+      } font-bold tracking-[-0.025em] leading-[1.24] text-white break-words cursor-pointer select-none rounded-2xl [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
         isOpposite ? 'w-fit max-w-[85%] ml-auto text-right' : 'w-full text-left'
       }`}
       title={`Jump to ${formatLyricTime(item.time)}`}
@@ -472,7 +473,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     toggleShuffle, 
     toggleCurrentTrackStar,
     audioSettings,
-    updateAudioSettings
+    updateAudioSettings,
+    isLooping,
+    toggleLoop
   } = useAudioPlayer();
   const [showAudioSettings, setShowAudioSettings] = useState(false);
   
@@ -943,7 +946,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     <div
       className={
         mobileLayout
-          ? 'pt-[20vh] pb-[48vh] px-3 sm:px-5 max-w-2xl'
+          ? 'pt-[20vh] pb-[48vh] px-3 sm:px-5 max-w-2xl w-full overflow-x-hidden'
           : 'pt-[26vh] pb-[52vh] pl-6 pr-8 lg:pl-10 lg:pr-14 max-w-3xl'
       }
     >
@@ -1177,16 +1180,6 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                       >
                         {currentTrack.artist}
                       </Link>
-                      {currentTrack.album && (
-                        <Link 
-                          href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}  
-                          onClick={() => onClose()}
-                          className="text-base text-foreground/60 line-clamp-1 cursor-pointer hover:underline hover:text-white transition-colors block text-left"
-                          title={`Go to album: ${currentTrack.album}`}
-                        >
-                          {currentTrack.album}
-                        </Link>
-                      )}
                     </div>
 
                     {/* Progress */}
@@ -1202,7 +1195,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                     </div>
 
                     {/* Controls */}
-                    <div className="flex items-center gap-6 mb-4 shrink-0">
+                    <div className="flex items-center gap-6 mb-3 shrink-0">
                       <button
                         onClick={toggleShuffle}
                         className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
@@ -1236,42 +1229,50 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                       </button>
 
                       <button
-                        onMouseEnter={() => setShowVolumeSlider(true)}
-                        className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
-                        {volume === 0 ? (
-                          <FaVolumeXmark className="w-5 h-5" />
-                        ) : (
-                          <FaVolumeHigh className="w-5 h-5" />
-                        )}
+                        onClick={toggleLoop}
+                        className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer ${
+                          isLooping ? 'text-primary bg-primary/20' : 'text-gray-400'
+                        }`}
+                        title={isLooping ? 'Repeat On' : 'Repeat Off'}
+                        aria-label={isLooping ? 'Repeat On' : 'Repeat Off'}
+                      >
+                        <FaRepeat className="w-5 h-5" />
                       </button>
                     </div>
 
-                    {/* Volume Slider */}
-                    {showVolumeSlider && (
-                      <div 
-                        className="w-32 mb-4"
-                        onMouseLeave={() => setShowVolumeSlider(false)}
-                      >
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={volume * 100}
-                          onChange={handleVolumeChange}
-                          className="w-full accent-foreground"
-                        />
-                      </div>
-                    )}
+                    {/* Volume Slider - always visible below controls */}
+                    <div className="w-full max-w-[280px] flex items-center gap-3 px-2 mb-2 shrink-0">
+                      <FaVolumeLow className="w-4 h-4 text-white/50 shrink-0" />
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={volume * 100}
+                        onChange={handleVolumeChange}
+                        className="w-full accent-primary h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer"
+                        aria-label="Volume"
+                      />
+                      <FaVolumeHigh className="w-4 h-4 text-white/50 shrink-0" />
+                    </div>
                   </motion.div>
                 )}
 
                 {activeTab === 'lyrics' && lyrics.length > 0 && (
-                  <motion.div key="tab-lyrics" className="h-full flex flex-col px-4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} transition={{ duration: 0.2 }}>
+                  <motion.div 
+                    key="tab-lyrics" 
+                    className="h-full flex flex-col px-4 w-full overflow-x-hidden" 
+                    style={{ touchAction: 'pan-y' }}
+                    initial={{ x: 20, opacity: 0 }} 
+                    animate={{ x: 0, opacity: 1 }} 
+                    exit={{ x: -20, opacity: 0 }} 
+                    transition={{ duration: 0.2 }}
+                  >
                     <div
                       ref={lyricsRef}
                       onWheel={handleLyricsUserScroll}
                       onTouchMove={handleLyricsUserScroll}
-                      className="apple-lyrics-scroll apple-lyrics-mask flex-1 overflow-y-auto"
+                      className="apple-lyrics-scroll apple-lyrics-mask flex-1 overflow-y-auto overflow-x-hidden w-full select-none"
+                      style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}
                     >
                       {renderAppleLyricsList(true)}
                     </div>

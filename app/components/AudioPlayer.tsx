@@ -51,6 +51,7 @@ export const AudioPlayer: React.FC = () => {
     audioEffects,
     isMinimized,
     setIsMinimized,
+    isLooping,
     setIsPlaying: setContextIsPlaying
   } = useAudioPlayer();
   const router = useRouter();
@@ -465,6 +466,9 @@ export const AudioPlayer: React.FC = () => {
     };
 
     const handleTrackEnd = () => {
+      if (audioCurrent && audioCurrent.loop) {
+        return;
+      }
       if (currentTrack && audioCurrent) {
         // Clear saved time when track ends
         localStorage.removeItem('navidrome-current-track-time');
@@ -950,6 +954,7 @@ export const AudioPlayer: React.FC = () => {
         {/* Single audio element - shared across all UI states */}
         <audio 
           ref={audioRef} 
+          loop={isLooping}
           playsInline
           preload="metadata"
           style={{ display: 'none' }}
@@ -983,6 +988,7 @@ export const AudioPlayer: React.FC = () => {
       {/* Single audio element - shared across all UI states with mobile support */}
       <audio 
         ref={audioRef} 
+        loop={isLooping}
         playsInline
         preload="metadata"
         style={{ display: 'none' }}
