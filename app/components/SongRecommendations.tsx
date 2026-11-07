@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Song, Album, getNavidromeAPI } from '@/lib/navidrome';
-import { useNavidrome } from '@/app/components/NavidromeContext';
+import { Album, getNavidromeAPI } from '@/lib/navidrome';
 import { useAudioPlayer } from '@/app/components/AudioPlayerContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -17,20 +16,18 @@ interface SongRecommendationsProps {
   userName?: string;
 }
 
-const RecommendationSongItem = React.memo(function RecommendationSongItem({
-  song,
+const RecommendationAlbumItem = React.memo(function RecommendationAlbumItem({
+  album,
   api,
   isStarred,
   onPlay,
-  formatDuration,
 }: {
-  song: Song;
+  album: Album;
   api: ReturnType<typeof getNavidromeAPI>;
   isStarred: boolean;
-  onPlay: (song: Song) => void;
-  formatDuration: (duration: number) => string;
+  onPlay: (album: Album) => void;
 }) {
-  const coverUrl = song.coverArt && api ? api.getCoverArtUrl(song.coverArt, 120) : null;
+  const coverUrl = album.coverArt && api ? api.getCoverArtUrl(album.coverArt, 140) : null;
   const [dominantColor, setDominantColor] = useState<string | null>(null);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -56,7 +53,7 @@ const RecommendationSongItem = React.memo(function RecommendationSongItem({
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={() => onPlay(song)}
+      onClick={() => onPlay(album)}
       style={{
         backgroundColor: dominantColor
           ? `${dominantColor.replace('rgb', 'rgba').replace(')', isHovered ? ', 0.45)' : ', 0.22)')}`
@@ -84,12 +81,12 @@ const RecommendationSongItem = React.memo(function RecommendationSongItem({
       )}
 
       {/* Album Artwork */}
-      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted/60 flex-shrink-0 shadow-md">
-        {song.coverArt && api ? (
+      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted/60 shrink-0 shadow-md">
+        {album.coverArt && api ? (
           <>
             <Image
-              src={api.getCoverArtUrl(song.coverArt, 96)}
-              alt={song.title}
+              src={api.getCoverArtUrl(album.coverArt, 120)}
+              alt={album.name}
               fill
               className="object-cover"
               sizes="48px"
@@ -107,22 +104,29 @@ const RecommendationSongItem = React.memo(function RecommendationSongItem({
         )}
       </div>
 
-      {/* Track Info */}
+      {/* Album Info */}
       <div className="flex-1 min-w-0 ml-3.5 mr-2">
-        <p className="font-semibold text-sm truncate text-white drop-shadow-sm">{song.title}</p>
-        <div className="flex items-center gap-2 text-xs text-white/70 mt-0.5">
+        <Link
+          href={`/album/${album.id}`}
+          prefetch={false}
+          className="font-semibold text-sm truncate text-white drop-shadow-sm hover:underline block"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {album.name}
+        </Link>
+        <div className="flex items-center gap-2 text-xs text-white/70 mt-0.5 truncate">
           <Link
-            href={`/artist/${song.artistId}`}
+            href={`/artist/${album.artistId || album.artist}`}
             prefetch={false}
             className="hover:underline hover:text-white truncate transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
-            {song.artist}
+            {album.artist}
           </Link>
-          {song.duration && (
+          {album.year && (
             <>
               <span className="opacity-40">•</span>
-              <span className="tabular-nums opacity-90">{formatDuration(song.duration)}</span>
+              <span className="tabular-nums opacity-90">{album.year}</span>
             </>
           )}
         </div>
@@ -130,19 +134,17 @@ const RecommendationSongItem = React.memo(function RecommendationSongItem({
 
       {/* Star */}
       {isStarred && (
-        <Star className="w-4 h-4 text-yellow-400 flex-shrink-0 fill-yellow-400 mr-1" />
+        <Star className="w-4 h-4 text-yellow-400 shrink-0 fill-yellow-400 mr-1" />
       )}
     </div>
   );
 });
 
 export const SongRecommendations = React.memo(function SongRecommendations({ userName }: SongRecommendationsProps) {
-  const { playTrack, shuffle, toggleShuffle } = useAudioPlayer();
+  const { playAlbum, shuffle, toggleShuffle } = useAudioPlayer();
   const isMobile = useIsMobile();
-  const [recommendedSongs, setRecommendedSongs] = useState<Song[]>([]);
   const [recommendedAlbums, setRecommendedAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
-  const [songStates, setSongStates] = useState<Record<string, boolean>>({});
   const api = getNavidromeAPI();
 
   // Memoize the greeting to prevent recalculation
@@ -159,23 +161,16 @@ export const SongRecommendations = React.memo(function SongRecommendations({ use
         const navidromeApi = getNavidromeAPI();
         if (!navidromeApi) return;
 
-        if (isMobile) {
-          const randomAlbums = await navidromeApi.getAlbums('random', 6);
-          if (mounted) setRecommendedAlbums(randomAlbums.slice(0, 6));
-        } else {
-          // Single fast Subsonic getRandomSongs request instead of 4 sequential album+song fetches
-          const recommendations = await navidromeApi.getRandomSongs(6);
-          if (!mounted) return;
-          setRecommendedSongs(recommendations);
-          const states: Record<string, boolean> = {};
-          recommendations.forEach((song: Song) => { states[song.id] = !!song.starred; });
-          setSongStates(states);
+        // Fetch 9 random albums for desktop (3 columns x 3 rows) and 6 for mobile (3x2)
+        const count = isMobile ? 6 : 9;
+        const randomAlbums = await navidromeApi.getAlbums('random', count);
+        if (mounted) {
+          setRecommendedAlbums(randomAlbums.slice(0, count));
         }
       } catch (error) {
-        console.error('Failed to load recommendations:', error);
+        console.error('Failed to load recommended albums:', error);
         if (mounted) {
           setRecommendedAlbums([]);
-          setRecommendedSongs([]);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -186,84 +181,25 @@ export const SongRecommendations = React.memo(function SongRecommendations({ use
     return () => { mounted = false; };
   }, [isMobile]);
 
-  const handlePlaySong = async (song: Song) => {
+  const handlePlayAlbum = useCallback(async (album: Album) => {
     try {
-      if (!api) return;
-      
-      const url = api.getStreamUrlForSong(song);
-      const coverArt = song.coverArt ? api.getCoverArtUrl(song.coverArt, 300) : undefined;
-      const track = {
-        id: song.id,
-        name: song.title,
-        url,
-        artist: song.artist || 'Unknown Artist',
-        artistId: song.artistId || '',
-        album: song.album || 'Unknown Album',
-        albumId: song.albumId || '',
-        duration: song.duration || 0,
-        coverArt,
-        starred: !!song.starred
-      };
-      await playTrack(track, true);
-    } catch (error) {
-      console.error('Failed to play song:', error);
-    }
-  };
-
-  const handlePlayAlbum = async (album: Album) => {
-    try {
-      const api = getNavidromeAPI();
-      if (!api) return;
-      
-      const albumSongs = await api.getAlbumSongs(album.id);
-      if (albumSongs.length > 0) {
-        const first = albumSongs[0];
-        const url = api.getStreamUrlForSong(first);
-        const coverArt = first.coverArt ? api.getCoverArtUrl(first.coverArt, 300) : undefined;
-        const track = {
-          id: first.id,
-          name: first.title,
-          url,
-          artist: first.artist || 'Unknown Artist',
-          artistId: first.artistId || '',
-          album: first.album || 'Unknown Album',
-          albumId: first.albumId || '',
-          duration: first.duration || 0,
-          coverArt,
-          starred: !!first.starred
-        };
-        await playTrack(track, true);
-      }
+      await playAlbum(album.id);
     } catch (error) {
       console.error('Failed to play album:', error);
     }
-  };
+  }, [playAlbum]);
 
-  const handleShuffleAll = async () => {
-    if (isMobile && recommendedAlbums.length === 0) return;
-    if (!isMobile && recommendedSongs.length === 0) return;
+  const handleShuffleAll = useCallback(async () => {
+    if (recommendedAlbums.length === 0) return;
     
     // Enable shuffle if not already on
     if (!shuffle) {
       toggleShuffle();
     }
     
-    if (isMobile) {
-      // Play a random album
-      const randomAlbum = recommendedAlbums[Math.floor(Math.random() * recommendedAlbums.length)];
-      await handlePlayAlbum(randomAlbum);
-    } else {
-      // Play a random song from recommendations
-      const randomSong = recommendedSongs[Math.floor(Math.random() * recommendedSongs.length)];
-      await handlePlaySong(randomSong);
-    }
-  };
-
-  const formatDuration = (duration: number): string => {
-    const minutes = Math.floor(duration / 60);
-    const seconds = duration % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+    const randomAlbum = recommendedAlbums[Math.floor(Math.random() * recommendedAlbums.length)];
+    await handlePlayAlbum(randomAlbum);
+  }, [recommendedAlbums, shuffle, toggleShuffle, handlePlayAlbum]);
 
   if (loading) {
     return (
@@ -279,9 +215,9 @@ export const SongRecommendations = React.memo(function SongRecommendations({ use
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} className="h-16 bg-muted animate-pulse rounded-xl" />
             ))}
           </div>
         )}
@@ -297,7 +233,7 @@ export const SongRecommendations = React.memo(function SongRecommendations({ use
             {greeting}{userName ? `, ${userName}` : ''}!
           </h2>
           <p className="text-muted-foreground">
-            {isMobile ? 'Here are some albums you might enjoy' : 'Here are some songs you might enjoy'}
+            Here are some albums you might enjoy
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -305,7 +241,7 @@ export const SongRecommendations = React.memo(function SongRecommendations({ use
           {isMobile && <UserProfile variant="mobile" />}
           
           {/* Shuffle All Button (Desktop only) */}
-          {(isMobile ? recommendedAlbums.length > 0 : recommendedSongs.length > 0) && !isMobile && (
+          {recommendedAlbums.length > 0 && !isMobile && (
             <Button onClick={handleShuffleAll} variant="outline" size="sm">
               <Shuffle className="w-4 h-4 mr-2" />
               Shuffle All
@@ -374,17 +310,16 @@ export const SongRecommendations = React.memo(function SongRecommendations({ use
           </Card>
         )
       ) : (
-        /* Desktop: Show songs in original format */
-        recommendedSongs.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {recommendedSongs.map((song) => (
-              <RecommendationSongItem
-                key={song.id}
-                song={song}
+        /* Desktop: Show albums in 3 columns */
+        recommendedAlbums.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {recommendedAlbums.map((album) => (
+              <RecommendationAlbumItem
+                key={album.id}
+                album={album}
                 api={api}
-                isStarred={!!songStates[song.id]}
-                onPlay={handlePlaySong}
-                formatDuration={formatDuration}
+                isStarred={!!album.starred}
+                onPlay={handlePlayAlbum}
               />
             ))}
           </div>
@@ -393,7 +328,7 @@ export const SongRecommendations = React.memo(function SongRecommendations({ use
             <CardContent className="p-6 text-center">
               <Music className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground">
-                No songs available for recommendations
+                No albums available for recommendations
               </p>
             </CardContent>
           </Card>
@@ -403,3 +338,4 @@ export const SongRecommendations = React.memo(function SongRecommendations({ use
   );
 });
 
+export default SongRecommendations;

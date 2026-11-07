@@ -18,6 +18,7 @@ import { getNavidromeAPI } from '@/lib/navidrome';
 import { selectStreamFormat } from '@/lib/stream-format';
 import { devLog } from '@/lib/logger';
 import { extractDominantColor } from '@/lib/image-utils';
+import { prefetchLyrics } from '@/lib/lyrics-cache';
 
 // Lazy-load the full-screen player until it's actually opened
 const FullScreenPlayer = dynamic(
@@ -96,6 +97,13 @@ export const AudioPlayer: React.FC = () => {
       .then((color) => setDominantColor(color))
       .catch(() => setDominantColor(null));
   }, [currentTrack?.coverArt]);
+
+  // Pre-fetch word-by-word synced lyrics in the background so the user doesn't wait when opening Fullscreen
+  useEffect(() => {
+    if (currentTrack) {
+      prefetchLyrics(currentTrack);
+    }
+  }, [currentTrack?.id, currentTrack?.name, currentTrack?.artist]);
 
   // Codec fallback: when the browser can't play the original file (e.g. ALAC or
   // AAC in m4a on Chrome), ask Navidrome to transcode it to MP3 and reload.
