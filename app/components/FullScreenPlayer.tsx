@@ -67,6 +67,73 @@ interface LyricDisplayItem {
   background?: LyricBackgroundItem[];
 }
 
+// Client-side cache for parsed word-by-word (wbw) lyrics
+const clientLyricsCache = new Map<string, LyricDisplayItem[] | null>();
+const WBW_LYRICS_STORAGE_PREFIX = 'wbw_lyrics_v1:';
+const WBW_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function getTrackLyricsCacheKey(track: any): string {
+  if (track?.id) return `id_${track.id}`;
+  const artist = (track?.artist || '').toLowerCase().trim();
+  const name = (track?.name || '').toLowerCase().trim();
+  return `${artist}::${name}`;
+}
+
+function getCachedWbwLyrics(track: any): LyricDisplayItem[] | null | undefined {
+  if (!track) return undefined;
+  const key = getTrackLyricsCacheKey(track);
+
+  // 1. Fast in-memory lookup (0ms)
+  if (clientLyricsCache.has(key)) {
+    return clientLyricsCache.get(key);
+  }
+
+  // 2. Persistent storage lookup (survives browser refreshes)
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(`${WBW_LYRICS_STORAGE_PREFIX}${key}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.ts && Date.now() - parsed.ts < WBW_CACHE_TTL_MS) {
+          clientLyricsCache.set(key, parsed.items);
+          return parsed.items;
+        } else {
+          localStorage.removeItem(`${WBW_LYRICS_STORAGE_PREFIX}${key}`);
+        }
+      }
+    } catch {}
+  }
+
+  return undefined;
+}
+
+function setCachedWbwLyrics(track: any, items: LyricDisplayItem[] | null): void {
+  if (!track) return;
+  const key = getTrackLyricsCacheKey(track);
+  clientLyricsCache.set(key, items);
+
+  if (typeof window !== 'undefined' && items) {
+    try {
+      localStorage.setItem(
+        `${WBW_LYRICS_STORAGE_PREFIX}${key}`,
+        JSON.stringify({ ts: Date.now(), items })
+      );
+    } catch {
+      // If localStorage quota is reached, clean older entries
+      try {
+        const toRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(WBW_LYRICS_STORAGE_PREFIX)) {
+            toRemove.push(k);
+          }
+        }
+        toRemove.slice(0, 30).forEach((k) => localStorage.removeItem(k));
+      } catch {}
+    }
+  }
+}
+
 function parseSyllablesFromRaw(rawSyllables: any[]): LyricSyllable[] {
   if (!Array.isArray(rawSyllables)) return [];
   return rawSyllables.map((s: any, idx: number) => {
@@ -440,27 +507,44 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       }
 
       try {
-        // 1. First priority: SpicyLyrics API for rich Apple Music word-by-word (syllable) synced lyrics
-        try {
-          const params = new URLSearchParams();
-          if (currentTrack.name) params.set('title', currentTrack.name);
-          if (currentTrack.artist) params.set('artist', currentTrack.artist);
-          if (currentTrack.album) params.set('album', currentTrack.album);
-          if (currentTrack.duration) params.set('duration', String(currentTrack.duration));
-
-          const res = await fetch(`/api/lyrics?${params.toString()}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data?.Body?.Type === 'Syllable' && Array.isArray(data?.Body?.Content)) {
-              const spicyItems = buildAppleLyricsFromSpicy(data.Body.Content);
-              if (spicyItems.length > 0 && !cancelled) {
-                setLyrics(spicyItems);
-                return;
-              }
+        // 0. Check client cache first (memory & localStorage)
+        const cachedWbw = getCachedWbwLyrics(currentTrack);
+        if (cachedWbw !== undefined) {
+          if (cachedWbw && cachedWbw.length > 0) {
+            if (!cancelled) {
+              setLyrics(cachedWbw);
+              return;
             }
           }
-        } catch (spicyErr) {
-          console.warn('SpicyLyrics fetch failed or bypassed:', spicyErr);
+          // If cachedWbw is null, this track was previously verified to have no SpicyLyrics wbw lyrics
+        } else {
+          // 1. First priority: SpicyLyrics API for rich Apple Music word-by-word (syllable) synced lyrics
+          try {
+            const params = new URLSearchParams();
+            if (currentTrack.name) params.set('title', currentTrack.name);
+            if (currentTrack.artist) params.set('artist', currentTrack.artist);
+            if (currentTrack.album) params.set('album', currentTrack.album);
+            if (currentTrack.duration) params.set('duration', String(currentTrack.duration));
+
+            const res = await fetch(`/api/lyrics?${params.toString()}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.Body?.Type === 'Syllable' && Array.isArray(data?.Body?.Content)) {
+                const spicyItems = buildAppleLyricsFromSpicy(data.Body.Content);
+                if (spicyItems.length > 0) {
+                  setCachedWbwLyrics(currentTrack, spicyItems);
+                  if (!cancelled) {
+                    setLyrics(spicyItems);
+                    return;
+                  }
+                }
+              }
+            } else if (res.status === 404) {
+              setCachedWbwLyrics(currentTrack, null);
+            }
+          } catch (spicyErr) {
+            console.warn('SpicyLyrics fetch failed or bypassed:', spicyErr);
+          }
         }
 
         // 2. Second priority: Structured lyrics from Navidrome/OpenSubsonic server
