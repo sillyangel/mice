@@ -22,7 +22,6 @@ import { useNavidrome } from "./NavidromeContext";
 import { useRecentlyPlayedAlbums } from "@/hooks/use-recently-played-albums";
 import { useSidebarShortcuts } from "@/hooks/use-sidebar-shortcuts";
 import { useSidebarLayout } from "@/hooks/use-sidebar-layout";
-import { useAudioPlayer } from "@/app/components/AudioPlayerContext";
 import {
   Tooltip,
   TooltipContent,
@@ -63,7 +62,6 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
   const { recentAlbums } = useRecentlyPlayedAlbums();
   const { shortcutType } = useSidebarShortcuts();
   const { settings } = useSidebarLayout();
-  const { currentTrack, isMinimized } = useAudioPlayer();
 
   if (!visible) {
     return null;
@@ -83,15 +81,11 @@ export function Sidebar({ className, playlists, visible = true, favoriteAlbums =
       <aside
         aria-label="Main Navigation"
         className={cn(
-          "relative w-16 z-50 bg-background/85 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl mt-3 ml-3 mb-3 flex flex-col items-center py-3 select-none transition-[height] duration-300 ease-out overflow-hidden",
+          "relative w-16 z-50 bg-background/85 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl mt-3 ml-3 mb-3 flex flex-col items-center py-3 select-none overflow-hidden",
           className
         )}
         style={{
-          height: !currentTrack
-            ? 'calc(100% - 1.5rem)'
-            : isMinimized
-              ? 'calc(100% - 4.5rem)'
-              : 'calc(100% - 7.25rem)',
+          height: 'calc(100% - 1.5rem)',
         }}
       >
         {/* Brand App Logo at the top */}

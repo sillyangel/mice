@@ -929,19 +929,19 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                         style={{
                           transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
                           textShadow: isSylActive
-                            ? '0 0 16px rgba(255, 255, 255, 0.75), 0 2px 8px rgba(0, 0, 0, 0.4)'
+                            ? '0 0 10px rgba(255, 255, 255, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35)'
                             : isSylPast
-                            ? '0 0 8px rgba(255, 255, 255, 0.3)'
+                            ? '0 0 5px rgba(255, 255, 255, 0.2)'
                             : 'none',
                         }}
                         className={`inline-block transition-all duration-150 ease-out ${
                           !isActive
-                            ? 'text-white scale-100'
+                            ? 'text-white scale-100 translate-y-0'
                             : isSylActive
-                            ? 'text-white opacity-100 drop-shadow-[0_0_12px_rgba(255,255,255,0.7)] scale-[1.03] -translate-y-[0.5px]'
+                            ? 'text-white opacity-100 scale-[1.025] -translate-y-[1.5px]'
                             : isSylPast
-                            ? 'text-white opacity-100 scale-100'
-                            : 'text-white/35 scale-100'
+                            ? 'text-white opacity-100 scale-[1.01] -translate-y-[0.75px]'
+                            : 'text-white/35 scale-100 translate-y-0'
                         }`}
                       >
                         {displayText}
@@ -966,7 +966,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                       key={bg.id}
                       className={`text-[0.58em] font-medium tracking-normal transition-all duration-200 block ${
                         isBgActive
-                          ? 'text-white opacity-95 drop-shadow-[0_0_12px_rgba(255,255,255,0.7)]'
+                          ? 'text-white opacity-95'
                           : 'text-white/40 opacity-70'
                       }`}
                     >
@@ -985,17 +985,15 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                                 style={{
                                   transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
                                   textShadow: isSylActive
-                                    ? '0 0 12px rgba(255, 255, 255, 0.7)'
-                                    : isSylPast
-                                    ? '0 0 6px rgba(255, 255, 255, 0.3)'
+                                    ? '0 0 8px rgba(255, 255, 255, 0.5)'
                                     : 'none',
                                 }}
                                 className={`inline-block transition-all duration-150 ease-out ${
                                   isSylActive
-                                    ? 'text-white opacity-100 drop-shadow-[0_0_10px_rgba(255,255,255,0.7)] scale-[1.03] -translate-y-[0.3px]'
+                                    ? 'text-white opacity-100 scale-[1.025] -translate-y-[1px]'
                                     : isSylPast
-                                    ? 'text-white opacity-95 scale-100'
-                                    : 'text-white/40 scale-100'
+                                    ? 'text-white opacity-95 scale-[1.008] -translate-y-[0.5px]'
+                                    : 'text-white/40 scale-100 translate-y-0'
                                 }`}
                               >
                                 {displayText}

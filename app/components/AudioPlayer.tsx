@@ -937,159 +937,26 @@ export const AudioPlayer: React.FC = () => {
     );
   }
 
-  // Desktop mini player (collapsed state)
-  if (isMinimized) {
-    return (
-      <>
-        <DraggableMiniPlayer 
-          onExpand={() => setIsMinimized(false)}
-          onOpenFullScreen={() => {
-            setHasOpenedFullScreen(true);
-            setIsFullScreen(true);
-          }}
-          isPlaying={isPlaying}
-          onTogglePlayPause={togglePlayPause}
-        />
-        
-        {/* Full Screen Player - lazy mounted once opened */}
-        {hasOpenedFullScreen && (
-          <FullScreenPlayer 
-            isOpen={isFullScreen} 
-            onClose={() => setIsFullScreen(false)} 
-            onOpenQueue={handleOpenQueue}
-          />
-        )}
-        
-        {/* Single audio element - shared across all UI states */}
-        <audio 
-          ref={audioRef} 
-          playsInline
-          preload="metadata"
-          style={{ display: 'none' }}
-        />
-        <audio ref={preloadAudioRef} hidden preload="metadata" />
-      </>
-    );
-  }
-
-  // Desktop compact floating player (default state)
+  // Desktop mini player (default player on desktop)
   return (
     <>
-      <div className="fixed bottom-4 left-4 right-4 z-50">
-        <div 
-          className="backdrop-blur-md border rounded-lg shadow-2xl p-3 cursor-pointer hover:scale-[1.008] transition-all duration-500"
-          style={{
-            backgroundColor: dominantColor 
-              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.60)')}`
-              : 'rgba(20, 21, 23, 0.88)',
-            borderColor: dominantColor 
-              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.35)')}`
-              : 'rgba(255, 255, 255, 0.1)',
-            boxShadow: dominantColor
-              ? `0 16px 40px -10px ${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.45)')}`
-              : undefined,
-          }}
-        >
-          <div className="flex items-center">
-            {/* Track info */}
-            <div className="flex items-center flex-1 min-w-0">
-              <Image 
-                src={
-                  currentTrack.coverArt && 
-                  (currentTrack.coverArt.startsWith('http') || currentTrack.coverArt.startsWith('/'))
-                    ? currentTrack.coverArt 
-                    : '/default-user.jpg'
-                } 
-                alt={currentTrack.name} 
-                width={48} 
-                height={48} 
-                className="w-12 h-12 rounded-md mr-4 shrink-0 shadow-md object-cover" 
-              />
-              <div className="flex-1 min-w-0">
-                <Link
-                  href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
-                  className="font-semibold truncate text-base block hover:underline text-white transition-colors"
-                  title={`Go to album: ${currentTrack.album || currentTrack.name}`}
-                >
-                  {currentTrack.name}
-                </Link>
-                <Link
-                  href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
-                  className="text-sm text-white/70 hover:text-white truncate block hover:underline transition-colors"
-                  title={`Go to artist: ${currentTrack.artist}`}
-                >
-                  {currentTrack.artist}
-                </Link>
-              </div>
-            </div>
-
-            {/* Center section with controls and progress */}
-            <div className="flex flex-col items-center flex-1 justify-center">
-              {/* Control buttons */}  
-              <div className="flex items-center justify-center space-x-3">
-                <button
-                  onClick={toggleShuffle} 
-                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer ${shuffle ? 'text-primary bg-primary/20' : ''}`} 
-                  title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
-                >
-                  <FaShuffle className="w-4 h-4" />
-                </button>
-                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" onClick={playPreviousTrack}>
-                  <FaBackward className="w-4 h-4" />
-                </button>
-                <button className="p-3 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" onClick={togglePlayPause}>
-                  {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
-                </button>
-                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" onClick={playNextTrack}>
-                  <FaForward className="w-4 h-4" />
-                </button>
-                <button 
-                  className="p-2 hover:bg-gray-700/50 rounded-full transition-colors flex items-center justify-center cursor-pointer" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleCurrentTrackStar();
-                  }}
-                  title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
-                >
-                  <Star 
-                    className={`w-5 h-5 ${currentTrack.starred ? 'text-yellow-400 fill-yellow-400' : ''}`} 
-                  />
-                </button>
-              </div>
-            </div>
-
-            {/* Right side buttons */}
-            <div className="flex items-center justify-end space-x-2 flex-1">
-              <button 
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" 
-                onClick={() => {
-                  setHasOpenedFullScreen(true);
-                  setIsFullScreen(true);
-                }}
-                title="Full Screen"
-              >
-                <FaExpand className="w-4 h-4" />
-              </button>
-              <button 
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" 
-                onClick={() => setIsMinimized(true)}
-                title="Minimize"
-              >
-                <FaCompress className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Full Screen Player - lazy mounted once opened */}
-        {hasOpenedFullScreen && (
-          <FullScreenPlayer 
-            isOpen={isFullScreen} 
-            onClose={() => setIsFullScreen(false)} 
-            onOpenQueue={handleOpenQueue}
-          />
-        )}
-      </div>
+      <DraggableMiniPlayer 
+        onOpenFullScreen={() => {
+          setHasOpenedFullScreen(true);
+          setIsFullScreen(true);
+        }}
+        isPlaying={isPlaying}
+        onTogglePlayPause={togglePlayPause}
+      />
+      
+      {/* Full Screen Player - lazy mounted once opened */}
+      {hasOpenedFullScreen && (
+        <FullScreenPlayer 
+          isOpen={isFullScreen} 
+          onClose={() => setIsFullScreen(false)} 
+          onOpenQueue={handleOpenQueue}
+        />
+      )}
       
       {/* Single audio element - shared across all UI states with mobile support */}
       <audio 
