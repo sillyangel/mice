@@ -5,10 +5,37 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 // Current app version from package.json
-const APP_VERSION = '2026.01.24';
+const APP_VERSION = '2026.11.09';
 
 // Changelog data - add new versions at the top
 const CHANGELOG = [
+  {
+    version: '2026.11.09',
+    title: 'November 2026 Update',
+    changes: [
+      'Word-by-word syllable synced lyrics with animated karaoke glow and background vocals',
+      'Opposite alignment for duets and background vocal synchronization in fullscreen lyrics',
+      'Word-by-word lyrics server and client caching with background pre-fetching',
+      'Adjustable lyrics sync offset slider in fullscreen view',
+      'Redesigned draggable mini player as the default desktop audio player',
+      'Apple Music inspired mobile floating dock navigation (Home, Library, and quick Search)',
+      'Redesigned mobile Library page with search bar and clean category rows',
+      'Apple Music layout redesigns across Album, Artist, and Playlist views',
+      'Codec-aware audio streaming with automatic server transcoding fallback (ALAC/AAC/MP3)',
+      'Playback rendering and state performance optimizations with lazy-loaded modal overlays',
+      'Support for Isolated Web App (IWA) packaging and builds',
+      'Upgraded framework to Next.js 16.4.5 and updated core dependencies',
+    ],
+    fixes: [
+      'Fixed Navidrome auth token validation MD5 implementation',
+      'Fixed service worker cache eviction to avoid hitting browser storage quotas',
+      'Aligned playlist grid table headers and track separation styling',
+      'Resolved audio player responsive layout and touch gesture handling on mobile',
+    ],
+    breaking: [
+      'Desktop bottom audio bar replaced by the floating draggable mini player',
+    ]
+  },
   {
     version: '2026.01.24',
     title: 'January 2026 Update',

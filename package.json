@@ -1,6 +1,6 @@
 {
   "name": "mice-reworked",
-  "version": "2026.08.05",
+  "version": "2026.11.09",
   "scripts": {
     "dev": "next dev --turbopack -p 40625",
     "build": "next build",

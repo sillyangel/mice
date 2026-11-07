@@ -21,7 +21,6 @@ build
 .netlify
 .turbo
 .github
-4xnored.png
 
 # Documentation and non-runtime files
 docs/
