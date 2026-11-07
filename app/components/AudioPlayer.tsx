@@ -18,6 +18,7 @@ import { getNavidromeAPI } from '@/lib/navidrome';
 import { selectStreamFormat } from '@/lib/stream-format';
 import { devLog } from '@/lib/logger';
 import { extractDominantColor } from '@/lib/image-utils';
+import { prefetchLyrics } from '@/lib/lyrics-cache';
 
 // Lazy-load the full-screen player until it's actually opened
 const FullScreenPlayer = dynamic(
@@ -50,6 +51,7 @@ export const AudioPlayer: React.FC = () => {
     audioEffects,
     isMinimized,
     setIsMinimized,
+    isLooping,
     setIsPlaying: setContextIsPlaying
   } = useAudioPlayer();
   const router = useRouter();
@@ -96,6 +98,13 @@ export const AudioPlayer: React.FC = () => {
       .then((color) => setDominantColor(color))
       .catch(() => setDominantColor(null));
   }, [currentTrack?.coverArt]);
+
+  // Pre-fetch word-by-word synced lyrics in the background so the user doesn't wait when opening Fullscreen
+  useEffect(() => {
+    if (currentTrack) {
+      prefetchLyrics(currentTrack);
+    }
+  }, [currentTrack?.id, currentTrack?.name, currentTrack?.artist]);
 
   // Codec fallback: when the browser can't play the original file (e.g. ALAC or
   // AAC in m4a on Chrome), ask Navidrome to transcode it to MP3 and reload.
@@ -457,6 +466,9 @@ export const AudioPlayer: React.FC = () => {
     };
 
     const handleTrackEnd = () => {
+      if (audioCurrent && audioCurrent.loop) {
+        return;
+      }
       if (currentTrack && audioCurrent) {
         // Clear saved time when track ends
         localStorage.removeItem('navidrome-current-track-time');
@@ -854,7 +866,7 @@ export const AudioPlayer: React.FC = () => {
     return (
       <>
         <div
-          className="fixed bottom-[68px] left-3 right-3 z-[60] select-none max-w-[480px] mx-auto cursor-pointer"
+          className="fixed bottom-[max(80px,calc(env(safe-area-inset-bottom)+70px))] left-3 right-3 z-[60] select-none max-w-[480px] mx-auto cursor-pointer"
           onClick={() => {
             setHasOpenedFullScreen(true);
             setIsFullScreen(true);
@@ -864,11 +876,11 @@ export const AudioPlayer: React.FC = () => {
           onTouchEnd={handleTouchEnd}
         >
           <div
-            className="backdrop-blur-2xl border rounded-full shadow-2xl transition-all duration-300 px-3.5 h-[52px] flex items-center justify-between gap-3"
+            className="backdrop-blur-2xl border rounded-2xl shadow-2xl transition-all duration-300 px-3.5 h-[56px] flex items-center justify-between gap-3"
             style={{
               backgroundColor: dominantColor 
-                ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.75)')}`
-                : 'rgba(24, 23, 22, 0.92)',
+                ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.8)')}`
+                : 'rgba(28, 28, 30, 0.92)',
               borderColor: dominantColor 
                 ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.35)')}`
                 : 'rgba(255, 255, 255, 0.12)',
@@ -878,14 +890,14 @@ export const AudioPlayer: React.FC = () => {
             }}
           >
             {/* Left: Album cover + Song & Artist name */}
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="relative w-8 h-8 rounded-md overflow-hidden shrink-0 shadow-sm">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0 shadow-sm">
                 <Image 
                   src={currentTrack.coverArt || '/default-user.jpg'} 
                   alt={currentTrack.name} 
                   fill
                   className="object-cover"
-                  sizes="32px"
+                  sizes="36px"
                   priority
                 />
               </div>
@@ -893,26 +905,40 @@ export const AudioPlayer: React.FC = () => {
                 <span className="font-semibold text-[13px] text-white truncate leading-tight block">
                   {currentTrack.name}
                 </span>
-                <span className="text-xs text-white/70 truncate leading-tight block mt-0.5">
+                <span className="text-xs text-zinc-400 truncate leading-tight block mt-0.5">
                   {currentTrack.artist}
                 </span>
               </div>
             </div>
 
-            {/* Right: Play / Pause button */}
-            <button 
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:bg-white/15 active:scale-95 transition-all shrink-0 cursor-pointer" 
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePlayPause();
-              }}
-              type="button"
-              data-testid="play-pause-button"
-              aria-label={isPlaying ? 'Pause' : 'Play'}
-              title={isPlaying ? 'Pause' : 'Play'}
-            >
-              {isPlaying ? <FaPause className="w-3.5 h-3.5" /> : <FaPlay className="w-3.5 h-3.5 ml-0.5" />}
-            </button>
+            {/* Right: Play / Pause and Next Track buttons */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button 
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white hover:bg-white/15 active:scale-95 transition-all cursor-pointer" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePlayPause();
+                }}
+                type="button"
+                data-testid="play-pause-button"
+                aria-label={isPlaying ? 'Pause' : 'Play'}
+                title={isPlaying ? 'Pause' : 'Play'}
+              >
+                {isPlaying ? <FaPause className="w-4 h-4" /> : <FaPlay className="w-4 h-4 ml-0.5" />}
+              </button>
+              <button 
+                className="w-9 h-9 rounded-full flex items-center justify-center text-white/90 hover:text-white hover:bg-white/15 active:scale-95 transition-all cursor-pointer" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  playNextTrack();
+                }}
+                type="button"
+                aria-label="Next track"
+                title="Next track"
+              >
+                <FaForward className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
         
@@ -928,6 +954,7 @@ export const AudioPlayer: React.FC = () => {
         {/* Single audio element - shared across all UI states */}
         <audio 
           ref={audioRef} 
+          loop={isLooping}
           playsInline
           preload="metadata"
           style={{ display: 'none' }}
@@ -937,163 +964,31 @@ export const AudioPlayer: React.FC = () => {
     );
   }
 
-  // Desktop mini player (collapsed state)
-  if (isMinimized) {
-    return (
-      <>
-        <DraggableMiniPlayer 
-          onExpand={() => setIsMinimized(false)}
-          onOpenFullScreen={() => {
-            setHasOpenedFullScreen(true);
-            setIsFullScreen(true);
-          }}
-          isPlaying={isPlaying}
-          onTogglePlayPause={togglePlayPause}
-        />
-        
-        {/* Full Screen Player - lazy mounted once opened */}
-        {hasOpenedFullScreen && (
-          <FullScreenPlayer 
-            isOpen={isFullScreen} 
-            onClose={() => setIsFullScreen(false)} 
-            onOpenQueue={handleOpenQueue}
-          />
-        )}
-        
-        {/* Single audio element - shared across all UI states */}
-        <audio 
-          ref={audioRef} 
-          playsInline
-          preload="metadata"
-          style={{ display: 'none' }}
-        />
-        <audio ref={preloadAudioRef} hidden preload="metadata" />
-      </>
-    );
-  }
-
-  // Desktop compact floating player (default state)
+  // Desktop mini player (default player on desktop)
   return (
     <>
-      <div className="fixed bottom-4 left-4 right-4 z-50">
-        <div 
-          className="backdrop-blur-md border rounded-lg shadow-2xl p-3 cursor-pointer hover:scale-[1.008] transition-all duration-500"
-          style={{
-            backgroundColor: dominantColor 
-              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.60)')}`
-              : 'rgba(20, 21, 23, 0.88)',
-            borderColor: dominantColor 
-              ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.35)')}`
-              : 'rgba(255, 255, 255, 0.1)',
-            boxShadow: dominantColor
-              ? `0 16px 40px -10px ${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.45)')}`
-              : undefined,
-          }}
-        >
-          <div className="flex items-center">
-            {/* Track info */}
-            <div className="flex items-center flex-1 min-w-0">
-              <Image 
-                src={
-                  currentTrack.coverArt && 
-                  (currentTrack.coverArt.startsWith('http') || currentTrack.coverArt.startsWith('/'))
-                    ? currentTrack.coverArt 
-                    : '/default-user.jpg'
-                } 
-                alt={currentTrack.name} 
-                width={48} 
-                height={48} 
-                className="w-12 h-12 rounded-md mr-4 shrink-0 shadow-md object-cover" 
-              />
-              <div className="flex-1 min-w-0">
-                <Link
-                  href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
-                  className="font-semibold truncate text-base block hover:underline text-white transition-colors"
-                  title={`Go to album: ${currentTrack.album || currentTrack.name}`}
-                >
-                  {currentTrack.name}
-                </Link>
-                <Link
-                  href={currentTrack.artistId ? `/artist/${currentTrack.artistId}` : `/artist/${encodeURIComponent(currentTrack.artist)}`}
-                  className="text-sm text-white/70 hover:text-white truncate block hover:underline transition-colors"
-                  title={`Go to artist: ${currentTrack.artist}`}
-                >
-                  {currentTrack.artist}
-                </Link>
-              </div>
-            </div>
-
-            {/* Center section with controls and progress */}
-            <div className="flex flex-col items-center flex-1 justify-center">
-              {/* Control buttons */}  
-              <div className="flex items-center justify-center space-x-3">
-                <button
-                  onClick={toggleShuffle} 
-                  className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer ${shuffle ? 'text-primary bg-primary/20' : ''}`} 
-                  title={shuffle ? 'Shuffle On - Queue is shuffled' : 'Shuffle Off - Click to shuffle queue'}
-                >
-                  <FaShuffle className="w-4 h-4" />
-                </button>
-                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" onClick={playPreviousTrack}>
-                  <FaBackward className="w-4 h-4" />
-                </button>
-                <button className="p-3 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" onClick={togglePlayPause}>
-                  {isPlaying ? <FaPause className="w-5 h-5" /> : <FaPlay className="w-5 h-5" />}
-                </button>
-                <button className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" onClick={playNextTrack}>
-                  <FaForward className="w-4 h-4" />
-                </button>
-                <button 
-                  className="p-2 hover:bg-gray-700/50 rounded-full transition-colors flex items-center justify-center cursor-pointer" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleCurrentTrackStar();
-                  }}
-                  title={currentTrack.starred ? 'Remove from favorites' : 'Add to favorites'}
-                >
-                  <Star 
-                    className={`w-5 h-5 ${currentTrack.starred ? 'text-yellow-400 fill-yellow-400' : ''}`} 
-                  />
-                </button>
-              </div>
-            </div>
-
-            {/* Right side buttons */}
-            <div className="flex items-center justify-end space-x-2 flex-1">
-              <button 
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" 
-                onClick={() => {
-                  setHasOpenedFullScreen(true);
-                  setIsFullScreen(true);
-                }}
-                title="Full Screen"
-              >
-                <FaExpand className="w-4 h-4" />
-              </button>
-              <button 
-                className="p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer" 
-                onClick={() => setIsMinimized(true)}
-                title="Minimize"
-              >
-                <FaCompress className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Full Screen Player - lazy mounted once opened */}
-        {hasOpenedFullScreen && (
-          <FullScreenPlayer 
-            isOpen={isFullScreen} 
-            onClose={() => setIsFullScreen(false)} 
-            onOpenQueue={handleOpenQueue}
-          />
-        )}
-      </div>
+      <DraggableMiniPlayer 
+        onOpenFullScreen={() => {
+          setHasOpenedFullScreen(true);
+          setIsFullScreen(true);
+        }}
+        isPlaying={isPlaying}
+        onTogglePlayPause={togglePlayPause}
+      />
+      
+      {/* Full Screen Player - lazy mounted once opened */}
+      {hasOpenedFullScreen && (
+        <FullScreenPlayer 
+          isOpen={isFullScreen} 
+          onClose={() => setIsFullScreen(false)} 
+          onOpenQueue={handleOpenQueue}
+        />
+      )}
       
       {/* Single audio element - shared across all UI states with mobile support */}
       <audio 
         ref={audioRef} 
+        loop={isLooping}
         playsInline
         preload="metadata"
         style={{ display: 'none' }}

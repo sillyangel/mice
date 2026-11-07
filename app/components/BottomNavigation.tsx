@@ -1,89 +1,75 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Home, Search, Disc, Users, Music, Star, List, Settings } from 'lucide-react';
+import { Home, Search, SquarePlay } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGlobalSearch } from './GlobalSearchProvider';
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-const navigationItems: NavItem[] = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/search', label: 'Search', icon: Search },
-  { href: '/library', label: 'Library', icon: Music },
-  { href: '/queue', label: 'Queue', icon: List },
-];
 
 export function BottomNavigation() {
   const router = useRouter();
   const pathname = usePathname();
   const { openSpotlight } = useGlobalSearch();
 
-  const handleNavigation = (href: string) => {
-    if (href === '/search') {
-      // Use spotlight search instead of navigating to search page
-      openSpotlight();
-    } else {
-      router.push(href);
-    }
-  };
-
-  const isActive = (href: string) => {
-    if (href === '/') {
-      return pathname === '/';
-    }
-    return pathname.startsWith(href);
-  };
+  const isLibraryActive = pathname.startsWith('/library') || pathname.startsWith('/favorites');
+  const isHomeActive = !isLibraryActive && !pathname.startsWith('/search');
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[50] bg-background/80 backdrop-blur-md border-t border-border">
-      <div className="flex items-center justify-around px-2 py-2 pb-safe mb-2">
-        {navigationItems.map((item) => {
-          const isItemActive = isActive(item.href);
-          const Icon = item.icon;
-          
-          return (
-            <motion.button
-              key={item.href}
-              onClick={() => handleNavigation(item.href)}
-              className={cn(
-                "flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200 min-w-[60px] touch-manipulation",
-                "active:scale-95 active:bg-primary/20",
-                isItemActive 
-                  ? "text-primary bg-primary/10" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              )}
-              whileTap={{ scale: 0.95 }}
-              whileHover={{ y: -1 }}
-            >
-              <Icon className={cn("w-5 h-5 mb-1", isItemActive && "text-primary")} />
-              <span className={cn(
-                "text-xs font-medium",
-                isItemActive ? "text-primary" : "text-muted-foreground"
-              )}>
-                {item.label}
-              </span>
-              <AnimatePresence>
-                {isItemActive && (
-                  <motion.div
-                    layoutId="bottom-nav-underline"
-                    className="h-0.5 w-6 bg-primary mt-1 rounded"
-                    initial={{ opacity: 0, scaleX: 0.6 }}
-                    animate={{ opacity: 1, scaleX: 1 }}
-                    exit={{ opacity: 0, scaleX: 0.6 }}
-                    transition={{ duration: 0.2 }}
-                  />
-                )}
-              </AnimatePresence>
-            </motion.button>
-          );
-        })}
+    <div className="fixed bottom-[max(14px,env(safe-area-inset-bottom))] left-4 right-4 z-[55] flex items-center justify-between gap-3 max-w-[420px] mx-auto pointer-events-none select-none">
+      {/* Floating clear/see-through dual-tab pill: Home & Library */}
+      <div className="flex-1 h-[58px] bg-black/30 backdrop-blur-xl border border-white/15 rounded-full shadow-2xl p-1 flex items-center justify-between gap-1 pointer-events-auto">
+        {/* Home Tab */}
+        <motion.button
+          onClick={() => router.push('/')}
+          whileTap={{ scale: 0.95 }}
+          className={cn(
+            "flex-1 h-full rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer",
+            isHomeActive
+              ? "bg-white/[0.12] text-[#fa243c]"
+              : "text-zinc-400 hover:text-white"
+          )}
+          aria-label="Home"
+        >
+          <Home className={cn("w-5 h-5", isHomeActive ? "text-[#fa243c]" : "text-zinc-400")} />
+          <span className={cn(
+            "text-[10px] font-semibold leading-none mt-1",
+            isHomeActive ? "text-[#fa243c]" : "text-zinc-400"
+          )}>
+            Home
+          </span>
+        </motion.button>
+
+        {/* Library Tab */}
+        <motion.button
+          onClick={() => router.push('/library')}
+          whileTap={{ scale: 0.95 }}
+          className={cn(
+            "flex-1 h-full rounded-full flex flex-col items-center justify-center transition-all duration-200 cursor-pointer",
+            isLibraryActive
+              ? "bg-white/[0.12] text-[#fa243c]"
+              : "text-zinc-400 hover:text-white"
+          )}
+          aria-label="Library"
+        >
+          <SquarePlay className={cn("w-5 h-5", isLibraryActive ? "text-[#fa243c]" : "text-zinc-400")} />
+          <span className={cn(
+            "text-[10px] font-semibold leading-none mt-1",
+            isLibraryActive ? "text-[#fa243c]" : "text-zinc-400"
+          )}>
+            Library
+          </span>
+        </motion.button>
       </div>
+
+      {/* Floating circular clear/see-through search button */}
+      <motion.button
+        onClick={() => openSpotlight()}
+        whileTap={{ scale: 0.92 }}
+        className="w-[58px] h-[58px] rounded-full bg-black/30 backdrop-blur-xl border border-white/15 shadow-2xl flex items-center justify-center text-white shrink-0 pointer-events-auto cursor-pointer hover:bg-white/10 active:bg-white/15 transition-all"
+        aria-label="Search"
+      >
+        <Search className="w-5 h-5 text-white" strokeWidth={2.4} />
+      </motion.button>
     </div>
   );
 }

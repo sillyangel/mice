@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -23,6 +23,7 @@ import {
   FaPlay, 
   FaPause, 
   FaVolumeHigh, 
+  FaVolumeLow,
   FaForward, 
   FaBackward, 
   FaVolumeXmark,
@@ -41,13 +42,16 @@ interface LyricLine {
   text: string;
 }
 
-interface LyricDisplayItem {
-  id: string;
-  time: number;
-  endTime?: number;
-  text: string;
-  isInterlude: boolean;
-}
+import {
+  LyricSyllable,
+  LyricBackgroundItem,
+  LyricDisplayItem,
+  getCachedWbwLyrics,
+  setCachedWbwLyrics,
+  buildAppleLyricsFromSpicy,
+} from '@/lib/lyrics-cache';
+
+export type { LyricSyllable, LyricBackgroundItem, LyricDisplayItem };
 
 const INSTRUMENTAL_PATTERNS = new Set([
   '',
@@ -193,6 +197,274 @@ const AppleInterludeDots: React.FC<{
   );
 };
 
+const formatLyricTime = (seconds: number) => {
+  if (!seconds || isNaN(seconds)) return '0:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+interface AppleLyricLineItemProps {
+  item: LyricDisplayItem;
+  index: number;
+  isActive: boolean;
+  isPast: boolean;
+  dist: number;
+  hasActive: boolean;
+  isUserScrolling: boolean;
+  timeForAnimation: number | null;
+  isPlaying: boolean;
+  mobileLayout: boolean;
+  onLyricClick: (time: number) => void;
+}
+
+interface SyllableGroup {
+  syllables: LyricSyllable[];
+  trailingSpace: boolean;
+}
+
+function groupSyllablesIntoWords(syllables: LyricSyllable[]): SyllableGroup[] {
+  const words: SyllableGroup[] = [];
+  let currentGroup: LyricSyllable[] = [];
+
+  for (let i = 0; i < syllables.length; i++) {
+    const syl = syllables[i];
+    currentGroup.push(syl);
+
+    const isWordEnd =
+      !syl.isPartOfWord ||
+      syl.text.endsWith(' ') ||
+      (i + 1 < syllables.length && syllables[i + 1].text.startsWith(' ')) ||
+      i === syllables.length - 1;
+
+    if (isWordEnd) {
+      words.push({
+        syllables: currentGroup,
+        trailingSpace: syl.text.endsWith(' ') || (i + 1 < syllables.length && syllables[i + 1].text.startsWith(' ')),
+      });
+      currentGroup = [];
+    }
+  }
+
+  if (currentGroup.length > 0) {
+    words.push({
+      syllables: currentGroup,
+      trailingSpace: false,
+    });
+  }
+
+  return words;
+}
+
+const AppleLyricLineItem = React.memo(function AppleLyricLineItem({
+  item,
+  index,
+  isActive,
+  isPast,
+  dist,
+  hasActive,
+  isUserScrolling,
+  timeForAnimation,
+  isPlaying,
+  mobileLayout,
+  onLyricClick,
+}: AppleLyricLineItemProps) {
+  const leadWords = React.useMemo(
+    () => (item.syllables ? groupSyllablesIntoWords(item.syllables) : []),
+    [item.syllables]
+  );
+  if (item.isInterlude) {
+    return (
+      <div
+        data-lyric-index={index}
+        style={{
+          display: 'grid',
+          gridTemplateRows: isActive ? '1fr' : '0fr',
+          opacity: isActive ? 1 : 0,
+          marginBottom: isActive ? '1.25rem' : '0px',
+          transition:
+            'grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease, margin-bottom 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+        }}
+      >
+        <div className="overflow-hidden">
+          <AppleInterludeDots
+            startTime={item.time}
+            endTime={item.endTime}
+            currentTime={timeForAnimation ?? item.time}
+            isPlaying={isPlaying}
+            onClick={() => onLyricClick(item.endTime ?? item.time)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  let lineOpacity = 1;
+  let lineBlur = 0;
+
+  if (!isActive) {
+    if (isUserScrolling) {
+      lineOpacity = isPast ? 0.52 : 0.68;
+      lineBlur = 0;
+    } else if (!hasActive) {
+      lineOpacity = index === 0 ? 0.55 : index === 1 ? 0.42 : index === 2 ? 0.32 : 0.24;
+      lineBlur = index === 0 ? 0.6 : index === 1 ? 1.4 : index === 2 ? 2.2 : 3.2;
+    } else if (dist === 1) {
+      lineOpacity = isPast ? 0.36 : 0.48;
+      lineBlur = 1.3;
+    } else if (dist === 2) {
+      lineOpacity = isPast ? 0.28 : 0.38;
+      lineBlur = 2.3;
+    } else if (dist === 3) {
+      lineOpacity = isPast ? 0.22 : 0.30;
+      lineBlur = 2.9;
+    } else {
+      lineOpacity = isPast ? 0.16 : 0.22;
+      lineBlur = 3.7;
+    }
+  }
+
+  const isOpposite = !!item.oppositeAligned;
+  const animTime = timeForAnimation ?? (isPast ? (item.endTime ?? item.time + 10) : item.time - 1);
+
+  return (
+    <div
+      data-lyric-index={index}
+      onClick={() => onLyricClick(item.time)}
+      style={
+        {
+          '--lyric-opacity': lineOpacity,
+          '--lyric-blur': `${lineBlur}px`,
+          transform: isActive ? 'scale(1.02) translateZ(0)' : 'scale(1) translateZ(0)',
+          transformOrigin: isOpposite ? 'right center' : 'left center',
+          textAlign: isOpposite ? 'right' : 'left',
+          marginLeft: isOpposite ? 'auto' : undefined,
+          textShadow: isActive
+            ? '0 4px 28px rgba(255, 255, 255, 0.28), 0 2px 14px rgba(0, 0, 0, 0.35)'
+            : 'none',
+        } as React.CSSProperties
+      }
+      className={`${
+        mobileLayout
+          ? 'text-[26px] sm:text-[32px] mb-5 px-2 py-2'
+          : 'text-[28px] lg:text-[34px] xl:text-[38px] mb-6 px-4 py-2.5 -mx-4'
+      } font-bold tracking-[-0.025em] leading-[1.24] text-white break-normal cursor-pointer select-none rounded-2xl [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        isOpposite ? 'w-fit max-w-[85%] ml-auto text-right' : 'w-full text-left'
+      }`}
+      title={`Jump to ${formatLyricTime(item.time)}`}
+    >
+      {/* Lead Vocal Line */}
+      {leadWords.length > 0 ? (
+        <span>
+          {leadWords.map((word, wIdx) => (
+            <React.Fragment key={wIdx}>
+              <span className="inline-block whitespace-nowrap">
+                {word.syllables.map((syl, sylIdx) => {
+                  const effectiveEnd = syl.endTime > syl.startTime ? syl.endTime : syl.startTime + 0.2;
+                  const isSylActive = isActive && animTime >= syl.startTime && animTime < effectiveEnd;
+                  const isSylPast = isPast || (isActive && animTime >= effectiveEnd);
+
+                  const hasTrailingSpace = syl.text.endsWith(' ');
+                  const displayText = hasTrailingSpace ? syl.text.slice(0, -1) : syl.text;
+
+                  return (
+                    <span
+                      key={sylIdx}
+                      style={{
+                        transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
+                        textShadow: isSylActive
+                          ? '0 0 10px rgba(255, 255, 255, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35)'
+                          : isSylPast
+                          ? '0 0 5px rgba(255, 255, 255, 0.2)'
+                          : 'none',
+                      }}
+                      className={`inline-block transition-all duration-150 ease-out ${
+                        !isActive
+                          ? 'text-white scale-100 translate-y-0'
+                          : isSylActive
+                          ? 'text-white opacity-100 scale-[1.025] -translate-y-[1.5px]'
+                          : isSylPast
+                          ? 'text-white opacity-100 scale-[1.01] -translate-y-[0.75px]'
+                          : 'text-white/35 scale-100 translate-y-0'
+                      }`}
+                    >
+                      {displayText}
+                    </span>
+                  );
+                })}
+              </span>
+              {word.trailingSpace ? ' ' : null}
+            </React.Fragment>
+          ))}
+        </span>
+      ) : item.text ? (
+        <span>{item.text}</span>
+      ) : null}
+
+      {/* Background Vocals (e.g. "What did I do?") */}
+      {item.background && item.background.length > 0 && (
+        <div className={`mt-1.5 flex flex-col ${isOpposite ? 'items-end' : 'items-start'}`}>
+          {item.background.map((bg) => {
+            const isBgActive = animTime >= bg.time && (bg.endTime ? animTime <= bg.endTime : true);
+
+            return (
+              <span
+                key={bg.id}
+                className={`text-[0.58em] font-medium tracking-normal transition-all duration-200 block ${
+                  isBgActive
+                    ? 'text-white opacity-95'
+                    : 'text-white/40 opacity-70'
+                }`}
+              >
+                {bg.syllables && bg.syllables.length > 0 ? (
+                  groupSyllablesIntoWords(bg.syllables).map((word, wIdx) => (
+                    <React.Fragment key={wIdx}>
+                      <span className="inline-block whitespace-nowrap">
+                        {word.syllables.map((syl, sIdx) => {
+                          const effectiveEnd = syl.endTime > syl.startTime ? syl.endTime : syl.startTime + 0.2;
+                          const isSylActive = animTime >= syl.startTime && animTime < effectiveEnd;
+                          const isSylPast = animTime >= effectiveEnd;
+
+                          const hasTrailingSpace = syl.text.endsWith(' ');
+                          const displayText = hasTrailingSpace ? syl.text.slice(0, -1) : syl.text;
+
+                          return (
+                            <span
+                              key={sIdx}
+                              style={{
+                                transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
+                                textShadow: isSylActive
+                                  ? '0 0 8px rgba(255, 255, 255, 0.5)'
+                                  : 'none',
+                              }}
+                              className={`inline-block transition-all duration-150 ease-out ${
+                                isSylActive
+                                  ? 'text-white opacity-100 scale-[1.025] -translate-y-[1px]'
+                                  : isSylPast
+                                  ? 'text-white opacity-95 scale-[1.008] -translate-y-[0.5px]'
+                                  : 'text-white/40 scale-100 translate-y-0'
+                              }`}
+                            >
+                              {displayText}
+                            </span>
+                          );
+                        })}
+                      </span>
+                      {word.trailingSpace ? ' ' : null}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  bg.text
+                )}
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+});
+
 interface FullScreenPlayerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -253,7 +525,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     toggleShuffle, 
     toggleCurrentTrackStar,
     audioSettings,
-    updateAudioSettings
+    updateAudioSettings,
+    isLooping,
+    toggleLoop
   } = useAudioPlayer();
   const [showAudioSettings, setShowAudioSettings] = useState(false);
   
@@ -322,7 +596,47 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       }
 
       try {
-        // 1. Prefer structured lyrics from the Navidrome/OpenSubsonic server (songLyrics extension).
+        // 0. Check client cache first (memory & localStorage)
+        const cachedWbw = getCachedWbwLyrics(currentTrack);
+        if (cachedWbw !== undefined) {
+          if (cachedWbw && cachedWbw.length > 0) {
+            if (!cancelled) {
+              setLyrics(cachedWbw);
+              return;
+            }
+          }
+          // If cachedWbw is null, this track was previously verified to have no SpicyLyrics wbw lyrics
+        } else {
+          // 1. First priority: SpicyLyrics API for rich Apple Music word-by-word (syllable) synced lyrics
+          try {
+            const params = new URLSearchParams();
+            if (currentTrack.name) params.set('title', currentTrack.name);
+            if (currentTrack.artist) params.set('artist', currentTrack.artist);
+            if (currentTrack.album) params.set('album', currentTrack.album);
+            if (currentTrack.duration) params.set('duration', String(currentTrack.duration));
+
+            const res = await fetch(`/api/lyrics?${params.toString()}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data?.Body?.Type === 'Syllable' && Array.isArray(data?.Body?.Content)) {
+                const spicyItems = buildAppleLyricsFromSpicy(data.Body.Content);
+                if (spicyItems.length > 0) {
+                  setCachedWbwLyrics(currentTrack, spicyItems);
+                  if (!cancelled) {
+                    setLyrics(spicyItems);
+                    return;
+                  }
+                }
+              }
+            } else if (res.status === 404) {
+              setCachedWbwLyrics(currentTrack, null);
+            }
+          } catch (spicyErr) {
+            console.warn('SpicyLyrics fetch failed or bypassed:', spicyErr);
+          }
+        }
+
+        // 2. Second priority: Structured lyrics from Navidrome/OpenSubsonic server
         const api = getNavidromeAPI();
         let lines: LyricLine[] = [];
         if (api) {
@@ -342,7 +656,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
           }
         }
 
-        // 2. Fall back to lrclib.net when the server has no synced lyrics.
+        // 3. Fall back to lrclib.net when neither server nor SpicyLyrics provided lyrics
         if (!lines.some((l) => !isInstrumentalLine(l.text))) {
           const lyricsData = await lrcLibClient.searchTrack(
             currentTrack.artist,
@@ -371,13 +685,15 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     };
   }, [isOpen, currentTrack?.id]);
 
-  // Update current lyric index based on time
+  // Update current lyric index based on time with sync lead offset
   useEffect(() => {
-    const newIndex = getActiveAppleLyricIndex(lyrics, currentTime);
+    const lyricSyncOffset = audioSettings?.lyricsOffset ?? 0.22;
+    const effectiveLyricTime = currentTime + lyricSyncOffset;
+    const newIndex = getActiveAppleLyricIndex(lyrics, effectiveLyricTime);
     if (newIndex !== currentLyricIndex) {
       setCurrentLyricIndex(newIndex);
     }
-  }, [lyrics, currentTime, currentLyricIndex]);
+  }, [lyrics, currentTime, currentLyricIndex, audioSettings?.lyricsOffset]);
 
   // Auto-scroll active lyric smoothly into Apple Music's focal zone (paused briefly during manual wheel/touch scroll)
   useEffect(() => {
@@ -441,6 +757,8 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     if (!isOpen || !currentTrack) return;
 
     const mainAudio = document.querySelector('audio') as HTMLAudioElement | null;
+    let animFrameId: number | null = null;
+
     const syncWithMainPlayer = () => {
       if (document.hidden) return;
       const audio = mainAudio || (document.querySelector('audio') as HTMLAudioElement | null);
@@ -452,7 +770,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       const newVolume = audio.volume;
 
       setIsPlaying((prev) => (prev !== newIsPlaying ? newIsPlaying : prev));
-      setCurrentTime((prev) => (Math.abs(prev - newCurrentTime) >= 0.05 ? newCurrentTime : prev));
+      setCurrentTime((prev) => (Math.abs(prev - newCurrentTime) >= 0.015 ? newCurrentTime : prev));
       setDuration((prev) => (prev !== newDuration ? newDuration : prev));
       setVolume((prev) => (prev !== newVolume ? newVolume : prev));
 
@@ -462,21 +780,46 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       }
     };
 
+    const startRafLoop = () => {
+      if (animFrameId !== null) return;
+      const loop = () => {
+        syncWithMainPlayer();
+        const audio = mainAudio || (document.querySelector('audio') as HTMLAudioElement | null);
+        if (audio && !audio.paused && !document.hidden) {
+          animFrameId = requestAnimationFrame(loop);
+        } else {
+          animFrameId = null;
+        }
+      };
+      animFrameId = requestAnimationFrame(loop);
+    };
+
+    const stopRafLoop = () => {
+      if (animFrameId !== null) {
+        cancelAnimationFrame(animFrameId);
+        animFrameId = null;
+      }
+    };
+
     syncWithMainPlayer();
     if (mainAudio) {
-      mainAudio.addEventListener('play', syncWithMainPlayer);
-      mainAudio.addEventListener('pause', syncWithMainPlayer);
+      if (!mainAudio.paused) startRafLoop();
+      mainAudio.addEventListener('play', startRafLoop);
+      mainAudio.addEventListener('pause', stopRafLoop);
+      mainAudio.addEventListener('timeupdate', syncWithMainPlayer);
       mainAudio.addEventListener('seeked', syncWithMainPlayer);
       mainAudio.addEventListener('volumechange', syncWithMainPlayer);
       mainAudio.addEventListener('durationchange', syncWithMainPlayer);
     }
-    const interval = setInterval(syncWithMainPlayer, 200);
+    const interval = setInterval(syncWithMainPlayer, 250);
 
     return () => {
       clearInterval(interval);
+      stopRafLoop();
       if (mainAudio) {
-        mainAudio.removeEventListener('play', syncWithMainPlayer);
-        mainAudio.removeEventListener('pause', syncWithMainPlayer);
+        mainAudio.removeEventListener('play', startRafLoop);
+        mainAudio.removeEventListener('pause', stopRafLoop);
+        mainAudio.removeEventListener('timeupdate', syncWithMainPlayer);
         mainAudio.removeEventListener('seeked', syncWithMainPlayer);
         mainAudio.removeEventListener('volumechange', syncWithMainPlayer);
         mainAudio.removeEventListener('durationchange', syncWithMainPlayer);
@@ -618,7 +961,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     disabled: !isOpen || !currentTrack // Only active when fullscreen is open
   });
 
-  const handleLyricClick = (time: number) => {
+  const handleLyricClick = useCallback((time: number) => {
     const mainAudio = document.querySelector('audio') as HTMLAudioElement;
     if (!mainAudio) return;
 
@@ -639,7 +982,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       const newProgress = (time / duration) * 100;
       setProgress(newProgress);
     }
-  };
+  }, [duration]);
 
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '0:00';
@@ -648,98 +991,42 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const lyricSyncOffset = audioSettings?.lyricsOffset ?? 0.22;
+  const effectiveLyricTime = currentTime + lyricSyncOffset;
+
   const renderAppleLyricsList = (mobileLayout: boolean) => (
     <div
       className={
         mobileLayout
-          ? 'pt-[20vh] pb-[48vh] px-3 sm:px-5 max-w-2xl'
+          ? 'pt-[20vh] pb-[48vh] px-3 sm:px-5 max-w-2xl w-full overflow-x-hidden'
           : 'pt-[26vh] pb-[52vh] pl-6 pr-8 lg:pl-10 lg:pr-14 max-w-3xl'
       }
     >
       {lyrics.map((item, index) => {
         const isActive = index === currentLyricIndex;
-
-        if (item.isInterlude) {
-          return (
-            <div
-              key={item.id}
-              data-lyric-index={index}
-              style={{
-                display: 'grid',
-                gridTemplateRows: isActive ? '1fr' : '0fr',
-                opacity: isActive ? 1 : 0,
-                marginBottom: isActive ? '1.25rem' : '0px',
-                transition:
-                  'grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease, margin-bottom 420ms cubic-bezier(0.22, 1, 0.36, 1)',
-              }}
-            >
-              <div className="overflow-hidden">
-                <AppleInterludeDots
-                  startTime={item.time}
-                  endTime={item.endTime}
-                  currentTime={currentTime}
-                  isPlaying={isPlaying}
-                  onClick={() => handleLyricClick(item.endTime ?? item.time)}
-                />
-              </div>
-            </div>
-          );
-        }
-
         const hasActive = currentLyricIndex >= 0;
         const dist = hasActive ? Math.abs(index - currentLyricIndex) : index + 1;
         const isPast = hasActive && index < currentLyricIndex;
 
-        let lineOpacity = 1;
-        let lineBlur = 0;
-
-        if (!isActive) {
-          if (isUserScrollingLyrics) {
-            lineOpacity = isPast ? 0.52 : 0.68;
-            lineBlur = 0;
-          } else if (!hasActive) {
-            lineOpacity = index === 0 ? 0.55 : index === 1 ? 0.42 : index === 2 ? 0.32 : 0.24;
-            lineBlur = index === 0 ? 0.6 : index === 1 ? 1.4 : index === 2 ? 2.2 : 3.2;
-          } else if (dist === 1) {
-            lineOpacity = isPast ? 0.36 : 0.48;
-            lineBlur = 1.3;
-          } else if (dist === 2) {
-            lineOpacity = isPast ? 0.28 : 0.38;
-            lineBlur = 2.3;
-          } else if (dist === 3) {
-            lineOpacity = isPast ? 0.22 : 0.30;
-            lineBlur = 2.9;
-          } else {
-            lineOpacity = isPast ? 0.16 : 0.22;
-            lineBlur = 3.7;
-          }
-        }
+        // ONLY pass live animation time to the active line or interlude
+        // Inactive lines skip redundant DOM reconciliation every frame!
+        const timeForAnimation = (isActive || item.isInterlude) ? effectiveLyricTime : null;
 
         return (
-          <div
+          <AppleLyricLineItem
             key={item.id}
-            data-lyric-index={index}
-            onClick={() => handleLyricClick(item.time)}
-            style={
-              {
-                '--lyric-opacity': lineOpacity,
-                '--lyric-blur': `${lineBlur}px`,
-                transform: isActive ? 'scale(1.02) translateZ(0)' : 'scale(1) translateZ(0)',
-                transformOrigin: 'left center',
-                textShadow: isActive
-                  ? '0 4px 28px rgba(255, 255, 255, 0.22), 0 2px 12px rgba(0, 0, 0, 0.28)'
-                  : 'none',
-              } as React.CSSProperties
-            }
-            className={`${
-              mobileLayout
-                ? 'text-[26px] sm:text-[32px] mb-5'
-                : 'text-[28px] lg:text-[34px] xl:text-[38px] mb-6'
-            } font-bold tracking-[-0.025em] leading-[1.22] text-white break-words cursor-pointer select-none rounded-2xl px-4 py-2.5 -mx-4 [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]`}
-            title={`Jump to ${formatTime(item.time)}`}
-          >
-            {item.text}
-          </div>
+            item={item}
+            index={index}
+            isActive={isActive}
+            isPast={isPast}
+            dist={dist}
+            hasActive={hasActive}
+            isUserScrolling={isUserScrollingLyrics}
+            timeForAnimation={timeForAnimation}
+            isPlaying={isPlaying}
+            mobileLayout={mobileLayout}
+            onLyricClick={handleLyricClick}
+          />
         );
       })}
     </div>
@@ -945,16 +1232,6 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                       >
                         {currentTrack.artist}
                       </Link>
-                      {currentTrack.album && (
-                        <Link 
-                          href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}  
-                          onClick={() => onClose()}
-                          className="text-base text-foreground/60 line-clamp-1 cursor-pointer hover:underline hover:text-white transition-colors block text-left"
-                          title={`Go to album: ${currentTrack.album}`}
-                        >
-                          {currentTrack.album}
-                        </Link>
-                      )}
                     </div>
 
                     {/* Progress */}
@@ -970,7 +1247,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                     </div>
 
                     {/* Controls */}
-                    <div className="flex items-center gap-6 mb-4 shrink-0">
+                    <div className="flex items-center gap-6 mb-3 shrink-0">
                       <button
                         onClick={toggleShuffle}
                         className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors ${
@@ -1004,42 +1281,50 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
                       </button>
 
                       <button
-                        onMouseEnter={() => setShowVolumeSlider(true)}
-                        className="p-2 hover:bg-gray-700/50 rounded-full transition-colors">
-                        {volume === 0 ? (
-                          <FaVolumeXmark className="w-5 h-5" />
-                        ) : (
-                          <FaVolumeHigh className="w-5 h-5" />
-                        )}
+                        onClick={toggleLoop}
+                        className={`p-2 hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer ${
+                          isLooping ? 'text-primary bg-primary/20' : 'text-gray-400'
+                        }`}
+                        title={isLooping ? 'Repeat On' : 'Repeat Off'}
+                        aria-label={isLooping ? 'Repeat On' : 'Repeat Off'}
+                      >
+                        <FaRepeat className="w-5 h-5" />
                       </button>
                     </div>
 
-                    {/* Volume Slider */}
-                    {showVolumeSlider && (
-                      <div 
-                        className="w-32 mb-4"
-                        onMouseLeave={() => setShowVolumeSlider(false)}
-                      >
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={volume * 100}
-                          onChange={handleVolumeChange}
-                          className="w-full accent-foreground"
-                        />
-                      </div>
-                    )}
+                    {/* Volume Slider - always visible below controls */}
+                    <div className="w-full max-w-[280px] flex items-center gap-3 px-2 mb-2 shrink-0">
+                      <FaVolumeLow className="w-4 h-4 text-white/50 shrink-0" />
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={volume * 100}
+                        onChange={handleVolumeChange}
+                        className="w-full accent-primary h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer"
+                        aria-label="Volume"
+                      />
+                      <FaVolumeHigh className="w-4 h-4 text-white/50 shrink-0" />
+                    </div>
                   </motion.div>
                 )}
 
                 {activeTab === 'lyrics' && lyrics.length > 0 && (
-                  <motion.div key="tab-lyrics" className="h-full flex flex-col px-4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} transition={{ duration: 0.2 }}>
+                  <motion.div 
+                    key="tab-lyrics" 
+                    className="h-full flex flex-col px-4 w-full overflow-x-hidden" 
+                    style={{ touchAction: 'pan-y' }}
+                    initial={{ x: 20, opacity: 0 }} 
+                    animate={{ x: 0, opacity: 1 }} 
+                    exit={{ x: -20, opacity: 0 }} 
+                    transition={{ duration: 0.2 }}
+                  >
                     <div
                       ref={lyricsRef}
                       onWheel={handleLyricsUserScroll}
                       onTouchMove={handleLyricsUserScroll}
-                      className="apple-lyrics-scroll apple-lyrics-mask flex-1 overflow-y-auto"
+                      className="apple-lyrics-scroll apple-lyrics-mask flex-1 overflow-y-auto overflow-x-hidden w-full select-none"
+                      style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}
                     >
                       {renderAppleLyricsList(true)}
                     </div>

@@ -28,6 +28,7 @@ interface AudioSettings {
   equalizer: string;
   replayGainEnabled: boolean;
   gaplessPlayback: boolean;
+  lyricsOffset?: number; // In seconds, e.g. 0.22 (220ms lead)
 }
 
 const MAX_HISTORY = 100;
@@ -119,6 +120,9 @@ interface AudioPlayerContextProps {
   isMinimized: boolean;
   setIsMinimized: React.Dispatch<React.SetStateAction<boolean>>;
   toggleMinimized: () => void;
+  // Loop / Repeat state
+  isLooping: boolean;
+  toggleLoop: () => void;
 }
 
 export interface AudioPlayerActionsContextProps {
@@ -144,7 +148,8 @@ export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   crossfadeDuration: 3,
   equalizer: 'normal',
   replayGainEnabled: true,
-  gaplessPlayback: true
+  gaplessPlayback: true,
+  lyricsOffset: 0.22,
 };
 
 export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -181,6 +186,35 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const toggleMinimized = useCallback(() => {
     handleSetIsMinimized((prev) => !prev);
   }, [handleSetIsMinimized]);
+
+  const [isLooping, setIsLooping] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('player-loop');
+      if (saved !== null) {
+        setIsLooping(saved === 'true');
+        const audio = document.querySelector('audio');
+        if (audio) {
+          audio.loop = saved === 'true';
+        }
+      }
+    } catch {}
+  }, []);
+
+  const toggleLoop = useCallback(() => {
+    setIsLooping((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('player-loop', String(next));
+      } catch {}
+      const audio = document.querySelector('audio');
+      if (audio) {
+        audio.loop = next;
+      }
+      return next;
+    });
+  }, []);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentTrackRef = useRef<Track | null>(null);
@@ -263,9 +297,11 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (savedSettings) {
         try {
           const settings = JSON.parse(savedSettings);
-          setAudioSettings(settings);
-          effects.setPreset(settings.equalizer);
-          setEqualizerPreset(settings.equalizer);
+          setAudioSettings({ ...DEFAULT_AUDIO_SETTINGS, ...settings });
+          if (settings.equalizer) {
+            effects.setPreset(settings.equalizer);
+            setEqualizerPreset(settings.equalizer);
+          }
         } catch (error) {
           console.error('Failed to load audio settings:', error);
         }
@@ -962,6 +998,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     isMinimized,
     setIsMinimized: handleSetIsMinimized,
     toggleMinimized,
+    isLooping,
+    toggleLoop,
   }), [
     currentTrack,
     playTrack,
@@ -1003,6 +1041,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     isMinimized,
     handleSetIsMinimized,
     toggleMinimized,
+    isLooping,
+    toggleLoop,
   ]);
 
   return (

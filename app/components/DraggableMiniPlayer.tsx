@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -310,12 +310,46 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Dynamic accent color derived from dominantColor for active buttons
+  const buttonAccent = useMemo(() => {
+    if (!dominantColor) {
+      return {
+        color: '#22d3ee',
+        glow: 'rgba(34, 211, 238, 0.55)',
+      };
+    }
+    const match = dominantColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (!match) {
+      return { color: dominantColor, glow: dominantColor };
+    }
+    let r = parseInt(match[1], 10);
+    let g = parseInt(match[2], 10);
+    let b = parseInt(match[3], 10);
+
+    // Boost luminance and saturation so active state shines vividly on the tinted dock background
+    const max = Math.max(r, g, b);
+    if (max > 0) {
+      const scale = Math.min(255 / max, 1.45);
+      r = Math.min(255, Math.round(r * scale + 35));
+      g = Math.min(255, Math.round(g * scale + 35));
+      b = Math.min(255, Math.round(b * scale + 35));
+    }
+    return {
+      color: `rgb(${r}, ${g}, ${b})`,
+      glow: `rgba(${r}, ${g}, ${b}, 0.65)`,
+    };
+  }, [dominantColor]);
+
   const handleDoubleClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest('button') || target.closest('a') || target.closest('input')) {
       return;
     }
-    handleExpand();
+    if (onOpenFullScreen) {
+      onOpenFullScreen();
+    } else {
+      handleExpand();
+    }
   };
 
   if (!currentTrack) return null;
@@ -325,11 +359,11 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
 
   return (
     <div 
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 select-none w-[calc(100%-2rem)] max-w-[680px]"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 select-none w-[calc(100%-2rem)] max-w-[720px]"
       onDoubleClick={handleDoubleClick}
     >
       <div 
-        className="relative overflow-visible backdrop-blur-2xl border rounded-full shadow-2xl transition-all duration-300 px-4 h-[52px] flex items-center justify-between gap-2.5"
+        className="relative overflow-visible backdrop-blur-2xl border rounded-full shadow-2xl transition-all duration-300 px-4 sm:px-5 h-14 flex items-center justify-between gap-3"
         style={{
           backgroundColor: dominantColor 
             ? `${dominantColor.replace('rgb', 'rgba').replace(')', ', 0.65)')}` 
@@ -343,17 +377,23 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
         }}
       >
         {/* Left Side: Playback Controls */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          {/* Shuffle Button: Cyan when on, muted when off */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* Shuffle Button: Dominant cover accent color when on */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               toggleShuffle();
             }}
-            className={`p-1.5 rounded-full cursor-pointer transition-colors active:scale-95 ${
-              shuffle 
-                ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(34,211,238,0.55)]' 
-                : 'text-white/60 hover:text-white'
+            style={
+              shuffle
+                ? {
+                    color: buttonAccent.color,
+                    filter: `drop-shadow(0 0 6px ${buttonAccent.glow})`,
+                  }
+                : undefined
+            }
+            className={`p-2 rounded-full cursor-pointer transition-colors active:scale-95 ${
+              shuffle ? '' : 'text-white/60 hover:text-white'
             }`}
             title={shuffle ? 'Shuffle On' : 'Shuffle Off'}
           >
@@ -366,7 +406,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               e.stopPropagation();
               playPreviousTrack();
             }}
-            className="p-1.5 text-white/80 hover:text-white active:scale-95 transition-colors cursor-pointer"
+            className="p-2 text-white/80 hover:text-white active:scale-95 transition-colors cursor-pointer"
             title="Previous Track"
           >
             <FaBackwardStep className="w-3.5 h-3.5" />
@@ -375,7 +415,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
           {/* Play / Pause Button */}
           <button
             onClick={handleTogglePlayPause}
-            className="p-1.5 text-white hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-transform cursor-pointer hover:bg-white/10"
             title={isPlayingState ? 'Pause' : 'Play'}
           >
             {isPlayingState ? (
@@ -391,22 +431,28 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               e.stopPropagation();
               playNextTrack();
             }}
-            className="p-1.5 text-white/80 hover:text-white active:scale-95 transition-colors cursor-pointer"
+            className="p-2 text-white/80 hover:text-white active:scale-95 transition-colors cursor-pointer"
             title="Next Track"
           >
             <FaForwardStep className="w-3.5 h-3.5" />
           </button>
 
-          {/* Loop / Repeat Button: Cyan when on, muted when off */}
+          {/* Loop / Repeat Button: Dominant cover accent color when on */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               toggleLoop();
             }}
-            className={`p-1.5 rounded-full cursor-pointer transition-colors active:scale-95 ${
-              isLooping 
-                ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(34,211,238,0.55)]' 
-                : 'text-white/60 hover:text-white'
+            style={
+              isLooping
+                ? {
+                    color: buttonAccent.color,
+                    filter: `drop-shadow(0 0 6px ${buttonAccent.glow})`,
+                  }
+                : undefined
+            }
+            className={`p-2 rounded-full cursor-pointer transition-colors active:scale-95 ${
+              isLooping ? '' : 'text-white/60 hover:text-white'
             }`}
             title={isLooping ? 'Repeat On' : 'Repeat Off'}
           >
@@ -415,7 +461,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
         </div>
 
         {/* Center: Track Display & Interactive Apple Music Scrubber */}
-        <div className="flex-1 min-w-0 max-w-[420px] mx-1 relative h-11 flex items-center px-1.5">
+        <div className="flex-1 min-w-0 max-w-[430px] mx-1 relative h-12 flex items-center px-1.5">
           {/* Main Info Layer: Artwork, Title/Artist Links, and Ellipsis (...) button
               Unhovered: crystal-clear, comfortable full-height sizing.
               When scrubber is hovered/dragged: softly blurs so timestamps can be read easily. */}
@@ -426,11 +472,11 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
             }}
           >
             {/* Artwork + Title/Artist block */}
-            <div className={`flex items-center gap-2.5 min-w-0 flex-1 transition-all duration-200 ${
+            <div className={`flex items-center gap-3 min-w-0 flex-1 transition-all duration-200 ${
               isScrubberActive ? 'filter blur-[2px] opacity-30 select-none pointer-events-none' : 'opacity-100'
             }`}>
               <div 
-                className="group/cover relative w-8 h-8 rounded-md overflow-hidden shrink-0 shadow-sm cursor-pointer transition-transform duration-200 hover:scale-110 active:scale-95"
+                className="group/cover relative w-10 h-10 rounded-lg overflow-hidden shrink-0 shadow-sm cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (onOpenFullScreen) {
@@ -451,12 +497,12 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
                   alt={currentTrack.name}
                   fill
                   className="object-cover"
-                  sizes="32px"
+                  sizes="40px"
                   priority
                 />
                 {/* Diagonal expand icon overlay on hover */}
                 <div className="absolute inset-0 bg-black/45 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                  <svg className="w-3.5 h-3.5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-4 h-4 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="9 3 3 3 3 9" />
                     <polyline points="15 21 21 21 21 15" />
                     <line x1="3" y1="3" x2="10" y2="10" />
@@ -469,7 +515,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
                 <Link
                   href={currentTrack.albumId ? `/album/${currentTrack.albumId}` : '#'}
                   onClick={(e) => e.stopPropagation()}
-                  className="font-semibold text-[13px] text-white truncate leading-tight block hover:underline cursor-pointer"
+                  className="font-semibold text-sm text-white truncate leading-tight block hover:underline cursor-pointer"
                   title={`Go to album: ${currentTrack.album || currentTrack.name}`}
                 >
                   {currentTrack.name}
@@ -491,7 +537,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
                 e.stopPropagation();
                 toggleCurrentTrackStar();
               }}
-              className={`p-1.5 transition-all duration-200 shrink-0 cursor-pointer ${
+              className={`p-2 transition-all duration-200 shrink-0 cursor-pointer ${
                 isScrubberActive ? 'filter blur-[2px] opacity-30 select-none pointer-events-none' : 'opacity-100'
               } ${
                 currentTrack.starred 
@@ -509,7 +555,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
           </div>
 
           {/* Hover Time Labels Overlay: Positioned directly above the scrubber line */}
-          <div className={`absolute inset-x-1.5 bottom-[9px] flex items-end justify-between pointer-events-none transition-opacity duration-200 z-10 ${
+          <div className={`absolute inset-x-2 bottom-[11px] flex items-end justify-between pointer-events-none transition-opacity duration-200 z-10 ${
             isScrubberActive ? 'opacity-100' : 'opacity-0'
           }`}>
             <span className="text-[11px] font-medium text-white tabular-nums leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] select-none">
@@ -526,7 +572,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               Drag enabled across the full track width. */}
           <div 
             ref={scrubberRef}
-            className="absolute bottom-0 inset-x-1.5 h-3.5 cursor-pointer flex items-end z-20 group/scrubber"
+            className="absolute bottom-0 inset-x-2 h-4 cursor-pointer flex items-end z-20 group/scrubber"
             onMouseEnter={() => setIsHoveringScrubber(true)}
             onMouseLeave={() => {
               if (!isDragging) setIsHoveringScrubber(false);
@@ -549,7 +595,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
           </div>
         </div>
 
-        {/* Right Side: Queue, Volume, Expand */}
+        {/* Right Side: Queue & Volume */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Queue Button */}
           <button
@@ -557,7 +603,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               e.stopPropagation();
               router.push('/queue');
             }}
-            className="p-1.5 text-white/60 hover:text-white transition-colors cursor-pointer"
+            className="p-2 text-white/60 hover:text-white transition-colors cursor-pointer"
             title="Queue"
           >
             <FaListUl className="w-3.5 h-3.5" />
@@ -603,7 +649,7 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
                 e.stopPropagation();
                 setShowVolumeSlider((prev) => !prev);
               }}
-              className="p-1.5 text-white/70 hover:text-white transition-colors cursor-pointer"
+              className="p-2 text-white/70 hover:text-white transition-colors cursor-pointer"
               title="Volume"
             >
               {volume === 0 ? (
@@ -615,18 +661,6 @@ export const DraggableMiniPlayer: React.FC<DraggableMiniPlayerProps> = ({
               )}
             </button>
           </div>
-
-          {/* Expand to Normal Player Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleExpand();
-            }}
-            className="p-1.5 text-white/60 hover:text-white transition-colors cursor-pointer"
-            title="Expand player"
-          >
-            <FaExpand className="w-3 h-3" />
-          </button>
         </div>
       </div>
     </div>
