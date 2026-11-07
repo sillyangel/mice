@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { unprotectSensitiveData } from '@/lib/secure-storage';
 
 interface LastFmCredentials {
   apiKey: string;
@@ -38,11 +39,7 @@ export function useStandaloneLastFm() {
     const stored = localStorage.getItem('lastfm-credentials');
     if (!stored) return null;
     
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return null;
-    }
+    return unprotectSensitiveData<LastFmCredentials>(stored);
   };
 
   const isEnabled = () => {

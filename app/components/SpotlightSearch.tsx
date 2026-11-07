@@ -31,6 +31,7 @@ import { lastFmAPI } from '@/lib/lastfm-api';
 import { Song, Album, Artist, getNavidromeAPI } from '@/lib/navidrome';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import Image from 'next/image';
+import { stripHtmlTags } from '@/lib/utils';
 
 interface SpotlightSearchProps {
   isOpen: boolean;
@@ -570,7 +571,7 @@ export function SpotlightSearch({ isOpen, onClose }: SpotlightSearchProps) {
                           <div>
                             <h5 className="font-medium mb-2">Biography</h5>
                             <p className="text-sm text-muted-foreground leading-relaxed">
-                              {lastFmDetails.bio.summary.replace(/<[^>]*>/g, '').split('\n')[0]}
+                              {stripHtmlTags(lastFmDetails.bio.summary).split('\n')[0]}
                             </p>
                           </div>
                         )}

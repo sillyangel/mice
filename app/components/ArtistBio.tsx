@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { lastFmAPI } from '@/lib/lastfm-api';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { stripHtmlTags } from '@/lib/utils';
 
 interface ArtistBioProps {
   artistName: string;
@@ -23,8 +24,7 @@ export function ArtistBio({ artistName }: ArtistBioProps) {
         const artistInfo = await lastFmAPI.getArtistInfo(artistName);
         if (artistInfo?.bio?.summary) {
           // Clean up the bio text (remove HTML tags and Last.fm links)
-          let cleanBio = artistInfo.bio.summary
-            .replace(/<[^>]*>/g, '') // Remove HTML tags
+          let cleanBio = stripHtmlTags(artistInfo.bio.summary)
             .replace(/\s+/g, ' ') // Normalize whitespace
             .trim();
           

@@ -18,6 +18,7 @@ import { AutoTaggingSettings } from '@/app/components/AutoTaggingSettings';
 import { FaServer, FaUser, FaLock, FaCheck, FaTimes, FaLastfm, FaCog, FaTags } from 'react-icons/fa';
 import { Settings, ExternalLink, Tag } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { protectSensitiveData, unprotectSensitiveData } from '@/lib/secure-storage';
 
 const SettingsPage = () => {
     const { theme, setTheme, mode, setMode } = useTheme();
@@ -119,16 +120,19 @@ const SettingsPage = () => {
         // Load Last.fm credentials
         const storedCredentials = localStorage.getItem('lastfm-credentials');
         if (storedCredentials) {
-            try {
-                const credentials = JSON.parse(storedCredentials);
+            const credentials = unprotectSensitiveData<{
+                apiKey?: string;
+                apiSecret?: string;
+                sessionKey?: string;
+                username?: string;
+            }>(storedCredentials);
+            if (credentials) {
                 setLastFmCredentials({
                     apiKey: credentials.apiKey || '',
                     apiSecret: credentials.apiSecret || '',
                     sessionKey: credentials.sessionKey || '',
                     username: credentials.username || ''
                 });
-            } catch (error) {
-                console.error('Failed to parse stored Last.fm credentials:', error);
             }
         }
     }, [config.serverUrl, config.username, config.password]);
@@ -392,7 +396,7 @@ const SettingsPage = () => {
         }
 
         if (isClient) {
-            localStorage.setItem('lastfm-credentials', JSON.stringify(lastFmCredentials));
+            localStorage.setItem('lastfm-credentials', protectSensitiveData(lastFmCredentials));
         }
         toast({
             title: "Credentials Saved",
@@ -416,7 +420,7 @@ const SettingsPage = () => {
             
             setLastFmCredentials(updatedCredentials);
             if (isClient) {
-                localStorage.setItem('lastfm-credentials', JSON.stringify(updatedCredentials));
+                localStorage.setItem('lastfm-credentials', protectSensitiveData(updatedCredentials));
             }
             
             toast({

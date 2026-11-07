@@ -57,6 +57,8 @@ interface LastFmTopTracks {
   }>;
 }
 
+import { unprotectSensitiveData } from '@/lib/secure-storage';
+
 export class LastFmAPI {
   private baseUrl = 'https://ws.audioscrobbler.com/2.0/';
   
@@ -66,11 +68,7 @@ export class LastFmAPI {
     const stored = localStorage.getItem('lastfm-credentials');
     if (!stored) return null;
     
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return null;
-    }
+    return unprotectSensitiveData<LastFmCredentials>(stored);
   }
 
   private async makeRequest(method: string, params: Record<string, string>): Promise<Record<string, unknown>> {
