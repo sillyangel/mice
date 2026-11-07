@@ -61,6 +61,33 @@ export function AudioSettingsDialog({ isOpen, onClose }: AudioSettingsDialogProp
             />
           </div>
 
+          {/* Lyrics Sync Offset */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>
+                Lyrics Sync Offset ({Math.round((audioSettings.lyricsOffset ?? 0.22) * 1000)}ms)
+              </Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs text-muted-foreground hover:text-white"
+                onClick={() => updateAudioSettings({ lyricsOffset: 0.22 })}
+              >
+                Reset (220ms)
+              </Button>
+            </div>
+            <Slider
+              value={[audioSettings.lyricsOffset ?? 0.22]}
+              onValueChange={([val]) => updateAudioSettings({ lyricsOffset: val })}
+              min={-0.3}
+              max={0.8}
+              step={0.02}
+            />
+            <p className="text-xs text-muted-foreground">
+              Advances or delays lyrics to sync with vocal attacks and compensate for audio output latency.
+            </p>
+          </div>
+
           {/* ReplayGain */}
           <div className="flex items-center justify-between">
             <Label>ReplayGain</Label>

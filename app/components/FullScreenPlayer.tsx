@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -195,6 +195,222 @@ const AppleInterludeDots: React.FC<{
     </motion.div>
   );
 };
+
+const formatLyricTime = (seconds: number) => {
+  if (!seconds || isNaN(seconds)) return '0:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+interface AppleLyricLineItemProps {
+  item: LyricDisplayItem;
+  index: number;
+  isActive: boolean;
+  isPast: boolean;
+  dist: number;
+  hasActive: boolean;
+  isUserScrolling: boolean;
+  timeForAnimation: number | null;
+  isPlaying: boolean;
+  mobileLayout: boolean;
+  onLyricClick: (time: number) => void;
+}
+
+const AppleLyricLineItem = React.memo(function AppleLyricLineItem({
+  item,
+  index,
+  isActive,
+  isPast,
+  dist,
+  hasActive,
+  isUserScrolling,
+  timeForAnimation,
+  isPlaying,
+  mobileLayout,
+  onLyricClick,
+}: AppleLyricLineItemProps) {
+  if (item.isInterlude) {
+    return (
+      <div
+        data-lyric-index={index}
+        style={{
+          display: 'grid',
+          gridTemplateRows: isActive ? '1fr' : '0fr',
+          opacity: isActive ? 1 : 0,
+          marginBottom: isActive ? '1.25rem' : '0px',
+          transition:
+            'grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease, margin-bottom 420ms cubic-bezier(0.22, 1, 0.36, 1)',
+        }}
+      >
+        <div className="overflow-hidden">
+          <AppleInterludeDots
+            startTime={item.time}
+            endTime={item.endTime}
+            currentTime={timeForAnimation ?? item.time}
+            isPlaying={isPlaying}
+            onClick={() => onLyricClick(item.endTime ?? item.time)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  let lineOpacity = 1;
+  let lineBlur = 0;
+
+  if (!isActive) {
+    if (isUserScrolling) {
+      lineOpacity = isPast ? 0.52 : 0.68;
+      lineBlur = 0;
+    } else if (!hasActive) {
+      lineOpacity = index === 0 ? 0.55 : index === 1 ? 0.42 : index === 2 ? 0.32 : 0.24;
+      lineBlur = index === 0 ? 0.6 : index === 1 ? 1.4 : index === 2 ? 2.2 : 3.2;
+    } else if (dist === 1) {
+      lineOpacity = isPast ? 0.36 : 0.48;
+      lineBlur = 1.3;
+    } else if (dist === 2) {
+      lineOpacity = isPast ? 0.28 : 0.38;
+      lineBlur = 2.3;
+    } else if (dist === 3) {
+      lineOpacity = isPast ? 0.22 : 0.30;
+      lineBlur = 2.9;
+    } else {
+      lineOpacity = isPast ? 0.16 : 0.22;
+      lineBlur = 3.7;
+    }
+  }
+
+  const isOpposite = !!item.oppositeAligned;
+  const animTime = timeForAnimation ?? (isPast ? (item.endTime ?? item.time + 10) : item.time - 1);
+
+  return (
+    <div
+      data-lyric-index={index}
+      onClick={() => onLyricClick(item.time)}
+      style={
+        {
+          '--lyric-opacity': lineOpacity,
+          '--lyric-blur': `${lineBlur}px`,
+          transform: isActive ? 'scale(1.02) translateZ(0)' : 'scale(1) translateZ(0)',
+          transformOrigin: isOpposite ? 'right center' : 'left center',
+          textAlign: isOpposite ? 'right' : 'left',
+          marginLeft: isOpposite ? 'auto' : undefined,
+          textShadow: isActive
+            ? '0 4px 28px rgba(255, 255, 255, 0.28), 0 2px 14px rgba(0, 0, 0, 0.35)'
+            : 'none',
+        } as React.CSSProperties
+      }
+      className={`${
+        mobileLayout
+          ? 'text-[26px] sm:text-[32px] mb-5'
+          : 'text-[28px] lg:text-[34px] xl:text-[38px] mb-6'
+      } font-bold tracking-[-0.025em] leading-[1.24] text-white break-words cursor-pointer select-none rounded-2xl px-4 py-2.5 -mx-4 [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        isOpposite ? 'w-fit max-w-[85%] ml-auto text-right' : 'w-full text-left'
+      }`}
+      title={`Jump to ${formatLyricTime(item.time)}`}
+    >
+      {/* Lead Vocal Line */}
+      {item.syllables && item.syllables.length > 0 ? (
+        <span>
+          {item.syllables.map((syl, sylIdx) => {
+            const effectiveEnd = syl.endTime > syl.startTime ? syl.endTime : syl.startTime + 0.2;
+            const isSylActive = isActive && animTime >= syl.startTime && animTime < effectiveEnd;
+            const isSylPast = isPast || (isActive && animTime >= effectiveEnd);
+
+            const hasTrailingSpace = syl.text.endsWith(' ');
+            const displayText = hasTrailingSpace ? syl.text.slice(0, -1) : syl.text;
+
+            return (
+              <React.Fragment key={sylIdx}>
+                <span
+                  style={{
+                    transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
+                    textShadow: isSylActive
+                      ? '0 0 10px rgba(255, 255, 255, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35)'
+                      : isSylPast
+                      ? '0 0 5px rgba(255, 255, 255, 0.2)'
+                      : 'none',
+                  }}
+                  className={`inline-block transition-all duration-150 ease-out ${
+                    !isActive
+                      ? 'text-white scale-100 translate-y-0'
+                      : isSylActive
+                      ? 'text-white opacity-100 scale-[1.025] -translate-y-[1.5px]'
+                      : isSylPast
+                      ? 'text-white opacity-100 scale-[1.01] -translate-y-[0.75px]'
+                      : 'text-white/35 scale-100 translate-y-0'
+                  }`}
+                >
+                  {displayText}
+                </span>
+                {hasTrailingSpace ? ' ' : null}
+              </React.Fragment>
+            );
+          })}
+        </span>
+      ) : item.text ? (
+        <span>{item.text}</span>
+      ) : null}
+
+      {/* Background Vocals (e.g. "What did I do?") */}
+      {item.background && item.background.length > 0 && (
+        <div className={`mt-1.5 flex flex-col ${isOpposite ? 'items-end' : 'items-start'}`}>
+          {item.background.map((bg) => {
+            const isBgActive = animTime >= bg.time && (bg.endTime ? animTime <= bg.endTime : true);
+
+            return (
+              <span
+                key={bg.id}
+                className={`text-[0.58em] font-medium tracking-normal transition-all duration-200 block ${
+                  isBgActive
+                    ? 'text-white opacity-95'
+                    : 'text-white/40 opacity-70'
+                }`}
+              >
+                {bg.syllables && bg.syllables.length > 0 ? (
+                  bg.syllables.map((syl, sIdx) => {
+                    const effectiveEnd = syl.endTime > syl.startTime ? syl.endTime : syl.startTime + 0.2;
+                    const isSylActive = animTime >= syl.startTime && animTime < effectiveEnd;
+                    const isSylPast = animTime >= effectiveEnd;
+
+                    const hasTrailingSpace = syl.text.endsWith(' ');
+                    const displayText = hasTrailingSpace ? syl.text.slice(0, -1) : syl.text;
+
+                    return (
+                      <React.Fragment key={sIdx}>
+                        <span
+                          style={{
+                            transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
+                            textShadow: isSylActive
+                              ? '0 0 8px rgba(255, 255, 255, 0.5)'
+                              : 'none',
+                          }}
+                          className={`inline-block transition-all duration-150 ease-out ${
+                            isSylActive
+                              ? 'text-white opacity-100 scale-[1.025] -translate-y-[1px]'
+                              : isSylPast
+                              ? 'text-white opacity-95 scale-[1.008] -translate-y-[0.5px]'
+                              : 'text-white/40 scale-100 translate-y-0'
+                          }`}
+                        >
+                          {displayText}
+                        </span>
+                        {hasTrailingSpace ? ' ' : null}
+                      </React.Fragment>
+                    );
+                  })
+                ) : (
+                  bg.text
+                )}
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+});
 
 interface FullScreenPlayerProps {
   isOpen: boolean;
@@ -414,13 +630,15 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     };
   }, [isOpen, currentTrack?.id]);
 
-  // Update current lyric index based on time
+  // Update current lyric index based on time with sync lead offset
   useEffect(() => {
-    const newIndex = getActiveAppleLyricIndex(lyrics, currentTime);
+    const lyricSyncOffset = audioSettings?.lyricsOffset ?? 0.22;
+    const effectiveLyricTime = currentTime + lyricSyncOffset;
+    const newIndex = getActiveAppleLyricIndex(lyrics, effectiveLyricTime);
     if (newIndex !== currentLyricIndex) {
       setCurrentLyricIndex(newIndex);
     }
-  }, [lyrics, currentTime, currentLyricIndex]);
+  }, [lyrics, currentTime, currentLyricIndex, audioSettings?.lyricsOffset]);
 
   // Auto-scroll active lyric smoothly into Apple Music's focal zone (paused briefly during manual wheel/touch scroll)
   useEffect(() => {
@@ -688,7 +906,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     disabled: !isOpen || !currentTrack // Only active when fullscreen is open
   });
 
-  const handleLyricClick = (time: number) => {
+  const handleLyricClick = useCallback((time: number) => {
     const mainAudio = document.querySelector('audio') as HTMLAudioElement;
     if (!mainAudio) return;
 
@@ -709,7 +927,7 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
       const newProgress = (time / duration) * 100;
       setProgress(newProgress);
     }
-  };
+  }, [duration]);
 
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '0:00';
@@ -717,6 +935,9 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const lyricSyncOffset = audioSettings?.lyricsOffset ?? 0.22;
+  const effectiveLyricTime = currentTime + lyricSyncOffset;
 
   const renderAppleLyricsList = (mobileLayout: boolean) => (
     <div
@@ -728,191 +949,29 @@ export const FullScreenPlayer: React.FC<FullScreenPlayerProps> = ({ isOpen, onCl
     >
       {lyrics.map((item, index) => {
         const isActive = index === currentLyricIndex;
-
-        if (item.isInterlude) {
-          return (
-            <div
-              key={item.id}
-              data-lyric-index={index}
-              style={{
-                display: 'grid',
-                gridTemplateRows: isActive ? '1fr' : '0fr',
-                opacity: isActive ? 1 : 0,
-                marginBottom: isActive ? '1.25rem' : '0px',
-                transition:
-                  'grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease, margin-bottom 420ms cubic-bezier(0.22, 1, 0.36, 1)',
-              }}
-            >
-              <div className="overflow-hidden">
-                <AppleInterludeDots
-                  startTime={item.time}
-                  endTime={item.endTime}
-                  currentTime={currentTime}
-                  isPlaying={isPlaying}
-                  onClick={() => handleLyricClick(item.endTime ?? item.time)}
-                />
-              </div>
-            </div>
-          );
-        }
-
         const hasActive = currentLyricIndex >= 0;
         const dist = hasActive ? Math.abs(index - currentLyricIndex) : index + 1;
         const isPast = hasActive && index < currentLyricIndex;
 
-        let lineOpacity = 1;
-        let lineBlur = 0;
-
-        if (!isActive) {
-          if (isUserScrollingLyrics) {
-            lineOpacity = isPast ? 0.52 : 0.68;
-            lineBlur = 0;
-          } else if (!hasActive) {
-            lineOpacity = index === 0 ? 0.55 : index === 1 ? 0.42 : index === 2 ? 0.32 : 0.24;
-            lineBlur = index === 0 ? 0.6 : index === 1 ? 1.4 : index === 2 ? 2.2 : 3.2;
-          } else if (dist === 1) {
-            lineOpacity = isPast ? 0.36 : 0.48;
-            lineBlur = 1.3;
-          } else if (dist === 2) {
-            lineOpacity = isPast ? 0.28 : 0.38;
-            lineBlur = 2.3;
-          } else if (dist === 3) {
-            lineOpacity = isPast ? 0.22 : 0.30;
-            lineBlur = 2.9;
-          } else {
-            lineOpacity = isPast ? 0.16 : 0.22;
-            lineBlur = 3.7;
-          }
-        }
-
-        const isOpposite = !!item.oppositeAligned;
+        // ONLY pass live animation time to the active line or interlude
+        // Inactive lines skip redundant DOM reconciliation every frame!
+        const timeForAnimation = (isActive || item.isInterlude) ? effectiveLyricTime : null;
 
         return (
-          <div
+          <AppleLyricLineItem
             key={item.id}
-            data-lyric-index={index}
-            onClick={() => handleLyricClick(item.time)}
-            style={
-              {
-                '--lyric-opacity': lineOpacity,
-                '--lyric-blur': `${lineBlur}px`,
-                transform: isActive ? 'scale(1.02) translateZ(0)' : 'scale(1) translateZ(0)',
-                transformOrigin: isOpposite ? 'right center' : 'left center',
-                textAlign: isOpposite ? 'right' : 'left',
-                marginLeft: isOpposite ? 'auto' : undefined,
-                textShadow: isActive
-                  ? '0 4px 28px rgba(255, 255, 255, 0.28), 0 2px 14px rgba(0, 0, 0, 0.35)'
-                  : 'none',
-              } as React.CSSProperties
-            }
-            className={`${
-              mobileLayout
-                ? 'text-[26px] sm:text-[32px] mb-5'
-                : 'text-[28px] lg:text-[34px] xl:text-[38px] mb-6'
-            } font-bold tracking-[-0.025em] leading-[1.24] text-white break-words cursor-pointer select-none rounded-2xl px-4 py-2.5 -mx-4 [opacity:var(--lyric-opacity)] [filter:blur(var(--lyric-blur))] hover:!opacity-95 hover:!blur-0 hover:bg-white/[0.07] active:scale-[0.99] transition-[opacity,transform,filter,background-color,text-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-              isOpposite ? 'w-fit max-w-[85%] ml-auto text-right' : 'w-full text-left'
-            }`}
-            title={`Jump to ${formatTime(item.time)}`}
-          >
-            {/* Lead Vocal Line */}
-            {item.syllables && item.syllables.length > 0 ? (
-              <span>
-                {item.syllables.map((syl, sylIdx) => {
-                  const effectiveEnd = syl.endTime > syl.startTime ? syl.endTime : syl.startTime + 0.2;
-                  const isSylActive = isActive && currentTime >= syl.startTime && currentTime < effectiveEnd;
-                  const isSylPast = isActive && currentTime >= effectiveEnd;
-
-                  const hasTrailingSpace = syl.text.endsWith(' ');
-                  const displayText = hasTrailingSpace ? syl.text.slice(0, -1) : syl.text;
-
-                  return (
-                    <React.Fragment key={sylIdx}>
-                      <span
-                        style={{
-                          transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
-                          textShadow: isSylActive
-                            ? '0 0 10px rgba(255, 255, 255, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35)'
-                            : isSylPast
-                            ? '0 0 5px rgba(255, 255, 255, 0.2)'
-                            : 'none',
-                        }}
-                        className={`inline-block transition-all duration-150 ease-out ${
-                          !isActive
-                            ? 'text-white scale-100 translate-y-0'
-                            : isSylActive
-                            ? 'text-white opacity-100 scale-[1.025] -translate-y-[1.5px]'
-                            : isSylPast
-                            ? 'text-white opacity-100 scale-[1.01] -translate-y-[0.75px]'
-                            : 'text-white/35 scale-100 translate-y-0'
-                        }`}
-                      >
-                        {displayText}
-                      </span>
-                      {hasTrailingSpace ? ' ' : null}
-                    </React.Fragment>
-                  );
-                })}
-              </span>
-            ) : item.text ? (
-              <span>{item.text}</span>
-            ) : null}
-
-            {/* Background Vocals (e.g. "What did I do?") */}
-            {item.background && item.background.length > 0 && (
-              <div className={`mt-1.5 flex flex-col ${isOpposite ? 'items-end' : 'items-start'}`}>
-                {item.background.map((bg) => {
-                  const isBgActive = currentTime >= bg.time && (bg.endTime ? currentTime <= bg.endTime : true);
-
-                  return (
-                    <span
-                      key={bg.id}
-                      className={`text-[0.58em] font-medium tracking-normal transition-all duration-200 block ${
-                        isBgActive
-                          ? 'text-white opacity-95'
-                          : 'text-white/40 opacity-70'
-                      }`}
-                    >
-                      {bg.syllables && bg.syllables.length > 0 ? (
-                        bg.syllables.map((syl, sIdx) => {
-                          const effectiveEnd = syl.endTime > syl.startTime ? syl.endTime : syl.startTime + 0.2;
-                          const isSylActive = currentTime >= syl.startTime && currentTime < effectiveEnd;
-                          const isSylPast = currentTime >= effectiveEnd;
-
-                          const hasTrailingSpace = syl.text.endsWith(' ');
-                          const displayText = hasTrailingSpace ? syl.text.slice(0, -1) : syl.text;
-
-                          return (
-                            <React.Fragment key={sIdx}>
-                              <span
-                                style={{
-                                  transformOrigin: isOpposite ? 'right bottom' : 'left bottom',
-                                  textShadow: isSylActive
-                                    ? '0 0 8px rgba(255, 255, 255, 0.5)'
-                                    : 'none',
-                                }}
-                                className={`inline-block transition-all duration-150 ease-out ${
-                                  isSylActive
-                                    ? 'text-white opacity-100 scale-[1.025] -translate-y-[1px]'
-                                    : isSylPast
-                                    ? 'text-white opacity-95 scale-[1.008] -translate-y-[0.5px]'
-                                    : 'text-white/40 scale-100 translate-y-0'
-                                }`}
-                              >
-                                {displayText}
-                              </span>
-                              {hasTrailingSpace ? ' ' : null}
-                            </React.Fragment>
-                          );
-                        })
-                      ) : (
-                        bg.text
-                      )}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+            item={item}
+            index={index}
+            isActive={isActive}
+            isPast={isPast}
+            dist={dist}
+            hasActive={hasActive}
+            isUserScrolling={isUserScrollingLyrics}
+            timeForAnimation={timeForAnimation}
+            isPlaying={isPlaying}
+            mobileLayout={mobileLayout}
+            onLyricClick={handleLyricClick}
+          />
         );
       })}
     </div>
